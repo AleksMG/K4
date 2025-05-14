@@ -1,118 +1,157 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Vigenère Cipher Cracker</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vigenère Cipher Expert</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #2196F3;
-            --danger: #ff4444;
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --error: #e74c3c;
+            --warning: #f39c12;
+            --success: #2ecc71;
         }
         body {
-            font-family: 'Segoe UI', sans-serif;
-            max-width: 800px;
+            font-family: 'Roboto', sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
-            background: #f8f9fa;
+            background: #f5f7fa;
+            color: #333;
         }
-        .card {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        .container {
+            background: #fff;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2, h3 {
+            color: var(--primary);
+            font-family: 'Roboto Mono', monospace;
         }
         textarea {
             width: 100%;
-            min-height: 120px;
-            padding: 12px;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-family: 'Roboto Mono', monospace;
             resize: vertical;
+            margin: 10px 0;
+            font-size: 14px;
         }
-        .btn {
-            padding: 10px 20px;
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 12px 24px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            transition: 0.2s;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-family: 'Roboto', sans-serif;
         }
         .btn-primary {
-            background: var(--primary);
+            background: var(--secondary);
             color: white;
         }
         .btn-danger {
-            background: var(--danger);
+            background: var(--error);
             color: white;
         }
-        #progress {
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+        #status {
             display: none;
-            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
         }
-        #progressBar {
-            height: 8px;
-            background: #e9ecef;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        #progressFill {
-            width: 0%;
-            height: 100%;
-            background: var(--primary);
-            transition: width 0.3s;
+        .info {
+            background: #eaf2f8;
+            border-left: 4px solid var(--secondary);
+            padding: 10px 15px;
+            margin: 15px 0;
         }
         canvas {
-            margin-top: 20px;
+            margin-top: 25px;
+            max-width: 100%;
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px;
+            }
+            .btn-group {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Vigenère Cipher Cracker</h1>
-
-    <div class="card">
-        <h3>🔒 Ciphertext</h3>
-        <textarea id="ciphertext" placeholder="Enter encrypted text..."></textarea>
-    </div>
-
-    <div class="card">
-        <h3>📝 Known Plaintext</h3>
-        <textarea id="knownText" placeholder="Known text fragment..."></textarea>
-    </div>
-
-    <div class="card">
-        <h3>🔑 Key</h3>
-        <textarea id="key" placeholder="Calculated key..."></textarea>
-    </div>
-
-    <div class="card">
-        <h3>🔠 Alphabet</h3>
-        <textarea id="alphabet">ABCDEFGHIJKLMNOPQRSTUVWXYZ</textarea>
-    </div>
-
-    <div class="card">
-        <button class="btn btn-primary" onclick="encrypt()">Encrypt</button>
-        <button class="btn btn-primary" onclick="decrypt()">Decrypt</button>
-        <button class="btn btn-primary" onclick="analyzeKnownPart()">Find Key</button>
-        <button class="btn btn-primary" onclick="autoCrack()">Auto Crack</button>
-        <button class="btn btn-danger" id="cancelBtn" style="display:none" onclick="cancelAnalysis()">Cancel</button>
-    </div>
-
-    <div id="progress" class="card">
-        <div id="progressBar">
-            <div id="progressFill"></div>
+    <div class="container">
+        <h1>Vigenère Cipher Expert</h1>
+        <p class="info">Professional-grade cipher analysis tool with frequency analysis, Kasiski examination, and dictionary attacks.</p>
+        
+        <div class="container">
+            <h2>Input</h2>
+            <h3>Ciphertext</h3>
+            <textarea id="ciphertext" placeholder="Enter encrypted text here..."></textarea>
+            
+            <h3>Known Plaintext (Optional)</h3>
+            <textarea id="knownPlaintext" placeholder="Enter known text fragment if available..."></textarea>
         </div>
-        <p id="progressText">Initializing...</p>
+
+        <div class="container">
+            <h2>Configuration</h2>
+            <h3>Key</h3>
+            <textarea id="key" placeholder="Enter key or it will be calculated automatically..."></textarea>
+            
+            <h3>Alphabet Configuration</h3>
+            <textarea id="alphabet">ABCDEFGHIJKLMNOPQRSTUVWXYZ</textarea>
+            
+            <div class="info">
+                <strong>Note:</strong> For non-English alphabets, modify the character set above.
+            </div>
+        </div>
+
+        <div class="container">
+            <h2>Actions</h2>
+            <div class="btn-group">
+                <button class="btn-primary" onclick="CipherEngine.encrypt()">Encrypt</button>
+                <button class="btn-primary" onclick="CipherEngine.decrypt()">Decrypt</button>
+                <button class="btn-primary" onclick="CipherEngine.analyze()">Analyze Known Text</button>
+                <button class="btn-warning" onclick="CipherEngine.autoCrack()">Auto Crack (Advanced)</button>
+                <button class="btn-danger" id="cancelBtn" style="display:none" onclick="CipherEngine.cancelAnalysis()">Cancel</button>
+            </div>
+            
+            <div id="status"></div>
+        </div>
+
+        <div class="container">
+            <h2>Results</h2>
+            <h3>Decrypted Text</h3>
+            <textarea id="plaintext" readonly></textarea>
+            
+            <h3>Frequency Analysis</h3>
+            <canvas id="frequencyChart"></canvas>
+        </div>
     </div>
 
-    <div class="card">
-        <h3>📜 Result</h3>
-        <textarea id="plaintext" readonly></textarea>
-    </div>
-
-    <canvas id="frequencyChart" width="800" height="300"></canvas>
-
+    <script src="dictionary.js"></script>
     <script src="vigenere.js"></script>
 </body>
 </html>
