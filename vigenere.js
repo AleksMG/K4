@@ -1,25 +1,18 @@
 class CipherEngine {
-    static VERSION = "6.1";
+    static VERSION = "7.1";
     static DEFAULT_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     static MIN_KEY_LENGTH = 2;
-    static MAX_KEY_LENGTH = 15;
-    static WORKER_TIMEOUT = 60000;
+    static MAX_KEY_LENGTH = 30;
+    static WORKER_TIMEOUT = 30000;
     static frequencyChart = null;
     static worker = null;
     static analysisTimeout = null;
-    static ENGLISH_FREQUENCY = {
-        'A': 0.08167, 'B': 0.01492, 'C': 0.02782, 'D': 0.04253,
-        'E': 0.12702, 'F': 0.02228, 'G': 0.02015, 'H': 0.06094,
-        'I': 0.06966, 'J': 0.00153, 'K': 0.00772, 'L': 0.04025,
-        'M': 0.02406, 'N': 0.06749, 'O': 0.07507, 'P': 0.01929,
-        'Q': 0.00095, 'R': 0.05987, 'S': 0.06327, 'T': 0.09056,
-        'U': 0.02758, 'V': 0.00978, 'W': 0.02360, 'X': 0.00150,
-        'Y': 0.01974, 'Z': 0.00074
-    };
-    static COMMON_WORDS = new Set(['THE', 'AND', 'THAT', 'HAVE', 'WITH', 'THIS', 'FOR', 'NOT', 'YOU', 'ARE']);
+    static CommonWords = ['THE', 'AND', 'THAT', 'HAVE', 'WITH', 'THIS', 'YOUR']; // Полный список в dictionary.js
 
+    // Инициализация
     static init() {
         this.registerEventListeners();
+        this.initProgressBar();
         console.log(`Vigenère Expert v${this.VERSION} initialized`);
     }
 
@@ -34,12 +27,32 @@ class CipherEngine {
         });
     }
 
+    static initProgressBar() {
+        const progressHTML = `
+            <div id="progressContainer" style="margin:15px 0;padding:10px;background:#f8f9fa;border-radius:8px;display:none;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <span id="progressMessage" style="font-weight:500;">Initializing...</span>
+                    <span id="progressPercent" style="color:#6c757d;">0%</span>
+                </div>
+                <div style="height:10px;background:#e9ecef;border-radius:5px;overflow:hidden;">
+                    <div id="progressBar" style="width:0%;height:100%;background:#3498db;transition:width 0.3s ease;"></div>
+                </div>
+            </div>
+        `;
+        document.querySelector('.container').insertAdjacentHTML('beforeend', progressHTML);
+    }
+
     static validateAlphabet() {
         const alphabet = document.getElementById('alphabet').value.toUpperCase();
         const uniqueChars = [...new Set(alphabet)];
         
-        if (uniqueChars.length !== alphabet.length) throw new Error("Alphabet has duplicates");
-        if (alphabet.length < 10) throw new Error("Alphabet too short (min 10 chars)");
+        if (uniqueChars.length !== alphabet.length) {
+            throw new Error("Alphabet contains duplicate characters");
+        }
+        
+        if (alphabet.length < 10) {
+            throw new Error("Alphabet too short (min 10 characters)");
+        }
         
         return alphabet;
     }
@@ -49,7 +62,7 @@ class CipherEngine {
         statusEl.style.display = 'block';
         statusEl.textContent = message;
         statusEl.className = type;
-        statusEl.style.backgroundColor = this.getStatusColor(type);
+        statusEl.style.background = this.getStatusColor(type);
         console[type === 'error' ? 'error' : 'log'](message);
     }
 
@@ -57,8 +70,8 @@ class CipherEngine {
         const colors = {
             info: '#eaf2f8',
             success: '#dff0d8',
-            warning: '#fcf8e3',
-            error: '#f2dede'
+            warning: '#fff3cd',
+            error: '#f8d7da'
         };
         return colors[type] || '#eaf2f8';
     }
@@ -124,45 +137,45 @@ class CipherEngine {
             if (!ciphertext || !knownText) throw new Error("Both fields required");
             
             const alphabet = this.validateAlphabet();
-            const targetWords = this.parseTargetWords(knownText, alphabet);
+            const targetWords = knownText.toUpperCase()
+                .split(/[\s,\n]+/)
+                .filter(w => w.length > 0)
+                .map(w => w.replace(new RegExp(`[^${alphabet}]`, 'g'), ''));
             
-            const possibleKeys = this.findPossibleKeys(ciphertext, targetWords, alphabet);
+            if (targetWords.length === 0) throw new Error("No valid words found");
+            
+            const possibleKeys = this.findKeyCandidates(ciphertext, targetWords, alphabet);
             const validKeys = this.validateKeys(ciphertext, possibleKeys, targetWords, alphabet);
             
             if (validKeys.length === 0) throw new Error("No valid keys found");
             
-            const bestKey = this.selectBestKey(validKeys, ciphertext, alphabet);
+            const bestKey = this.selectBestKey(validKeys);
             document.getElementById('key').value = bestKey;
             this.decrypt();
-            this.showStatus(`Best key found: ${bestKey}`, "success");
+            this.showStatus(`Best key: ${bestKey}`, "success");
 
         } catch (error) {
             this.showStatus(error.message, "error");
         }
     }
 
-    static parseTargetWords(text, alphabet) {
-        return text.toUpperCase()
-            .split(/[\s,\n]+/)
-            .map(w => w.replace(new RegExp(`[^${alphabet}]`, 'g'), ''))
-            .filter(w => w.length > 0);
-    }
-
-    static findPossibleKeys(ciphertext, targetWords, alphabet) {
-        const keys = new Set();
+    static findKeyCandidates(ciphertext, targetWords, alphabet) {
+        const candidates = new Set();
         const cipherUpper = ciphertext.toUpperCase();
         
-        for (const word of targetWords) {
-            for (let offset = 0; offset <= cipherUpper.length - word.length; offset++) {
-                const cipherPart = cipherUpper.substr(offset, word.length);
-                const key = this.calculateKey(cipherPart, word, alphabet);
-                if (key) keys.add(key);
+        targetWords.forEach(word => {
+            const wordLen = word.length;
+            for (let offset = 0; offset <= cipherUpper.length - wordLen; offset++) {
+                const cipherPart = cipherUpper.substr(offset, wordLen);
+                const key = this.calculateKeySegment(cipherPart, word, alphabet);
+                if (key) candidates.add(key);
             }
-        }
-        return Array.from(keys);
+        });
+        
+        return Array.from(candidates);
     }
 
-    static calculateKey(cipherPart, knownPart, alphabet) {
+    static calculateKeySegment(cipherPart, knownPart, alphabet) {
         let key = '';
         for (let i = 0; i < knownPart.length; i++) {
             const cPos = alphabet.indexOf(cipherPart[i]);
@@ -170,49 +183,29 @@ class CipherEngine {
             if (cPos === -1 || kPos === -1) return null;
             key += alphabet[(cPos - kPos + alphabet.length) % alphabet.length];
         }
-        return this.findRepeatingPattern(key);
+        return key;
     }
 
     static validateKeys(ciphertext, keys, targetWords, alphabet) {
         return keys.filter(key => {
             const fullKey = this.generateFullKey(key, ciphertext.length);
             const decrypted = this.processText(ciphertext, fullKey, 'decrypt');
-            return targetWords.every(word => decrypted.includes(word)) &&
+            return targetWords.every(w => decrypted.includes(w)) && 
                    this.isMeaningful(decrypted);
         });
     }
 
     static isMeaningful(text) {
         const words = text.split(/[\s\W]+/).filter(w => w.length > 2);
-        return words.some(w => this.COMMON_WORDS.has(w.toUpperCase()));
+        return words.some(w => this.CommonWords.includes(w.toUpperCase()));
     }
 
-    static selectBestKey(keys, ciphertext, alphabet) {
+    static selectBestKey(keys) {
         return keys.sort((a, b) => {
-            const aScore = this.calculateKeyScore(a, ciphertext, alphabet);
-            const bScore = this.calculateKeyScore(b, ciphertext, alphabet);
-            return bScore - aScore;
+            const aPattern = this.findRepeatingPattern(a);
+            const bPattern = this.findRepeatingPattern(b);
+            return aPattern.length - bPattern.length;
         })[0];
-    }
-
-    static calculateKeyScore(key, ciphertext, alphabet) {
-        const decrypted = this.processText(ciphertext, key, 'decrypt');
-        let score = 0;
-        
-        // Frequency analysis
-        const freq = this.calculateFrequencies(decrypted, alphabet);
-        for (const char in freq) {
-            score += 1 - Math.abs(freq[char] - this.ENGLISH_FREQUENCY[char] || 0);
-        }
-        
-        // Common words
-        const commonWordsFound = decrypted.split(/\W+/).filter(w => this.COMMON_WORDS.has(w.toUpperCase())).length;
-        score += commonWordsFound * 10;
-        
-        // Key length
-        score += 15 / key.length;
-        
-        return score;
     }
 
     static findRepeatingPattern(key) {
@@ -234,15 +227,16 @@ class CipherEngine {
             const ciphertext = document.getElementById('ciphertext').value;
             if (!ciphertext || ciphertext.length < 50) throw new Error("Minimum 50 characters required");
             
-            this.showStatus("Starting advanced analysis...", "info");
+            this.showProgress("Starting analysis...", 5);
             document.getElementById('cancelBtn').style.display = 'inline-block';
             
             this.worker = new Worker('worker.js');
             this.worker.onmessage = (e) => {
                 if (e.data.type === 'PROGRESS') {
-                    this.showStatus(e.data.message, "info");
+                    this.showProgress(e.data.message, e.data.percent);
                 } else if (e.data.type === 'RESULT') {
                     this.handleAnalysisResult(e.data);
+                    this.showProgress("Analysis complete", 100);
                     document.getElementById('cancelBtn').style.display = 'none';
                 }
             };
@@ -257,10 +251,23 @@ class CipherEngine {
                 this.cancelAnalysis();
                 throw new Error("Analysis timed out");
             }, this.WORKER_TIMEOUT);
-            
+
         } catch (error) {
             this.showStatus(error.message, "error");
+            this.showProgress("Analysis failed", 100);
         }
+    }
+
+    static showProgress(message, percent) {
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressMessage = document.getElementById('progressMessage');
+        const progressPercent = document.getElementById('progressPercent');
+        
+        progressContainer.style.display = 'block';
+        progressMessage.textContent = message;
+        progressPercent.textContent = `${percent}%`;
+        progressBar.style.width = `${percent}%`;
     }
 
     static handleAnalysisResult(data) {
@@ -275,9 +282,13 @@ class CipherEngine {
     }
 
     static cancelAnalysis() {
-        if (this.worker) this.worker.terminate();
+        if (this.worker) {
+            this.worker.terminate();
+            this.worker = null;
+        }
         clearTimeout(this.analysisTimeout);
         document.getElementById('cancelBtn').style.display = 'none';
+        this.showProgress("Analysis cancelled", 100);
         this.showStatus("Analysis cancelled", "warning");
     }
 
