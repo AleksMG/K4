@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Взломщик шифра Виженера</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .text-box {
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        #progress {
+            margin: 20px 0;
+            display: none;
+        }
+        #progressBar {
+            height: 20px;
+            background: #4CAF50;
+            border-radius: 10px;
+            transition: width 0.3s;
+        }
+        canvas {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Взлом шифра Виженера</h1>
+
+    <!-- Шифротекст -->
+    <div class="text-box">
+        <h3>🔒 Шифротекст:</h3>
+        <textarea id="ciphertext" placeholder="Вставьте зашифрованный текст..."></textarea>
+    </div>
+
+    <!-- Известный текст -->
+    <div class="text-box">
+        <h3>📝 Известный текст:</h3>
+        <textarea id="knownText" placeholder="Введите часть расшифрованного текста..."></textarea>
+    </div>
+
+    <!-- Ключ -->
+    <div class="text-box">
+        <h3>🔑 Ключ:</h3>
+        <textarea id="key" placeholder="Ключ появится здесь..."></textarea>
+    </div>
+
+    <!-- Алфавит -->
+    <div class="text-box">
+        <h3>🔠 Алфавит:</h3>
+        <textarea id="alphabet">ABCDEFGHIJKLMNOPQRSTUVWXYZ</textarea>
+    </div>
+
+    <!-- Кнопки управления -->
+    <div class="text-box">
+        <button onclick="encrypt()">Зашифровать</button>
+        <button onclick="decrypt()">Расшифровать</button>
+        <button onclick="analyzeKnownPart()">Подобрать ключ</button>
+        <button onclick="autoCrack()">Автовзлом</button>
+        <button onclick="optimizeAlphabetHandler()">Оптимизировать алфавит</button>
+        <button onclick="cancelAnalysis()" id="cancelBtn" style="display:none; background:#ff4444">Отменить</button>
+    </div>
+
+    <!-- Прогресс-бар -->
+    <div id="progress">
+        <div style="background:#eee; border-radius:10px;">
+            <div id="progressBar" style="width:0%"></div>
+        </div>
+        <p id="progressText">0%</p>
+    </div>
+
+    <!-- Результат -->
+    <div class="text-box">
+        <h3>📜 Результат:</h3>
+        <textarea id="plaintext" readonly></textarea>
+    </div>
+
+    <!-- График -->
+    <div class="text-box">
+        <canvas id="frequencyChart"></canvas>
+    </div>
+
+    <script src="vigenere.js"></script>
+</body>
+</html>
