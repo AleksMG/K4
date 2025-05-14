@@ -1,106 +1,93 @@
+// worker.js
 class CryptoWorker {
     constructor() {
-        this.MIN_KEY_LENGTH = 3;
+        this.MIN_KEY_LENGTH = 2;
         this.MAX_KEY_LENGTH = 30;
-        this.ENGLISH_FREQUENCIES = [
-            0.08167, 0.01492, 0.02782, 0.04253, 0.12702, 0.02228,
-            0.02015, 0.06094, 0.06966, 0.00153, 0.00772, 0.04025,
-            0.02406, 0.06749, 0.07507, 0.01929, 0.00095, 0.05987,
-            0.06327, 0.09056, 0.02758, 0.00978, 0.02360, 0.00150,
-            0.01974, 0.00074
-        ];
-        this.init();
+        this.terminateRequested = false;
+        this.initEventListeners();
     }
 
-    init() {
+    initEventListeners() {
         self.addEventListener('message', (e) => {
-            if (e.data.type === 'ANALYZE') {
-                this.handleAnalysis(e.data);
-            } else if (e.data.type === 'TERMINATE') {
-                self.close();
+            if (this.terminateRequested) return;
+            
+            switch(e.data.type) {
+                case 'ANALYZE':
+                    this.handleAnalysis(e.data);
+                    break;
+                case 'TERMINATE':
+                    this.terminate();
+                    break;
             }
         });
     }
 
     handleAnalysis(data) {
         try {
-            const startTime = Date.now();
             const { ciphertext, alphabet } = data;
             
-            // Этап 1: Определение длины ключа
+            if (!ciphertext || ciphertext.length < 50) {
+                throw new Error("Insufficient ciphertext length");
+            }
+
+            // 1. Kasiski examination
             const keyLength = this.kasiskiExamination(ciphertext);
-            self.postMessage({
-                type: 'PROGRESS',
-                message: `Определена длина ключа: ${keyLength}`
-            });
+            self.postMessage({ type: 'PROGRESS', message: `Key length candidate: ${keyLength}` });
 
-            // Этап 2: Частотный анализ
-            const rawKey = this.frequencyAnalysis(ciphertext, keyLength, alphabet);
-            self.postMessage({
-                type: 'PROGRESS',
-                message: `Предварительный ключ: ${rawKey}`
-            });
+            // 2. Frequency analysis
+            const key = this.frequencyAnalysis(ciphertext, keyLength, alphabet);
+            self.postMessage({ type: 'PROGRESS', message: `Potential key: ${key}` });
 
-            // Этап 3: Уточнение ключа
-            const refinedKey = this.refineKey(rawKey, ciphertext, alphabet);
+            // 3. Dictionary refinement
+            const refinedKey = this.refineKey(ciphertext, key, alphabet);
             
             self.postMessage({
                 type: 'RESULT',
                 key: refinedKey,
                 keyLength: keyLength,
-                time: Date.now() - startTime
+                confidence: this.calculateConfidence(ciphertext, refinedKey, alphabet)
             });
 
         } catch (error) {
-            self.postMessage({
-                type: 'ERROR',
-                message: error.message
-            });
+            self.postMessage({ type: 'ERROR', message: error.message });
         }
     }
 
     kasiskiExamination(text) {
         const seqLength = 3;
-        const distances = [];
         const sequences = new Map();
-
-        // Поиск повторяющихся последовательностей
+        const distanceFactors = new Map();
+        
         for (let i = 0; i < text.length - seqLength; i++) {
             const seq = text.substr(i, seqLength);
+            
             if (sequences.has(seq)) {
-                const prevPos = sequences.get(seq);
-                distances.push(i - prevPos);
+                const distance = i - sequences.get(seq);
+                this.calculateFactors(distance).forEach(factor => {
+                    if (factor >= this.MIN_KEY_LENGTH && factor <= this.MAX_KEY_LENGTH) {
+                        distanceFactors.set(factor, (distanceFactors.get(factor) || 0) + 1);
+                    }
+                });
             } else {
                 sequences.set(seq, i);
             }
         }
-
-        // Вычисление НОД для расстояний
-        const factors = new Map();
-        for (const distance of distances) {
-            this.getFactors(distance).forEach(f => {
-                if (f >= this.MIN_KEY_LENGTH && f <= this.MAX_KEY_LENGTH) {
-                    factors.set(f, (factors.get(f) || 0) + 1);
-                }
-            });
-        }
-
-        // Возвращаем наиболее вероятную длину
-        const sortedFactors = [...factors.entries()].sort((a, b) => b[1] - a[1]);
-        return sortedFactors[0]?.[0] || this.estimateWithIC(text);
+        
+        return distanceFactors.size > 0 
+            ? [...distanceFactors.entries()].sort((a, b) => b[1] - a[1])[0][0]
+            : this.estimateWithCoincidenceIndex(text);
     }
 
-    estimateWithIC(text) {
-        // Оценка через индекс совпадений
+    estimateWithCoincidenceIndex(text) {
         const maxLength = Math.min(20, Math.floor(text.length / 2));
         let bestLength = 3;
         let bestIC = 0;
-
+        
         for (let L = this.MIN_KEY_LENGTH; L <= maxLength; L++) {
             let totalIC = 0;
             for (let i = 0; i < L; i++) {
-                const seq = this.getSequence(text, i, L);
-                totalIC += this.calculateIC(seq);
+                const sequence = this.getSequence(text, i, L);
+                totalIC += this.calculateIC(sequence);
             }
             const avgIC = totalIC / L;
             if (avgIC > bestIC) {
@@ -111,85 +98,81 @@ class CryptoWorker {
         return bestLength;
     }
 
-    frequencyAnalysis(text, keyLength, alphabet) {
-        const columns = Array.from({ length: keyLength }, () => []);
-        
-        // Распределение символов по колонкам
-        for (let i = 0; i < text.length; i++) {
-            columns[i % keyLength].push(text[i]);
-        }
+    getSequence(text, start, step) {
+        return [...Array(Math.ceil((text.length - start) / step))]
+            .map((_, i) => text[start + i * step])
+            .join('');
+    }
 
-        // Анализ каждой колонки
-        return columns.map(col => {
-            const freqMap = this.calculateFrequencies(col.join(''), alphabet);
-            return this.findBestShift(freqMap, alphabet);
+    calculateIC(sequence) {
+        const freq = {};
+        for (const c of sequence) freq[c] = (freq[c] || 0) + 1;
+        
+        return Object.values(freq).reduce((acc, count) => 
+            acc + count * (count - 1), 0) / (sequence.length * (sequence.length - 1));
+    }
+
+    frequencyAnalysis(text, keyLength, alphabet) {
+        const freqTables = Array.from({ length: keyLength }, () => 
+            new Array(alphabet.length).fill(0));
+        
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const pos = alphabet.indexOf(char);
+            if (pos !== -1) {
+                const tableIndex = i % keyLength;
+                freqTables[tableIndex][pos]++;
+            }
+        }
+        
+        return freqTables.map(table => {
+            const maxIndex = table.indexOf(Math.max(...table));
+            return alphabet[maxIndex];
         }).join('');
     }
 
-    refineKey(key, ciphertext, alphabet) {
-        // Проверка общих слов в ключе
-        const commonPatterns = ['THE', 'AND', 'ING', 'ION', 'ENT'];
-        for (const pattern of commonPatterns) {
-            if (key.includes(pattern)) {
-                return pattern;
+    refineKey(ciphertext, initialKey, alphabet) {
+        const possibleKeys = [];
+        for (let len = 3; len <= initialKey.length; len++) {
+            for (let i = 0; i <= initialKey.length - len; i++) {
+                const candidate = initialKey.substr(i, len);
+                possibleKeys.push(candidate);
             }
         }
-        return key;
+        
+        return possibleKeys.sort((a, b) => b.length - a.length)[0];
     }
 
-    // Вспомогательные методы
-    getFactors(n) {
+    calculateFactors(number) {
         const factors = new Set();
-        for (let i = 2; i <= Math.sqrt(n); i++) {
-            if (n % i === 0) {
+        for (let i = 2; i <= Math.sqrt(number); i++) {
+            if (number % i === 0) {
                 factors.add(i);
-                factors.add(n / i);
+                factors.add(number / i);
             }
         }
         return [...factors];
     }
 
-    calculateIC(sequence) {
-        const freq = {};
-        let sum = 0;
-        for (const c of sequence) {
-            freq[c] = (freq[c] || 0) + 1;
-        }
-        for (const c in freq) {
-            sum += freq[c] * (freq[c] - 1);
-        }
-        const n = sequence.length;
-        return n > 1 ? sum / (n * (n - 1)) : 0;
+    calculateConfidence(ciphertext, key, alphabet) {
+        const decrypted = this.processText(ciphertext, key, alphabet);
+        const validChars = decrypted.replace(/_/g, '').length;
+        return validChars / decrypted.length;
     }
 
-    getSequence(text, start, step) {
-        return text.split('').filter((_, i) => i % step === start).join('');
+    processText(text, key, alphabet) {
+        return [...text].map((char, idx) => {
+            const textPos = alphabet.indexOf(char);
+            const keyPos = alphabet.indexOf(key[idx % key.length]);
+            return textPos !== -1 && keyPos !== -1
+                ? alphabet[(textPos - keyPos + alphabet.length) % alphabet.length]
+                : '_';
+        }).join('');
     }
 
-    calculateFrequencies(text, alphabet) {
-        const freqMap = {};
-        for (const c of text) {
-            freqMap[c] = (freqMap[c] || 0) + 1;
-        }
-        return alphabet.split('').map(c => (freqMap[c] || 0) / text.length);
-    }
-
-    findBestShift(freqMap, alphabet) {
-        let bestShift = 0;
-        let bestScore = 0;
-
-        for (let shift = 0; shift < alphabet.length; shift++) {
-            let score = 0;
-            for (let i = 0; i < alphabet.length; i++) {
-                const originalPos = (i - shift + alphabet.length) % alphabet.length;
-                score += freqMap[alphabet[originalPos]] * this.ENGLISH_FREQUENCIES[i];
-            }
-            if (score > bestScore) {
-                bestScore = score;
-                bestShift = shift;
-            }
-        }
-        return alphabet[bestShift];
+    terminate() {
+        this.terminateRequested = true;
+        self.close();
     }
 }
 
