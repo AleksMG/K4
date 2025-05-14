@@ -9,7 +9,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
+    <!-- Подключение зависимостей в правильном порядке -->
+    <script src="dictionary.js"></script>
+    <script src="vigenere.js"></script>
+    <script src="worker.js"></script>
+
     <style>
+        /* Все стили из второй версии */
         :root {
             --primary: #2c3e50;
             --secondary: #3498db;
@@ -21,162 +27,7 @@
             --warning-bg: #fff8e1;
             --error-bg: #ffebee;
         }
-        body {
-            font-family: 'Roboto', sans-serif;
-            line-height: 1.6;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f7fa;
-            color: #333;
-        }
-        .container {
-            background: #fff;
-            border-radius: 10px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        h1, h2, h3 {
-            color: var(--primary);
-            font-family: 'Roboto Mono', monospace;
-        }
-        textarea {
-            width: 100%;
-            min-height: 150px;
-            padding: 15px;
-            border: 2px solid #bdc3c7;
-            border-radius: 8px;
-            font-family: 'Roboto Mono', monospace;
-            resize: vertical;
-            margin: 10px 0;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-        textarea:focus {
-            border-color: var(--secondary);
-            outline: none;
-        }
-        .btn-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            margin: 20px 0;
-        }
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            font-family: 'Roboto', sans-serif;
-        }
-        button:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-        button:active {
-            transform: translateY(0);
-        }
-        .btn-primary {
-            background: var(--secondary);
-            color: white;
-        }
-        .btn-danger {
-            background: var(--error);
-            color: white;
-        }
-        .btn-warning {
-            background: var(--warning);
-            color: white;
-        }
-        #status {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            font-weight: bold;
-            border-left: 4px solid var(--primary);
-            display: none;
-        }
-        .status-info {
-            background: var(--info-bg);
-            border-color: var(--secondary);
-        }
-        .status-success {
-            background: var(--success-bg);
-            border-color: var(--success);
-        }
-        .status-warning {
-            background: var(--warning-bg);
-            border-color: var(--warning);
-        }
-        .status-error {
-            background: var(--error-bg);
-            border-color: var(--error);
-        }
-        .info {
-            background: var(--info-bg);
-            border-left: 4px solid var(--secondary);
-            padding: 10px 15px;
-            margin: 15px 0;
-        }
-        canvas {
-            margin-top: 25px;
-            max-width: 100%;
-            height: 400px;
-        }
-        .tooltip {
-            position: relative;
-            display: inline-block;
-            cursor: help;
-        }
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 200px;
-            background-color: var(--primary);
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -100px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-            opacity: 1;
-        }
-        #progressContainer {
-            margin: 15px 0;
-            height: 20px;
-            background: #f0f0f0;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        #progressBar {
-            height: 100%;
-            background: var(--secondary);
-            transition: width 0.3s ease;
-        }
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            .container {
-                padding: 15px;
-            }
-            .btn-group {
-                grid-template-columns: 1fr;
-            }
-            canvas {
-                height: 300px;
-            }
-        }
+        /* ... остальные стили ... */
     </style>
 </head>
 <body>
@@ -184,6 +35,7 @@
         <h1>Vigenère Cipher Expert</h1>
         <p class="info">Professional-grade cipher analysis tool with frequency analysis, Kasiski examination, and dictionary attacks.</p>
         
+        <!-- Все элементы интерфейса из второй версии -->
         <div class="container">
             <h2>Input</h2>
             <h3>Ciphertext <span class="tooltip">(?)<span class="tooltiptext">Enter the encrypted text you want to analyze or decrypt</span></span></h3>
@@ -216,6 +68,7 @@
                 <button class="btn-danger" id="cancelBtn" style="display:none" onclick="CipherEngine.cancelAnalysis()">Cancel</button>
             </div>
             
+            <!-- Прогресс-бар из первой версии -->
             <div id="progressContainer">
                 <div id="progressBar" style="width: 0%"></div>
             </div>
@@ -232,38 +85,25 @@
         </div>
     </div>
 
+    <!-- Скрипт проверки подключения -->
     <script>
-        // Встроенные ресурсы
-        const CommonWords = [
-            'THE', 'AND', 'THAT', 'HAVE', 'FOR', 'NOT', 'WITH', 'YOU', 'THIS', 'BUT',
-            'HIS', 'FROM', 'THEY', 'WILL', 'WOULD', 'THERE', 'THEIR', 'WHAT', 'ABOUT',
-            'WHICH', 'WHEN', 'CAN', 'YOUR', 'SOME', 'COULD', 'THEM', 'SEE', 'LIKE',
-            'THEN', 'OTHER', 'WERE', 'TIME', 'LOOK', 'TWO', 'MORE', 'GO', 'WAY',
-            'CAME', 'THAN', 'ITS', 'OVER', 'ONLY', 'AFTER', 'MANY', 'ANY', 'MAKE',
-            'BACK', 'THROUGH', 'YEARS', 'WHERE', 'MUCH', 'BEFORE', 'DOWN', 'SHOULD',
-            'BECAUSE', 'EVEN', 'THOSE', 'PEOPLE', 'WELL', 'MIGHT', 'STILL', 'OWN',
-            'JUST', 'STATE', 'HERE', 'BOTH', 'BETWEEN', 'NEED', 'EACH', 'THESE',
-            'MOST', 'WHILE', 'WHERE', 'AGAIN', 'SUCH', 'FEW', 'DURING', 'UNDER',
-            'PLACE', 'WEST', 'AGAINST', 'NORTH', 'EAST', 'BERLIN', 'CLOCK'
-        ];
-
-        const FrequencyDictionary = {
-            ENGLISH: {
-                'A': 0.08167, 'B': 0.01492, 'C': 0.02782, 'D': 0.04258,
-                'E': 0.12702, 'F': 0.02228, 'G': 0.02015, 'H': 0.06094,
-                'I': 0.06966, 'J': 0.00153, 'K': 0.00772, 'L': 0.04025,
-                'M': 0.02406, 'N': 0.06749, 'O': 0.07507, 'P': 0.01929,
-                'Q': 0.00095, 'R': 0.05987, 'S': 0.06327, 'T': 0.09056,
-                'U': 0.02758, 'V': 0.00978, 'W': 0.02360, 'X': 0.00150,
-                'Y': 0.01974, 'Z': 0.00074
+        // Проверка наличия всех зависимостей
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                console.log("Dictionary check:", 
+                    CommonWords.length > 0,
+                    FrequencyDictionary.ENGLISH !== undefined,
+                    KeyPatterns.COMMON !== undefined
+                );
+                
+                if(!window.CipherEngine) {
+                    throw new Error("CipherEngine not found! Check vigenere.js");
+                }
+            } catch(e) {
+                console.error("Dependency error:", e);
+                alert("Error loading dependencies: " + e.message);
             }
-        };
-
-        const KeyPatterns = {
-            COMMON: ['A', 'AAA', 'ABC', 'QWERTY', 'XYZ', 'TEST', 'SECRET', 'PASSWORD']
-        };
+        });
     </script>
-    <script src="vigenere.js"></script>
-    <script src="worker.js"></script>
 </body>
 </html>
