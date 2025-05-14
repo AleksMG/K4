@@ -1,5 +1,5 @@
 class CipherEngine {
-    static VERSION = "6.0";
+    static VERSION = "5.1";
     static DEFAULT_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     static MIN_KEY_LENGTH = 2;
     static MAX_KEY_LENGTH = 30;
@@ -8,25 +8,23 @@ class CipherEngine {
     static worker = null;
     static analysisTimeout = null;
 
-    // Инициализация
+    // ================== CORE FUNCTIONALITY ==================
     static init() {
         this.registerEventListeners();
         console.log(`Vigenère Cipher Expert v${this.VERSION} initialized`);
     }
 
-    // Регистрация событий
     static registerEventListeners() {
         document.getElementById('alphabet').addEventListener('input', () => {
-            this.validateAlphabet();
-            this.decrypt();
-        });
-
-        window.addEventListener('error', (e) => {
-            this.showStatus(`Runtime Error: ${e.message}`, 'error');
+            try {
+                this.validateAlphabet();
+                this.decrypt();
+            } catch (error) {
+                this.showStatus(error.message, 'error');
+            }
         });
     }
 
-    // Валидация алфавита
     static validateAlphabet() {
         const alphabet = document.getElementById('alphabet').value.toUpperCase();
         const uniqueChars = [...new Set(alphabet)];
@@ -42,26 +40,25 @@ class CipherEngine {
         return alphabet;
     }
 
-    // Отображение статуса
     static showStatus(message, type = 'info') {
         const statusEl = document.getElementById('status');
         statusEl.style.display = 'block';
         statusEl.textContent = message;
         statusEl.className = type;
-        statusEl.style.background = this.getStatusColor(type);
+        statusEl.style.backgroundColor = this.getStatusColor(type);
+        console[type === 'error' ? 'error' : 'log'](message);
     }
 
     static getStatusColor(type) {
         const colors = {
             info: '#eaf2f8',
-            success: '#e8f5e9',
-            warning: '#fff8e1',
-            error: '#ffebee'
+            success: '#dff0d8',
+            warning: '#fcf8e3',
+            error: '#f2dede'
         };
-        return colors[type] || '#ffffff';
+        return colors[type] || '#eaf2f8';
     }
 
-    // Основная обработка текста
     static processText(text, key, mode) {
         const alphabet = this.validateAlphabet();
         const cleanText = text.toUpperCase().replace(new RegExp(`[^${alphabet}]`, 'g'), '');
@@ -70,28 +67,31 @@ class CipherEngine {
         if (!cleanText) throw new Error("Invalid input text");
         if (!cleanKey) throw new Error("Invalid key");
 
-        return [...cleanText].map((char, idx) => {
+        return cleanText.split('').map((char, idx) => {
             const textPos = alphabet.indexOf(char);
             const keyPos = alphabet.indexOf(cleanKey[idx % cleanKey.length]);
             
             if (textPos === -1 || keyPos === -1) return '_';
             
-            const resultPos = mode === 'encrypt' 
-                ? (textPos + keyPos) % alphabet.length 
-                : (textPos - keyPos + alphabet.length) % alphabet.length;
+            let resultPos;
+            if (mode === 'encrypt') {
+                resultPos = (textPos + keyPos) % alphabet.length;
+            } else {
+                resultPos = (textPos - keyPos + alphabet.length) % alphabet.length;
+            }
             
             return alphabet[resultPos];
         }).join('');
     }
 
-    // Шифрование
+    // ================== MAIN OPERATIONS ==================
     static encrypt() {
         try {
             const plaintext = document.getElementById('plaintext').value;
             const key = document.getElementById('key').value;
             
-            if (!plaintext) throw new Error("Plaintext required");
-            if (!key) throw new Error("Encryption key required");
+            if (!plaintext) throw new Error("Enter plaintext");
+            if (!key) throw new Error("Enter encryption key");
             
             document.getElementById('ciphertext').value = 
                 this.processText(plaintext, key, 'encrypt');
@@ -102,14 +102,13 @@ class CipherEngine {
         }
     }
 
-    // Дешифровка
     static decrypt() {
         try {
             const ciphertext = document.getElementById('ciphertext').value;
             const key = document.getElementById('key').value;
             
-            if (!ciphertext) throw new Error("Ciphertext required");
-            if (!key) throw new Error("Decryption key required");
+            if (!ciphertext) throw new Error("Enter ciphertext");
+            if (!key) throw new Error("Enter decryption key");
             
             document.getElementById('plaintext').value = 
                 this.processText(ciphertext, key, 'decrypt');
@@ -121,21 +120,21 @@ class CipherEngine {
         }
     }
 
-    // Анализ известного текста
+    // ================== ADVANCED ANALYSIS ==================
     static analyze() {
         try {
             const ciphertext = document.getElementById('ciphertext').value;
             const knownText = document.getElementById('knownPlaintext').value;
-            const alphabet = this.validateAlphabet();
             
             if (!ciphertext || !knownText) {
                 throw new Error("Both fields required");
             }
 
+            const alphabet = this.validateAlphabet();
             const targetWords = knownText.toUpperCase()
                 .split(/[\s,\n]+/)
-                .map(w => w.replace(new RegExp(`[^${alphabet}]`, 'g'), ''))
-                .filter(w => w.length > 0);
+                .filter(w => w.length > 0)
+                .map(w => w.replace(new RegExp(`[^${alphabet}]`, 'g'), ''));
 
             if (targetWords.length === 0) {
                 throw new Error("No valid words found");
@@ -148,10 +147,10 @@ class CipherEngine {
                 throw new Error("No valid keys found");
             }
 
-            const bestKey = this.selectBestKey(validKeys, alphabet);
+            const bestKey = this.selectBestKey(validKeys);
             document.getElementById('key').value = bestKey;
             this.decrypt();
-            this.showStatus(`Best key: ${bestKey}`, "success");
+            this.showStatus(`Best key found: ${bestKey}`, "success");
 
         } catch (error) {
             this.showStatus(error.message, "error");
@@ -167,71 +166,71 @@ class CipherEngine {
             for (let pos = 0; pos <= cipherUpper.length - wordLen; pos++) {
                 const cipherPart = cipherUpper.substr(pos, wordLen);
                 const keyPart = this.calcKeyPart(cipherPart, word, alphabet);
-                if (keyPart) candidates.push({ key: keyPart, pos, word });
+                if (keyPart) candidates.push(keyPart);
             }
         }
-        return candidates;
+        return [...new Set(candidates)];
     }
 
     static calcKeyPart(cipherPart, knownPart, alphabet) {
-        return [...knownPart].map((kChar, i) => {
+        let key = '';
+        for (let i = 0; i < knownPart.length; i++) {
             const cPos = alphabet.indexOf(cipherPart[i]);
-            const kPos = alphabet.indexOf(kChar);
-            return cPos !== -1 && kPos !== -1 
-                ? alphabet[(cPos - kPos + alphabet.length) % alphabet.length]
-                : null;
-        }).join('');
+            const kPos = alphabet.indexOf(knownPart[i]);
+            if (cPos === -1 || kPos === -1) return null;
+            key += alphabet[(cPos - kPos + alphabet.length) % alphabet.length];
+        }
+        return key;
     }
 
     static validateKeys(ciphertext, targetWords, candidates, alphabet) {
-        const validKeys = new Set();
-        
-        for (const {key} of candidates) {
-            try {
-                const fullKey = key.repeat(Math.ceil(ciphertext.length / key.length)).slice(0, ciphertext.length);
-                const decrypted = this.processText(ciphertext, fullKey, 'decrypt');
-                
-                if (targetWords.every(w => decrypted.includes(w))) {
-                    validKeys.add(fullKey);
-                }
-            } catch (e) {
-                console.warn("Invalid key:", key);
-            }
+        const validKeys = [];
+        for (const candidate of candidates) {
+            const fullKey = this.generateFullKey(candidate, ciphertext.length);
+            const decrypted = this.processText(ciphertext, fullKey, 'decrypt');
+            if (targetWords.every(w => decrypted.includes(w))) validKeys.push(fullKey);
         }
-        return [...validKeys];
+        return validKeys;
     }
 
-    static selectBestKey(keys, alphabet) {
+    static generateFullKey(baseKey, requiredLength) {
+        return baseKey.repeat(Math.ceil(requiredLength / baseKey.length)).slice(0, requiredLength);
+    }
+
+    static selectBestKey(keys) {
         return keys.sort((a, b) => {
-            const aPat = this.findRepeatingPattern(a);
-            const bPat = this.findRepeatingPattern(b);
-            return aPat.length - bPat.length || a.length - b.length;
+            const aPattern = this.findRepeatingPattern(a);
+            const bPattern = this.findRepeatingPattern(b);
+            return aPattern.length - bPattern.length || a.length - b.length;
         })[0];
     }
 
     static findRepeatingPattern(key) {
         for (let len = 1; len <= key.length / 2; len++) {
-            const pattern = key.substring(0, len);
-            let isValid = true;
+            const pattern = key.substr(0, len);
+            let valid = true;
             for (let i = len; i < key.length; i += len) {
-                if (key.substring(i, i + len) !== pattern) {
-                    isValid = false;
+                if (key.substr(i, len) !== pattern) {
+                    valid = false;
                     break;
                 }
             }
-            if (isValid) return pattern;
+            if (valid) return pattern;
         }
         return key;
     }
 
-    // Авто-взлом
+    // ================== AUTOCRAK FUNCTIONALITY ==================
     static autoCrack() {
         try {
             const ciphertext = document.getElementById('ciphertext').value;
-            if (!ciphertext || ciphertext.length < 50) throw new Error("Minimum 50 chars required");
+            
+            if (!ciphertext || ciphertext.length < 50) {
+                throw new Error("Minimum 50 characters required");
+            }
 
             this.showStatus("Starting analysis...", "info");
-            document.getElementById('cancelBtn').style.display = 'block';
+            document.getElementById('cancelBtn').style.display = 'inline-block';
 
             this.worker = new Worker('worker.js');
             this.worker.onmessage = (e) => {
@@ -251,9 +250,8 @@ class CipherEngine {
 
             this.analysisTimeout = setTimeout(() => {
                 this.cancelAnalysis();
-                throw new Error("Analysis timeout");
+                throw new Error("Analysis timed out");
             }, this.WORKER_TIMEOUT);
-
         } catch (error) {
             this.showStatus(error.message, "error");
         }
@@ -271,45 +269,36 @@ class CipherEngine {
     }
 
     static cancelAnalysis() {
-        if (this.worker) {
-            this.worker.terminate();
-            this.worker = null;
-        }
+        if (this.worker) this.worker.terminate();
         clearTimeout(this.analysisTimeout);
         document.getElementById('cancelBtn').style.display = 'none';
         this.showStatus("Analysis cancelled", "warning");
     }
 
+    // ================== FREQUENCY ANALYSIS ==================
     static updateFrequencyChart() {
         const plaintext = document.getElementById('plaintext').value;
         if (!plaintext) return;
 
         const alphabet = this.validateAlphabet();
+        const freqMap = this.calculateFrequencies(plaintext, alphabet);
         const ctx = document.getElementById('frequencyChart').getContext('2d');
-        const freqData = this.calculateFrequencies(plaintext, alphabet);
 
-        if (this.frequencyChart) {
-            this.frequencyChart.destroy();
-        }
-
+        if (this.frequencyChart) this.frequencyChart.destroy();
+        
         this.frequencyChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: [...alphabet],
+                labels: alphabet.split(''),
                 datasets: [{
-                    label: 'Frequency Distribution',
-                    data: [...alphabet].map(c => freqData[c] || 0),
-                    backgroundColor: '#3498db',
-                    borderColor: '#2980b9',
-                    borderWidth: 1
+                    label: 'Character Frequency',
+                    data: alphabet.split('').map(c => freqMap[c] || 0),
+                    backgroundColor: '#3498db'
                 }]
             },
             options: {
                 responsive: true,
-                scales: {
-                    y: { beginAtZero: true },
-                    x: { ticks: { autoSkip: false }}
-                }
+                scales: { y: { beginAtZero: true } }
             }
         });
     }
@@ -317,12 +306,15 @@ class CipherEngine {
     static calculateFrequencies(text, alphabet) {
         const freqMap = {};
         const cleanText = text.toUpperCase().replace(new RegExp(`[^${alphabet}]`, 'g'), '');
+        const total = cleanText.length || 1;
         
-        [...alphabet].forEach(c => freqMap[c] = 0);
-        [...cleanText].forEach(c => freqMap[c]++);
+        alphabet.split('').forEach(c => freqMap[c] = 0);
+        for (const c of cleanText) freqMap[c]++;
+        for (const c in freqMap) freqMap[c] = (freqMap[c] / total * 100).toFixed(2);
         
         return freqMap;
     }
 }
 
+// Initialize when ready
 document.addEventListener('DOMContentLoaded', () => CipherEngine.init());
