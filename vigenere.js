@@ -1,5 +1,5 @@
 class CipherEngine {
-    static VERSION = "5.1";
+    static VERSION = "5.2";
     static DEFAULT_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     static MIN_KEY_LENGTH = 2;
     static MAX_KEY_LENGTH = 30;
@@ -8,7 +8,7 @@ class CipherEngine {
     static worker = null;
     static analysisTimeout = null;
 
-    // ================== CORE FUNCTIONALITY ==================
+    // ================== ИНИЦИАЛИЗАЦИЯ ==================
     static init() {
         this.registerEventListeners();
         console.log(`Vigenère Cipher Expert v${this.VERSION} initialized`);
@@ -25,17 +25,13 @@ class CipherEngine {
         });
     }
 
+    // ================== ОСНОВНЫЕ МЕТОДЫ ==================
     static validateAlphabet() {
         const alphabet = document.getElementById('alphabet').value.toUpperCase();
         const uniqueChars = [...new Set(alphabet)];
         
-        if (uniqueChars.length !== alphabet.length) {
-            throw new Error("Alphabet contains duplicates");
-        }
-        
-        if (alphabet.length < 10) {
-            throw new Error("Alphabet too short (min 10 chars)");
-        }
+        if (uniqueChars.length !== alphabet.length) throw new Error("Алфавит содержит повторяющиеся символы");
+        if (alphabet.length < 10) throw new Error("Алфавит слишком короткий (минимум 10 символов)");
         
         return alphabet;
     }
@@ -50,13 +46,12 @@ class CipherEngine {
     }
 
     static getStatusColor(type) {
-        const colors = {
+        return {
             info: '#eaf2f8',
             success: '#dff0d8',
             warning: '#fcf8e3',
             error: '#f2dede'
-        };
-        return colors[type] || '#eaf2f8';
+        }[type] || '#eaf2f8';
     }
 
     static processText(text, key, mode) {
@@ -64,39 +59,33 @@ class CipherEngine {
         const cleanText = text.toUpperCase().replace(new RegExp(`[^${alphabet}]`, 'g'), '');
         const cleanKey = key.toUpperCase().replace(new RegExp(`[^${alphabet}]`, 'g'), '');
         
-        if (!cleanText) throw new Error("Invalid input text");
-        if (!cleanKey) throw new Error("Invalid key");
+        if (!cleanText) throw new Error("Нет текста для обработки");
+        if (!cleanKey) throw new Error("Некорректный ключ");
 
         return cleanText.split('').map((char, idx) => {
             const textPos = alphabet.indexOf(char);
             const keyPos = alphabet.indexOf(cleanKey[idx % cleanKey.length]);
-            
             if (textPos === -1 || keyPos === -1) return '_';
             
-            let resultPos;
-            if (mode === 'encrypt') {
-                resultPos = (textPos + keyPos) % alphabet.length;
-            } else {
-                resultPos = (textPos - keyPos + alphabet.length) % alphabet.length;
-            }
+            const resultPos = mode === 'encrypt' 
+                ? (textPos + keyPos) % alphabet.length 
+                : (textPos - keyPos + alphabet.length) % alphabet.length;
             
             return alphabet[resultPos];
         }).join('');
     }
 
-    // ================== MAIN OPERATIONS ==================
+    // ================== ОСНОВНЫЕ ОПЕРАЦИИ ==================
     static encrypt() {
         try {
             const plaintext = document.getElementById('plaintext').value;
             const key = document.getElementById('key').value;
             
-            if (!plaintext) throw new Error("Enter plaintext");
-            if (!key) throw new Error("Enter encryption key");
+            if (!plaintext) throw new Error("Введите исходный текст");
+            if (!key) throw new Error("Введите ключ шифрования");
             
-            document.getElementById('ciphertext').value = 
-                this.processText(plaintext, key, 'encrypt');
-            
-            this.showStatus("Encryption successful", "success");
+            document.getElementById('ciphertext').value = this.processText(plaintext, key, 'encrypt');
+            this.showStatus("Текст зашифрован", "success");
         } catch (error) {
             this.showStatus(error.message, "error");
         }
@@ -107,72 +96,74 @@ class CipherEngine {
             const ciphertext = document.getElementById('ciphertext').value;
             const key = document.getElementById('key').value;
             
-            if (!ciphertext) throw new Error("Enter ciphertext");
-            if (!key) throw new Error("Enter decryption key");
+            if (!ciphertext) throw new Error("Введите шифртекст");
+            if (!key) throw new Error("Введите ключ дешифрования");
             
-            document.getElementById('plaintext').value = 
-                this.processText(ciphertext, key, 'decrypt');
-            
-            this.showStatus("Decryption successful", "success");
+            document.getElementById('plaintext').value = this.processText(ciphertext, key, 'decrypt');
+            this.showStatus("Текст расшифрован", "success");
             this.updateFrequencyChart();
         } catch (error) {
             this.showStatus(error.message, "error");
         }
     }
 
-    // ================== ADVANCED ANALYSIS ==================
+    // ================== УЛУЧШЕННЫЙ АНАЛИЗ ==================
     static analyze() {
         try {
             const ciphertext = document.getElementById('ciphertext').value;
             const knownText = document.getElementById('knownPlaintext').value;
             
-            if (!ciphertext || !knownText) {
-                throw new Error("Both fields required");
-            }
-
-            const alphabet = this.validateAlphabet();
-            const targetWords = knownText.toUpperCase()
-                .split(/[\s,\n]+/)
-                .filter(w => w.length > 0)
-                .map(w => w.replace(new RegExp(`[^${alphabet}]`, 'g'), ''));
-
-            if (targetWords.length === 0) {
-                throw new Error("No valid words found");
-            }
-
-            const candidates = this.findKeyCandidates(ciphertext, targetWords, alphabet);
-            const validKeys = this.validateKeys(ciphertext, targetWords, candidates, alphabet);
+            if (!ciphertext || !knownText) throw new Error("Заполните оба поля");
             
-            if (validKeys.length === 0) {
-                throw new Error("No valid keys found");
-            }
-
-            const bestKey = this.selectBestKey(validKeys);
+            const alphabet = this.validateAlphabet();
+            const targetWords = this.parseTargetWords(knownText, alphabet);
+            const keyHypotheses = this.generateKeyHypotheses(ciphertext, targetWords, alphabet);
+            const validKeys = this.validateKeys(ciphertext, targetWords, keyHypotheses, alphabet);
+            
+            if (validKeys.length === 0) throw new Error("Ключи не найдены");
+            
+            const bestKey = this.selectOptimalKey(validKeys);
             document.getElementById('key').value = bestKey;
             this.decrypt();
-            this.showStatus(`Best key found: ${bestKey}`, "success");
+            this.showStatus(`Найден ключ: ${bestKey}`, "success");
 
         } catch (error) {
             this.showStatus(error.message, "error");
         }
     }
 
-    static findKeyCandidates(ciphertext, targetWords, alphabet) {
-        const candidates = [];
-        const cipherUpper = ciphertext.toUpperCase();
-        
-        for (const word of targetWords) {
-            const wordLen = word.length;
-            for (let pos = 0; pos <= cipherUpper.length - wordLen; pos++) {
-                const cipherPart = cipherUpper.substr(pos, wordLen);
-                const keyPart = this.calcKeyPart(cipherPart, word, alphabet);
-                if (keyPart) candidates.push(keyPart);
-            }
-        }
-        return [...new Set(candidates)];
+    static parseTargetWords(text, alphabet) {
+        return text.toUpperCase()
+            .split(/[\s,\n]+/)
+            .map(w => w.replace(new RegExp(`[^${alphabet}]`, 'g'), ''))
+            .filter(w => w.length > 0);
     }
 
-    static calcKeyPart(cipherPart, knownPart, alphabet) {
+    static generateKeyHypotheses(ciphertext, targetWords, alphabet) {
+        const hypotheses = new Set();
+        const cipherUpper = ciphertext.toUpperCase();
+        
+        // Генерация гипотез для каждого слова
+        targetWords.forEach(word => {
+            for (let offset = 0; offset <= cipherUpper.length - word.length; offset++) {
+                const cipherPart = cipherUpper.substr(offset, word.length);
+                const key = this.calculateKeySegment(cipherPart, word, alphabet);
+                if (key) hypotheses.add(key);
+            }
+        });
+        
+        // Комбинации для нескольких слов
+        for (let i = 0; i < targetWords.length - 1; i++) {
+            for (let j = i + 1; j < targetWords.length; j++) {
+                const combinedKey = this.findCommonKey(targetWords[i], targetWords[j], cipherUpper, alphabet);
+                if (combinedKey) hypotheses.add(combinedKey);
+            }
+        }
+        
+        return Array.from(hypotheses);
+    }
+
+    static calculateKeySegment(cipherPart, knownPart, alphabet) {
         let key = '';
         for (let i = 0; i < knownPart.length; i++) {
             const cPos = alphabet.indexOf(cipherPart[i]);
@@ -183,55 +174,84 @@ class CipherEngine {
         return key;
     }
 
-    static validateKeys(ciphertext, targetWords, candidates, alphabet) {
-        const validKeys = [];
-        for (const candidate of candidates) {
-            const fullKey = this.generateFullKey(candidate, ciphertext.length);
-            const decrypted = this.processText(ciphertext, fullKey, 'decrypt');
-            if (targetWords.every(w => decrypted.includes(w))) validKeys.push(fullKey);
+    static findCommonKey(word1, word2, ciphertext, alphabet) {
+        for (let offset1 = 0; offset1 <= ciphertext.length - word1.length; offset1++) {
+            const key1 = this.calculateKeySegment(
+                ciphertext.substr(offset1, word1.length),
+                word1,
+                alphabet
+            );
+            
+            if (!key1) continue;
+            
+            for (let offset2 = 0; offset2 <= ciphertext.length - word2.length; offset2++) {
+                const key2 = this.calculateKeySegment(
+                    ciphertext.substr(offset2, word2.length),
+                    word2,
+                    alphabet
+                );
+                
+                if (key2 && this.isPatternCompatible(key1, key2)) {
+                    return this.mergeKeys(key1, key2);
+                }
+            }
         }
-        return validKeys;
+        return null;
     }
 
-    static generateFullKey(baseKey, requiredLength) {
-        return baseKey.repeat(Math.ceil(requiredLength / baseKey.length)).slice(0, requiredLength);
+    static isPatternCompatible(key1, key2) {
+        const minLen = Math.min(key1.length, key2.length);
+        return key1.substr(0, minLen) === key2.substr(0, minLen);
     }
 
-    static selectBestKey(keys) {
+    static mergeKeys(key1, key2) {
+        return key1.length >= key2.length ? key1 : key2;
+    }
+
+    static validateKeys(ciphertext, targetWords, hypotheses, alphabet) {
+        return hypotheses.filter(key => {
+            try {
+                const fullKey = key.repeat(Math.ceil(ciphertext.length / key.length)).substr(0, ciphertext.length);
+                const decrypted = this.processText(ciphertext, fullKey, 'decrypt');
+                return targetWords.every(word => decrypted.includes(word));
+            } catch {
+                return false;
+            }
+        });
+    }
+
+    static selectOptimalKey(keys) {
         return keys.sort((a, b) => {
-            const aPattern = this.findRepeatingPattern(a);
-            const bPattern = this.findRepeatingPattern(b);
-            return aPattern.length - bPattern.length || a.length - b.length;
+            const patternA = this.findRepeatingPattern(a);
+            const patternB = this.findRepeatingPattern(b);
+            return patternA.length - patternB.length || a.length - b.length;
         })[0];
     }
 
     static findRepeatingPattern(key) {
         for (let len = 1; len <= key.length / 2; len++) {
             const pattern = key.substr(0, len);
-            let valid = true;
+            let isValid = true;
             for (let i = len; i < key.length; i += len) {
                 if (key.substr(i, len) !== pattern) {
-                    valid = false;
+                    isValid = false;
                     break;
                 }
             }
-            if (valid) return pattern;
+            if (isValid) return pattern;
         }
         return key;
     }
 
-    // ================== AUTOCRAK FUNCTIONALITY ==================
+    // ================== AUTOCRAK ==================
     static autoCrack() {
         try {
             const ciphertext = document.getElementById('ciphertext').value;
+            if (!ciphertext || ciphertext.length < 50) throw new Error("Нужно минимум 50 символов");
             
-            if (!ciphertext || ciphertext.length < 50) {
-                throw new Error("Minimum 50 characters required");
-            }
-
-            this.showStatus("Starting analysis...", "info");
+            this.showStatus("Начало анализа...", "info");
             document.getElementById('cancelBtn').style.display = 'inline-block';
-
+            
             this.worker = new Worker('worker.js');
             this.worker.onmessage = (e) => {
                 if (e.data.type === 'PROGRESS') {
@@ -241,17 +261,18 @@ class CipherEngine {
                     document.getElementById('cancelBtn').style.display = 'none';
                 }
             };
-
+            
             this.worker.postMessage({
                 type: 'ANALYZE',
                 ciphertext: ciphertext,
                 alphabet: document.getElementById('alphabet').value
             });
-
+            
             this.analysisTimeout = setTimeout(() => {
                 this.cancelAnalysis();
-                throw new Error("Analysis timed out");
+                throw new Error("Превышено время анализа");
             }, this.WORKER_TIMEOUT);
+            
         } catch (error) {
             this.showStatus(error.message, "error");
         }
@@ -262,9 +283,9 @@ class CipherEngine {
         if (data.key) {
             document.getElementById('key').value = data.key;
             this.decrypt();
-            this.showStatus(`Found key: ${data.key}`, "success");
+            this.showStatus(`Найден ключ: ${data.key}`, "success");
         } else {
-            throw new Error("Key not found");
+            throw new Error("Ключ не найден");
         }
     }
 
@@ -272,18 +293,18 @@ class CipherEngine {
         if (this.worker) this.worker.terminate();
         clearTimeout(this.analysisTimeout);
         document.getElementById('cancelBtn').style.display = 'none';
-        this.showStatus("Analysis cancelled", "warning");
+        this.showStatus("Анализ отменен", "warning");
     }
 
-    // ================== FREQUENCY ANALYSIS ==================
+    // ================== ВИЗУАЛИЗАЦИЯ ==================
     static updateFrequencyChart() {
         const plaintext = document.getElementById('plaintext').value;
         if (!plaintext) return;
-
+        
         const alphabet = this.validateAlphabet();
-        const freqMap = this.calculateFrequencies(plaintext, alphabet);
         const ctx = document.getElementById('frequencyChart').getContext('2d');
-
+        const freqData = this.calculateFrequencies(plaintext, alphabet);
+        
         if (this.frequencyChart) this.frequencyChart.destroy();
         
         this.frequencyChart = new Chart(ctx, {
@@ -291,8 +312,8 @@ class CipherEngine {
             data: {
                 labels: alphabet.split(''),
                 datasets: [{
-                    label: 'Character Frequency',
-                    data: alphabet.split('').map(c => freqMap[c] || 0),
+                    label: 'Частота символов',
+                    data: alphabet.split('').map(c => freqData[c] || 0),
                     backgroundColor: '#3498db'
                 }]
             },
@@ -304,17 +325,16 @@ class CipherEngine {
     }
 
     static calculateFrequencies(text, alphabet) {
-        const freqMap = {};
         const cleanText = text.toUpperCase().replace(new RegExp(`[^${alphabet}]`, 'g'), '');
         const total = cleanText.length || 1;
+        const freqMap = {};
         
         alphabet.split('').forEach(c => freqMap[c] = 0);
         for (const c of cleanText) freqMap[c]++;
-        for (const c in freqMap) freqMap[c] = (freqMap[c] / total * 100).toFixed(2);
+        for (const c in freqMap) freqMap[c] = Number((freqMap[c] / total * 100).toFixed(2));
         
         return freqMap;
     }
 }
 
-// Initialize when ready
 document.addEventListener('DOMContentLoaded', () => CipherEngine.init());
