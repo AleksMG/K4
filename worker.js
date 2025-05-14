@@ -1,74 +1,76 @@
-// Метод Казиски
-function kasiskiMethod(cipherText) {
-    const seqLength = 3;
-    const sequences = new Map();
-    const distances = [];
-    
-    for (let i = 0; i < cipherText.length - seqLength; i++) {
-        const seq = cipherText.substr(i, seqLength);
-        if (sequences.has(seq)) {
-            distances.push(i - sequences.get(seq));
-        } else {
-            sequences.set(seq, i);
+class CryptoWorker {
+    static ENGLISH_FREQ = [
+        8.2, 1.5, 2.8, 4.3, 12.7, 2.2, 2.0, 6.1, 7.0,
+        0.2, 0.8, 4.0, 2.4, 6.7, 7.5, 1.9, 0.1, 6.0,
+        6.3, 9.1, 2.8, 1.0, 2.4, 0.2, 2.0, 0.1
+    ];
+
+    constructor() {
+        self.addEventListener('message', this.handleMessage.bind(this));
+    }
+
+    handleMessage(e) {
+        const { type, cipherText } = e.data;
+        if (type === 'CRACK') {
+            const key = this.crack(cipherText);
+            self.postMessage({ key });
         }
     }
-    
-    // Вычисляем НОД
-    const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
-    return distances.reduce((a, b) => gcd(a, b), distances[0]) || 3;
-}
 
-// Частотный анализ
-function frequencyAnalysis(cipherText, alphabet, keyLength) {
-    const alpha = alphabet.toUpperCase();
-    const groups = Array.from({ length: keyLength }, () => ({}));
-    
-    // Распределяем символы
-    for (let i = 0; i < cipherText.length; i++) {
-        const char = cipherText[i];
-        const groupIdx = i % keyLength;
-        groups[groupIdx][char] = (groups[groupIdx][char] || 0) + 1;
+    crack(cipherText) {
+        const keyLength = this.kasiskiTest(cipherText);
+        return this.frequencyAnalysis(cipherText, keyLength);
     }
-    
-    // Эталонные частоты (английский)
-    const ENGLISH_FREQ = {
-        'A':0.08167, 'B':0.01492, 'C':0.02782, 'D':0.04258, 'E':0.12702,
-        'F':0.02228, 'G':0.02015, 'H':0.06094, 'I':0.06966, 'J':0.00153,
-        'K':0.00772, 'L':0.04025, 'M':0.02406, 'N':0.06749, 'O':0.07507,
-        'P':0.01929, 'Q':0.00095, 'R':0.05987, 'S':0.06327, 'T':0.09056,
-        'U':0.02758, 'V':0.00978, 'W':0.02360, 'X':0.00150, 'Y':0.01974, 'Z':0.00074
-    };
-    
-    // Подбор ключа
-    let key = "";
-    for (const group of groups) {
-        let bestShift = 0;
-        let bestScore = -Infinity;
+
+    kasiskiTest(text) {
+        const seqMap = new Map();
+        const factors = new Map();
         
-        for (let shift = 0; shift < alpha.length; shift++) {
-            let score = 0;
-            for (const [char, count] of Object.entries(group)) {
-                const original = alpha[(alpha.indexOf(char) - shift + alpha.length) % alpha.length];
-                score += (count / cipherText.length) * (ENGLISH_FREQ[original] || 0);
+        for (let i = 0; i < text.length - 3; i++) {
+            const seq = text.substr(i, 3);
+            if (seqMap.has(seq)) {
+                const distance = i - seqMap.get(seq);
+                this.calculateFactors(distance).forEach(f => 
+                    factors.set(f, (factors.get(f) || 0) + 1)
             }
-            if (score > bestScore) {
-                bestScore = score;
-                bestShift = shift;
+            seqMap.set(seq, i);
+        }
+        
+        return [...factors.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 3;
+    }
+
+    frequencyAnalysis(text, keyLength) {
+        return Array.from({ length: keyLength }, (_, i) => {
+            const group = text.split('').filter((_, idx) => idx % keyLength === i);
+            return String.fromCharCode(65 + this.findBestShift(group));
+        }).join('');
+    }
+
+    findBestShift(group) {
+        const freq = this.calculateFrequency(group);
+        return CryptoWorker.ENGLISH_FREQ.reduce((best, _, shift) => {
+            const score = CryptoWorker.ENGLISH_FREQ.reduce((sum, engFreq, idx) => 
+                sum + engFreq * freq[(idx + shift) % 26], 0);
+            return score > best.score ? { shift, score } : best;
+        }, { shift: 0, score: 0 }).shift;
+    }
+
+    calculateFactors(n) {
+        const factors = new Set();
+        for (let i = 2; i <= Math.sqrt(n); i++) {
+            if (n % i === 0) {
+                factors.add(i);
+                factors.add(n / i);
             }
         }
-        key += alpha[bestShift];
+        return [...factors];
     }
-    return key;
+
+    calculateFrequency(chars) {
+        const count = new Array(26).fill(0);
+        chars.forEach(c => count[c.charCodeAt(0) - 65]++);
+        return count.map(c => c / chars.length);
+    }
 }
 
-// Обработчик Web Worker
-self.addEventListener("message", (e) => {
-    const { type, data } = e.data;
-    
-    if (type === "ANALYZE") {
-        const cipherText = data.cipherText;
-        const keyLength = kasiskiMethod(cipherText);
-        const key = frequencyAnalysis(cipherText, data.alphabet, keyLength);
-        self.postMessage({ type: "RESULT", key });
-    }
-});
+new CryptoWorker();
