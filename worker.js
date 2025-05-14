@@ -1,225 +1,229 @@
-class CryptoWorker {
-    constructor() {
-        this.MIN_KEY_LENGTH = 2;
-        this.MAX_KEY_LENGTH = 30;
-        this.terminateRequested = false;
-        this.initEventListeners();
+class CipherEngine {
+    static VERSION = "5.1";
+    static DEFAULT_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    static MIN_KEY_LENGTH = 2;
+    static MAX_KEY_LENGTH = 30;
+    static WORKER_TIMEOUT = 30000;
+    static frequencyChart = null;
+    static worker = null;
+    static analysisTimeout = null;
+
+    // Инициализация
+    static init() {
+        this.registerEventListeners();
+        console.log(`Vigenère Cipher Expert v${this.VERSION} initialized`);
     }
-    
-    initEventListeners() {
-        self.addEventListener('message', (e) => {
-            if (this.terminateRequested) return;
-            
-            switch(e.data.type) {
-                case 'ANALYZE':
-                    this.handleAnalysis(e.data);
-                    break;
-                case 'TERMINATE':
-                    this.terminate();
-                    break;
-            }
+
+    // Регистрация событий
+    static registerEventListeners() {
+        document.getElementById('alphabet').addEventListener('input', () => {
+            this.validateAlphabet();
+            this.decrypt();
         });
     }
-    
-    handleAnalysis(data) {
-        try {
-            const { ciphertext, alphabet } = data;
-            
-            if (!ciphertext || ciphertext.length < 50) {
-                throw new Error("Insufficient ciphertext length");
-            }
-            
-            // Step 1: Kasiski examination
-            const keyLength = this.kasiskiExamination(ciphertext);
-            self.postMessage({
-                type: 'PROGRESS',
-                message: `Found probable key length: ${keyLength}`
-            });
-            
-            // Step 2: Frequency analysis
-            const key = this.frequencyAnalysis(ciphertext, keyLength, alphabet);
-            self.postMessage({
-                type: 'PROGRESS',
-                message: `Calculated probable key: ${key}`
-            });
-            
-            // Step 3: Dictionary refinement
-            const refinedKey = this.dictionaryAttack(ciphertext, key, alphabet);
-            
-            self.postMessage({
-                type: 'RESULT',
-                key: refinedKey,
-                keyLength: keyLength,
-                confidence: this.calculateConfidence(ciphertext, refinedKey, alphabet)
-            });
-            
-        } catch (error) {
-            self.postMessage({
-                type: 'ERROR',
-                message: error.message
-            });
-        }
+
+    // Валидация алфавита
+    static validateAlphabet() {
+        const alphabet = document.getElementById('alphabet').value.toUpperCase();
+        const unique = [...new Set(alphabet)];
+        
+        if (unique.length !== alphabet.length) throw new Error("Алфавит содержит повторяющиеся символы");
+        if (alphabet.length < 10) throw new Error("Алфавит слишком короткий (минимум 10 символов)");
+        
+        return alphabet;
     }
-    
-    kasiskiExamination(text) {
-        const seqLength = 3;
-        const sequences = new Map();
-        const distanceFactors = new Map();
-        
-        // Find repeating sequences
-        for (let i = 0; i < text.length - seqLength; i++) {
-            const seq = text.substr(i, seqLength);
-            
-            if (sequences.has(seq)) {
-                const distance = i - sequences.get(seq);
-                this.calculateFactors(distance).forEach(factor => {
-                    if (factor >= this.MIN_KEY_LENGTH && factor <= this.MAX_KEY_LENGTH) {
-                        distanceFactors.set(factor, (distanceFactors.get(factor) || 0) + 1);
-                    }
-                });
-            } else {
-                sequences.set(seq, i);
-            }
-        }
-        
-        // Fallback to index of coincidence if no sequences found
-        if (distanceFactors.size === 0) {
-            return this.estimateKeyLengthWithIC(text);
-        }
-        
-        // Return the most common factor
-        return [...distanceFactors.entries()]
-            .sort((a, b) => b[1] - a[1])[0][0];
+
+    // Отображение статуса
+    static showStatus(message, type = 'info') {
+        const statusEl = document.getElementById('status');
+        statusEl.style.display = 'block';
+        statusEl.textContent = message;
+        statusEl.className = type;
+        statusEl.style.background = this.getStatusColor(type);
     }
-    
-    estimateKeyLengthWithIC(text) {
-        // Simple index of coincidence estimation
-        const maxLength = Math.min(20, Math.floor(text.length / 2));
-        let bestLength = 3;
-        let bestIC = 0;
+
+    // Основная обработка текста
+    static processText(text, key, mode) {
+        const alphabet = this.validateAlphabet();
+        const cleanText = text.toUpperCase().replace(new RegExp(`[^${alphabet}]`, 'g'), '');
+        const cleanKey = key.toUpperCase().replace(new RegExp(`[^${alphabet}]`, 'g'), '');
         
-        for (let L = this.MIN_KEY_LENGTH; L <= maxLength; L++) {
-            let totalIC = 0;
+        return cleanText.split('').map((c, i) => {
+            const textPos = alphabet.indexOf(c);
+            const keyPos = alphabet.indexOf(cleanKey[i % cleanKey.length]);
+            if (textPos === -1 || keyPos === -1) return '_';
             
-            for (let i = 0; i < L; i++) {
-                const sequence = this.getSequence(text, i, L);
-                totalIC += this.calculateIC(sequence);
-            }
+            const resultPos = mode === 'encrypt' 
+                ? (textPos + keyPos) % alphabet.length 
+                : (textPos - keyPos + alphabet.length) % alphabet.length;
             
-            const avgIC = totalIC / L;
-            if (avgIC > bestIC) {
-                bestIC = avgIC;
-                bestLength = L;
-            }
-        }
-        
-        return bestLength;
-    }
-    
-    getSequence(text, start, step) {
-        let result = '';
-        for (let i = start; i < text.length; i += step) {
-            result += text[i];
-        }
-        return result;
-    }
-    
-    calculateIC(sequence) {
-        const freq = {};
-        let sum = 0;
-        
-        for (const c of sequence) {
-            freq[c] = (freq[c] || 0) + 1;
-        }
-        
-        for (const c in freq) {
-            sum += freq[c] * (freq[c] - 1);
-        }
-        
-        const n = sequence.length;
-        return n > 1 ? sum / (n * (n - 1)) : 0;
-    }
-    
-    frequencyAnalysis(text, keyLength, alphabet) {
-        const alphaLength = alphabet.length;
-        const freqTables = Array.from({ length: keyLength }, () => 
-            new Array(alphaLength).fill(0));
-        
-        // Build frequency tables
-        for (let i = 0; i < text.length; i++) {
-            const char = text[i];
-            const pos = alphabet.indexOf(char);
-            if (pos !== -1) {
-                const tableIndex = i % keyLength;
-                freqTables[tableIndex][pos]++;
-            }
-        }
-        
-        // Find most probable shifts using English frequencies
-        return freqTables.map(table => {
-            const maxFreq = Math.max(...table);
-            const shift = table.indexOf(maxFreq);
-            
-            // Adjust shift based on English 'E' frequency
-            const ePos = alphabet.indexOf('E');
-            if (ePos >= 0) {
-                const adjustedShift = (shift - ePos + alphaLength) % alphaLength;
-                return alphabet[adjustedShift];
-            }
-            
-            return alphabet[shift];
+            return alphabet[resultPos];
         }).join('');
     }
-    
-    dictionaryAttack(ciphertext, initialKey, alphabet) {
-        // Check if key is a common word
-        for (const word of CommonWords) {
-            if (initialKey.includes(word)) {
-                return word;
+
+    // Анализ известного текста (УЛУЧШЕННАЯ ВЕРСИЯ)
+    static analyze() {
+        try {
+            const ciphertext = document.getElementById('ciphertext').value;
+            const knownText = document.getElementById('knownPlaintext').value;
+            const alphabet = this.validateAlphabet();
+            
+            if (!ciphertext || !knownText) throw new Error("Заполните все поля");
+            
+            // Парсинг целевых слов
+            const targetWords = knownText.toUpperCase()
+                .split(/[\s,\n]+/)
+                .map(w => w.replace(new RegExp(`[^${alphabet}]`, 'g'), ''))
+                .filter(w => w.length > 0);
+            
+            if (targetWords.length === 0) throw new Error("Не найдено валидных слов");
+
+            // Поиск ключей
+            const candidates = this.findKeyCandidates(ciphertext, targetWords, alphabet);
+            const validKeys = this.validateKeys(ciphertext, targetWords, candidates, alphabet);
+            
+            if (validKeys.length === 0) throw new Error("Подходящие ключи не найдены");
+            
+            const bestKey = this.selectBestKey(validKeys, alphabet);
+            document.getElementById('key').value = bestKey;
+            this.decrypt();
+            this.showStatus(`Найден ключ: ${bestKey}`, "success");
+            
+        } catch (error) {
+            this.showStatus(error.message, "error");
+        }
+    }
+
+    // Поиск кандидатов ключей
+    static findKeyCandidates(ciphertext, targetWords, alphabet) {
+        const candidates = [];
+        const cipherUpper = ciphertext.toUpperCase();
+        
+        for (const word of targetWords) {
+            const wordLen = word.length;
+            for (let pos = 0; pos <= cipherUpper.length - wordLen; pos++) {
+                const cipherPart = cipherUpper.substr(pos, wordLen);
+                const keyPart = this.calcKeyPart(cipherPart, word, alphabet);
+                if (keyPart) candidates.push({ key: keyPart, pos, word });
             }
         }
+        return candidates;
+    }
+
+    // Расчет части ключа
+    static calcKeyPart(cipherPart, knownPart, alphabet) {
+        let key = '';
+        for (let i = 0; i < knownPart.length; i++) {
+            const cPos = alphabet.indexOf(cipherPart[i]);
+            const kPos = alphabet.indexOf(knownPart[i]);
+            if (cPos === -1 || kPos === -1) return null;
+            key += alphabet[(cPos - kPos + alphabet.length) % alphabet.length];
+        }
+        return key;
+    }
+
+    // Валидация ключей
+    static validateKeys(ciphertext, targetWords, candidates, alphabet) {
+        const validKeys = new Set();
         
-        // Check for common prefixes/suffixes
-        const commonPrefixes = ['THE', 'AND', 'FOR'];
-        for (const prefix of commonPrefixes) {
-            if (initialKey.startsWith(prefix)) {
-                return prefix;
+        for (const {key} of candidates) {
+            try {
+                const fullKey = this.generateFullKey(key, ciphertext.length);
+                const decrypted = this.processText(ciphertext, fullKey, 'decrypt');
+                
+                if (targetWords.every(w => decrypted.includes(w))) {
+                    validKeys.add(fullKey);
+                }
+            } catch (e) {
+                console.warn("Недопустимый ключ:", key);
             }
         }
-        
-        return initialKey;
+        return [...validKeys];
     }
-    
-    calculateFactors(number) {
-        const factors = new Set();
-        for (let i = 2; i <= Math.sqrt(number); i++) {
-            if (number % i === 0) {
-                factors.add(i);
-                factors.add(number / i);
+
+    // Генерация полного ключа
+    static generateFullKey(baseKey, requiredLength) {
+        return baseKey.repeat(Math.ceil(requiredLength / baseKey.length))
+                      .substring(0, requiredLength);
+    }
+
+    // Выбор лучшего ключа
+    static selectBestKey(keys, alphabet) {
+        return keys.sort((a, b) => {
+            const aPat = this.findRepeatingPattern(a);
+            const bPat = this.findRepeatingPattern(b);
+            return aPat.length - bPat.length || a.length - b.length;
+        })[0];
+    }
+
+    // Поиск повторяющегося паттерна
+    static findRepeatingPattern(key) {
+        for (let len = 1; len <= key.length / 2; len++) {
+            const pattern = key.substring(0, len);
+            let valid = true;
+            for (let i = len; i < key.length; i += len) {
+                if (key.substring(i, i + len) !== pattern) {
+                    valid = false;
+                    break;
+                }
             }
+            if (valid) return pattern;
         }
-        return [...factors];
+        return key;
     }
-    
-    calculateConfidence(ciphertext, key, alphabet) {
-        // Simple confidence based on key length and character distribution
-        if (!key || key.length === 0) return 0;
-        
-        // Check if key is a known word
-        if (CommonWords.includes(key)) return 0.95;
-        
-        // Check character frequency in key
-        const commonKeyChars = ['A', 'E', 'I', 'O', 'N', 'T'];
-        const commonCount = [...key].filter(c => commonKeyChars.includes(c)).length;
-        const ratio = commonCount / key.length;
-        
-        return Math.min(0.85, 0.5 + ratio * 0.5);
+
+    // Авто-взлом (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+    static autoCrack() {
+        try {
+            const ciphertext = document.getElementById('ciphertext').value;
+            if (!ciphertext || ciphertext.length < 50) throw new Error("Нужно минимум 50 символов");
+
+            this.showStatus("Начало анализа...", "info");
+            document.getElementById('cancelBtn').style.display = 'block';
+
+            this.worker = new Worker('worker.js');
+            this.worker.onmessage = (e) => {
+                if (e.data.type === 'PROGRESS') {
+                    this.showStatus(e.data.message, "info");
+                } else if (e.data.type === 'RESULT') {
+                    this.handleAnalysisResult(e.data);
+                    document.getElementById('cancelBtn').style.display = 'none';
+                }
+            };
+
+            this.worker.postMessage({
+                type: 'ANALYZE',
+                ciphertext: ciphertext,
+                alphabet: document.getElementById('alphabet').value
+            });
+
+            this.analysisTimeout = setTimeout(() => {
+                this.cancelAnalysis();
+                throw new Error("Таймаут анализа");
+            }, this.WORKER_TIMEOUT);
+
+        } catch (error) {
+            this.showStatus(error.message, "error");
+        }
     }
-    
-    terminate() {
-        this.terminateRequested = true;
-        self.close();
+
+    // Обработка результатов авто-взлома
+    static handleAnalysisResult(data) {
+        clearTimeout(this.analysisTimeout);
+        if (data.key) {
+            document.getElementById('key').value = data.key;
+            this.decrypt();
+            this.showStatus(`Найден ключ: ${data.key}`, "success");
+        } else {
+            throw new Error("Ключ не найден");
+        }
     }
+
+    // Остальные методы
+    static encrypt() { /* ... */ }
+    static decrypt() { /* ... */ }
+    static cancelAnalysis() { /* ... */ }
+    static updateFrequencyChart() { /* ... */ }
 }
 
-new CryptoWorker();
+document.addEventListener('DOMContentLoaded', () => CipherEngine.init());
