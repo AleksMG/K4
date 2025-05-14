@@ -23,57 +23,76 @@ class CryptoWorker {
     handleAnalysis(data) {
         try {
             const { ciphertext, alphabet } = data;
-            const keyLength = this.kasiskiExamination(ciphertext);
-            self.postMessage({ type: 'PROGRESS', message: `Предполагаемая длина ключа: ${keyLength}` });
             
+            // Шаг 1: Определение длины ключа
+            const keyLength = this.kasiskiMethod(ciphertext);
+            self.postMessage({ type: 'PROGRESS', message: `Key length: ${keyLength}` });
+
+            // Шаг 2: Частотный анализ
             const key = this.frequencyAnalysis(ciphertext, keyLength, alphabet);
-            self.postMessage({ type: 'RESULT', key: key });
             
+            // Шаг 3: Проверка по словарю
+            const refinedKey = this.dictionaryCheck(key);
+            
+            self.postMessage({ type: 'RESULT', key: refinedKey });
+
         } catch (error) {
             self.postMessage({ type: 'ERROR', message: error.message });
         }
     }
 
-    kasiskiExamination(text) {
+    kasiskiMethod(text) {
         const seqMap = new Map();
         const factors = new Map();
-        
-        for (let i = 0; i < text.length - 3; i++) {
-            const seq = text.substr(i, 3);
-            if (seqMap.has(seq)) {
-                const dist = i - seqMap.get(seq);
-                this.calculateFactors(dist).forEach(f => {
+
+        for (let i = 0; i < text.length - 2; i++) {
+            const trigram = text.substr(i, 3);
+            if (seqMap.has(trigram)) {
+                const distance = i - seqMap.get(trigram);
+                this.getFactors(distance).forEach(f => {
                     if (f >= this.MIN_KEY_LENGTH && f <= this.MAX_KEY_LENGTH) {
                         factors.set(f, (factors.get(f) || 0) + 1);
                     }
                 });
             } else {
-                seqMap.set(seq, i);
+                seqMap.set(trigram, i);
             }
         }
-        
-        return [...factors.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 3;
+
+        const sorted = [...factors.entries()].sort((a, b) => b[1] - a[1]);
+        return sorted[0]?.[0] || this.MAX_KEY_LENGTH;
     }
 
     frequencyAnalysis(text, keyLength, alphabet) {
-        const freqTables = Array.from({ length: keyLength }, () => new Array(alphabet.length).fill(0));
-        
+        const freqTables = Array.from({ length: keyLength }, () => 
+            new Array(alphabet.length).fill(0));
+
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
             const tableIdx = i % keyLength;
             const charIdx = alphabet.indexOf(char);
             if (charIdx !== -1) freqTables[tableIdx][charIdx]++;
         }
-        
+
         return freqTables.map(table => {
             const scores = table.map((count, idx) => 
-                count * this.ENGLISH_FREQ[idx % this.ENGLISH_FREQ.length]
+                count * this.ENGLISH_FREQ[idx % 26]
             );
             return alphabet[scores.indexOf(Math.max(...scores))];
         }).join('');
     }
 
-    calculateFactors(n) {
+    dictionaryCheck(key) {
+        const commonWords = ['THE', 'AND', 'THAT', 'HAVE', 'WITH'];
+        for (const word of commonWords) {
+            if (key.includes(word)) {
+                return word;
+            }
+        }
+        return key;
+    }
+
+    getFactors(n) {
         const factors = new Set();
         for (let i = 2; i <= Math.sqrt(n); i++) {
             if (n % i === 0) {
