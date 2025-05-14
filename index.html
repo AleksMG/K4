@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vigenère Cipher Expert</title>
+    <meta name="description" content="Advanced Vigenère cipher analysis tool with frequency analysis and Kasiski examination">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -12,6 +14,10 @@
             --error: #e74c3c;
             --warning: #f39c12;
             --success: #2ecc71;
+            --info-bg: #eaf2f8;
+            --success-bg: #e8f5e9;
+            --warning-bg: #fff8e1;
+            --error-bg: #ffebee;
         }
         body {
             font-family: 'Roboto', sans-serif;
@@ -43,6 +49,11 @@
             resize: vertical;
             margin: 10px 0;
             font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        textarea:focus {
+            border-color: var(--secondary);
+            outline: none;
         }
         .btn-group {
             display: grid;
@@ -58,6 +69,13 @@
             font-weight: 600;
             transition: all 0.3s ease;
             font-family: 'Roboto', sans-serif;
+        }
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(0);
         }
         .btn-primary {
             background: var(--secondary);
@@ -77,9 +95,26 @@
             border-radius: 8px;
             margin: 15px 0;
             font-weight: bold;
+            border-left: 4px solid var(--primary);
+        }
+        .status-info {
+            background: var(--info-bg);
+            border-color: var(--secondary);
+        }
+        .status-success {
+            background: var(--success-bg);
+            border-color: var(--success);
+        }
+        .status-warning {
+            background: var(--warning-bg);
+            border-color: var(--warning);
+        }
+        .status-error {
+            background: var(--error-bg);
+            border-color: var(--error);
         }
         .info {
-            background: #eaf2f8;
+            background: var(--info-bg);
             border-left: 4px solid var(--secondary);
             padding: 10px 15px;
             margin: 15px 0;
@@ -87,6 +122,32 @@
         canvas {
             margin-top: 25px;
             max-width: 100%;
+            height: 400px;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--primary);
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
         }
         @media (max-width: 768px) {
             body {
@@ -98,6 +159,9 @@
             .btn-group {
                 grid-template-columns: 1fr;
             }
+            canvas {
+                height: 300px;
+            }
         }
     </style>
 </head>
@@ -108,23 +172,23 @@
         
         <div class="container">
             <h2>Input</h2>
-            <h3>Ciphertext</h3>
+            <h3>Ciphertext <span class="tooltip">(?)<span class="tooltiptext">Enter the encrypted text you want to analyze or decrypt</span></span></h3>
             <textarea id="ciphertext" placeholder="Enter encrypted text here..."></textarea>
             
-            <h3>Known Plaintext (Optional)</h3>
+            <h3>Known Plaintext (Optional) <span class="tooltip">(?)<span class="tooltiptext">If you know part of the original text, enter it here to help find the key</span></span></h3>
             <textarea id="knownPlaintext" placeholder="Enter known text fragment if available..."></textarea>
         </div>
 
         <div class="container">
             <h2>Configuration</h2>
-            <h3>Key</h3>
+            <h3>Key <span class="tooltip">(?)<span class="tooltiptext">Enter the encryption key or leave blank for automatic detection</span></span></h3>
             <textarea id="key" placeholder="Enter key or it will be calculated automatically..."></textarea>
             
-            <h3>Alphabet Configuration</h3>
+            <h3>Alphabet Configuration <span class="tooltip">(?)<span class="tooltiptext">Modify this for non-English alphabets (no duplicates allowed)</span></span></h3>
             <textarea id="alphabet">ABCDEFGHIJKLMNOPQRSTUVWXYZ</textarea>
             
             <div class="info">
-                <strong>Note:</strong> For non-English alphabets, modify the character set above.
+                <strong>Note:</strong> For non-English alphabets, modify the character set above. Minimum 10 unique characters required.
             </div>
         </div>
 
@@ -146,11 +210,12 @@
             <h3>Decrypted Text</h3>
             <textarea id="plaintext" readonly></textarea>
             
-            <h3>Frequency Analysis</h3>
+            <h3>Frequency Analysis <span class="tooltip">(?)<span class="tooltiptext">Shows character distribution in decrypted text compared to English frequencies</span></span></h3>
             <canvas id="frequencyChart"></canvas>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="dictionary.js"></script>
     <script src="vigenere.js"></script>
 </body>
