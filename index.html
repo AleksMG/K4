@@ -1,234 +1,286 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vigenère Cipher Expert</title>
-    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- ФАЙЛЫ ПОДКЛЮЧЕНЫ ТОЧНО В ВАШЕМ ПОРЯДКЕ -->
-    <script src="dictionary.js"></script>
-    <script src="worker.js"></script>
-    <script src="vigenere.js"></script>
-
-    <!-- ВСЕ ВАШИ СТИЛИ БЕЗ ИЗМЕНЕНИЙ -->
-    <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #3498db;
-            --error: #e74c3c;
-            --warning: #f39c12;
-            --success: #2ecc71;
-            --info-bg: #eaf2f8;
-            --success-bg: #e8f5e9;
-            --warning-bg: #fff8e1;
-            --error-bg: #ffebee;
-        }
-        body {
-            font-family: 'Roboto', sans-serif;
-            line-height: 1.6;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f7fa;
-            color: #333;
-        }
-        .container {
-            background: #fff;
-            border-radius: 10px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        h1, h2, h3 {
-            color: var(--primary);
-            font-family: 'Roboto Mono', monospace;
-        }
-        textarea {
-            width: 100%;
-            min-height: 150px;
-            padding: 15px;
-            border: 2px solid #bdc3c7;
-            border-radius: 8px;
-            font-family: 'Roboto Mono', monospace;
-            resize: vertical;
-            margin: 10px 0;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-        textarea:focus {
-            border-color: var(--secondary);
-            outline: none;
-        }
-        .btn-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            margin: 20px 0;
-        }
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            font-family: 'Roboto', sans-serif;
-        }
-        button:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-        button:active {
-            transform: translateY(0);
-        }
-        .btn-primary {
-            background: var(--secondary);
-            color: white;
-        }
-        .btn-danger {
-            background: var(--error);
-            color: white;
-        }
-        .btn-warning {
-            background: var(--warning);
-            color: white;
-        }
-        #status {
-            display: none;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            font-weight: bold;
-            border-left: 4px solid var(--primary);
-        }
-        .status-info {
-            background: var(--info-bg);
-            border-color: var(--secondary);
-        }
-        .status-success {
-            background: var(--success-bg);
-            border-color: var(--success);
-        }
-        .status-warning {
-            background: var(--warning-bg);
-            border-color: var(--warning);
-        }
-        .status-error {
-            background: var(--error-bg);
-            border-color: var(--error);
-        }
-        .info {
-            background: var(--info-bg);
-            border-left: 4px solid var(--secondary);
-            padding: 10px 15px;
-            margin: 15px 0;
-        }
-        canvas {
-            margin-top: 25px;
-            max-width: 100%;
-            height: 400px;
-        }
-        .tooltip {
-            position: relative;
-            display: inline-block;
-            cursor: help;
-        }
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 200px;
-            background-color: var(--primary);
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -100px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-            opacity: 1;
-        }
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            .container {
-                padding: 15px;
-            }
-            .btn-group {
-                grid-template-columns: 1fr;
-            }
-            canvas {
-                height: 300px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Vigenère Bruteforcer — Stable & Fast</title>
+  <style>
+    body { background: #0d0d0d; color: #00ffcc; font-family: monospace; padding: 16px; }
+    .field { margin: 8px 0; }
+    input, textarea, button {
+      background: #1a1a1a; color: #00ffcc; border: 1px solid #00aa88; padding: 6px; width: 100%; box-sizing: border-box;
+    }
+    button { background: #004433; cursor: pointer; font-weight: bold; }
+    #progressBar { height: 20px; background: #111; border: 1px solid #007766; margin: 10px 0; }
+    #progressFill { height: 100%; background: linear-gradient(to right, #005555, #00ffaa); width: 0%; transition: width 0.1s; }
+    #results { background: #001100; border: 1px solid #007755; height: 300px; overflow-y: auto; padding: 8px; white-space: pre-wrap; }
+    .match { background: #330033; color: #ff66ff; padding: 0 2px; border-radius: 2px; }
+    .rating { color: #ffcc00; font-weight: bold; }
+  </style>
 </head>
 <body>
-    <!-- ВАША РАЗМЕТКА БЕЗ ИЗМЕНЕНИЙ -->
-    <div class="container">
-        <h1>Vigenère Cipher Expert</h1>
-        <p class="info">Professional-grade cipher analysis tool with frequency analysis, Kasiski examination, and dictionary attacks.</p>
-        
-        <div class="container">
-            <h2>Input</h2>
-            <h3>Ciphertext <span class="tooltip">(?)<span class="tooltiptext">Enter the encrypted text you want to analyze or decrypt</span></span></h3>
-            <textarea id="ciphertext" placeholder="Enter encrypted text here..."></textarea>
-            
-            <h3>Known Plaintext (Optional) <span class="tooltip">(?)<span class="tooltiptext">If you know part of the original text, enter it here to help find the key</span></span></h3>
-            <textarea id="knownPlaintext" placeholder="Enter known text fragment if available..."></textarea>
-        </div>
+  <h2>⚡ Vigenère Bruteforcer — Works</h2>
 
-        <div class="container">
-            <h2>Configuration</h2>
-            <h3>Key <span class="tooltip">(?)<span class="tooltiptext">Enter the encryption key or leave blank for automatic detection</span></span></h3>
-            <textarea id="key" placeholder="Enter key or it will be calculated automatically..."></textarea>
-            
-            <h3>Alphabet Configuration <span class="tooltip">(?)<span class="tooltiptext">Modify this for non-English alphabets (no duplicates allowed)</span></span></h3>
-            <textarea id="alphabet">ABCDEFGHIJKLMNOPQRSTUVWXYZ</textarea>
-            
-            <div class="info">
-                <strong>Note:</strong> For non-English alphabets, modify the character set above. Minimum 10 unique characters required.
-            </div>
-        </div>
+  <div class="field">
+    <label>Alphabet (26 letters recommended):</label>
+    <input id="alphabet" value="ABCDEFGHIJKLMNOPQRSTUVWXYZ">
+  </div>
 
-        <div class="container">
-            <h2>Actions</h2>
-            <div class="btn-group">
-                <button class="btn-primary" onclick="CipherEngine.encrypt()">Encrypt</button>
-                <button class="btn-primary" onclick="CipherEngine.decrypt()">Decrypt</button>
-                <button class="btn-primary" onclick="CipherEngine.analyze()">Analyze Known Text</button>
-                <button class="btn-warning" onclick="CipherEngine.autoCrack()">Auto Crack (Advanced)</button>
-                <button class="btn-danger" id="cancelBtn" style="display:none" onclick="CipherEngine.cancelAnalysis()">Cancel</button>
-            </div>
-            
-            <div id="status"></div>
-        </div>
+  <div class="field">
+    <label>Ciphertext:</label>
+    <textarea id="cipher" rows="3">OBKRUOXOGHULBSOLIFBBWFLRVQQPRNGKSSOTWTQSJQSSEKZZWATJKLUDIAWINFBNYPVTTMZFPKWGDKZXTJCDIGKUHUAUEKCAR</textarea>
+  </div>
 
-        <div class="container">
-            <h2>Results</h2>
-            <h3>Decrypted Text</h3>
-            <textarea id="plaintext" readonly></textarea>
-            
-            <h3>Frequency Analysis <span class="tooltip">(?)<span class="tooltiptext">Shows character distribution in decrypted text compared to English frequencies</span></span></h3>
-            <canvas id="frequencyChart"></canvas>
-        </div>
-    </div>
+  <div class="field">
+    <label>Key length (1–8 recommended):</label>
+    <input id="keyLen" type="number" value="6" min="1">
+  </div>
 
-    <!-- ВАША ПРОВЕРКА ПОДКЛЮЧЕНИЙ -->
-    <script>
-        // Тест подключения словарей
-        console.log("Common Words Count:", CommonWords.length);
-        console.log("English Frequency:", FrequencyDictionary.ENGLISH['E']);
-        console.log("Key Patterns:", KeyPatterns.COMMON);
-    </script>
+  <div class="field">
+    <label>Keywords (comma-separated):</label>
+    <input id="keywords" value="BERLIN,CLOCK,NORTHEAST,EAST">
+  </div>
+
+  <button onclick="startBrute()">▶ Start</button>
+  <button onclick="stopBrute()">⏹ Stop</button>
+
+  <div>Total combinations: <span id="totalCombi">0</span></div>
+  <div>Tested: <span id="tested">0</span> | Speed: <span id="speed">0</span>/sec</div>
+  <div id="progressBar"><div id="progressFill"></div></div>
+
+  <div id="results"></div>
+
+  <script>
+    let workers = [];
+    let shouldStop = false;
+    let totalCombinations = 0;
+    let testedCount = 0;
+    let startTime = 0;
+    const resultsCache = new Set();
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m] || m));
+    }
+
+    // === WORKER CODE (as string) ===
+    const workerCode = `
+      function decrypt(ctNum, keyIndices, alphabetSize) {
+        const plain = new Uint8Array(ctNum.length);
+        for (let i = 0; i < ctNum.length; i++) {
+          let p = ctNum[i] - keyIndices[i % keyIndices.length];
+          if (p <= 0) p += alphabetSize;
+          plain[i] = p;
+        }
+        return plain;
+      }
+
+      function findMatches(plain, kwNums) {
+        const matches = [];
+        let score = 0;
+        for (const { word, arr } of kwNums) {
+          const len = arr.length;
+          for (let start = 0; start <= plain.length - len; start++) {
+            let match = true;
+            for (let j = 0; j < len; j++) {
+              if (plain[start + j] !== arr[j]) { match = false; break; }
+            }
+            if (match) {
+              matches.push({ start, end: start + len, word });
+              score += word.length;
+            }
+          }
+        }
+        return { matches, score };
+      }
+
+      function* generateKeys(alphabetSize, keyLen, prefix = []) {
+        if (prefix.length === keyLen) {
+          yield new Uint8Array(prefix);
+          return;
+        }
+        for (let i = 0; i < alphabetSize; i++) {
+          yield* generateKeys(alphabetSize, keyLen, [...prefix, i]);
+        }
+      }
+
+      self.onmessage = function(e) {
+        const { startChar, endChar, keyLen, alphabetSize, ctNum, kwNums, alphabet } = e.data;
+        const results = [];
+        const batchSize = 20;
+
+        // Generate only keys where first char is in [startChar, endChar)
+        function* limitedKeys() {
+          for (let first = startChar; first < endChar; first++) {
+            if (keyLen === 1) {
+              yield new Uint8Array([first]);
+            } else {
+              for (const rest of generateKeys(alphabetSize, keyLen - 1)) {
+                const full = new Uint8Array(keyLen);
+                full[0] = first;
+                full.set(rest, 1);
+                yield full;
+              }
+            }
+          }
+        }
+
+        let count = 0;
+        for (const key of limitedKeys()) {
+          const plainBuf = decrypt(ctNum, key, alphabetSize);
+          const { matches, score } = findMatches(plainBuf, kwNums);
+          if (score > 0) {
+            let keyStr = '';
+            for (let idx of key) keyStr += alphabet[idx];
+            let plainStr = '';
+            for (let p of plainBuf) plainStr += alphabet[p - 1];
+            results.push({ key: keyStr, score, plain: plainStr, matches });
+            if (results.length >= batchSize) {
+              self.postMessage({ type: 'results', data: results });
+              results.length = 0;
+            }
+          }
+          count++;
+          if (count % 50000 === 0) {
+            self.postMessage({ type: 'progress', amount: count });
+            count = 0;
+          }
+        }
+        if (results.length > 0) {
+          self.postMessage({ type: 'results', data: results });
+        }
+        self.postMessage({ type: 'done', total: count });
+      };
+    `;
+
+    function startBrute() {
+      stopBrute();
+      shouldStop = false;
+      resultsCache.clear();
+      document.getElementById('results').innerHTML = '';
+
+      const alphabet = document.getElementById('alphabet').value.toUpperCase();
+      const alphabetSize = alphabet.length;
+      if (alphabetSize < 2) { alert('Alphabet too short!'); return; }
+
+      const cipherText = document.getElementById('cipher').value.replace(/[^A-Z]/g, '').toUpperCase();
+      const keyLen = parseInt(document.getElementById('keyLen').value) || 1;
+      if (keyLen < 1) { alert('Key length must be ≥1'); return; }
+
+      const keywords = document.getElementById('keywords').value
+        .split(',').map(k => k.trim().toUpperCase()).filter(k => k.length >= 3);
+
+      // Total combinations
+      const total = Math.pow(alphabetSize, keyLen);
+      if (!isFinite(total) || total > 1e10) {
+        if (!confirm(`Total: ${total.toExponential(2)} keys. May take hours. Continue?`)) return;
+      }
+      totalCombinations = total;
+
+      // Convert cipher to numbers
+      const ctNum = [];
+      for (let ch of cipherText) {
+        const idx = alphabet.indexOf(ch);
+        if (idx !== -1) ctNum.push(idx + 1);
+      }
+
+      // Convert keywords
+      const kwNums = [];
+      for (const kw of keywords) {
+        const arr = [];
+        for (let ch of kw) {
+          const idx = alphabet.indexOf(ch);
+          if (idx === -1) { arr.length = 0; break; }
+          arr.push(idx + 1);
+        }
+        if (arr.length === kw.length) {
+          kwNums.push({ word: kw, arr: new Uint8Array(arr) });
+        }
+      }
+
+      // UI
+      document.getElementById('totalCombi').textContent = totalCombinations.toLocaleString();
+      document.getElementById('tested').textContent = '0';
+      document.getElementById('speed').textContent = '0';
+      document.getElementById('progressFill').style.width = '0%';
+
+      // Launch workers
+      const numWorkers = Math.min(navigator.hardwareConcurrency || 4, alphabetSize);
+      const charsPerWorker = Math.ceil(alphabetSize / numWorkers);
+      workers = [];
+      testedCount = 0;
+      startTime = performance.now();
+
+      for (let i = 0; i < numWorkers; i++) {
+        const startChar = i * charsPerWorker;
+        const endChar = Math.min(startChar + charsPerWorker, alphabetSize);
+        if (startChar >= alphabetSize) break;
+
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const worker = new Worker(URL.createObjectURL(blob));
+
+        worker.onmessage = (e) => {
+          if (e.data.type === 'results') {
+            for (const r of e.data.data) {
+              if (resultsCache.has(r.key)) continue;
+              resultsCache.add(r.key);
+
+              let highlighted = r.plain;
+              const sorted = [...r.matches].sort((a, b) => a.start - b.start);
+              let lastEnd = 0;
+              let finalHtml = '';
+              for (const m of sorted) {
+                if (m.start < lastEnd) continue;
+                finalHtml += escapeHtml(highlighted.slice(lastEnd, m.start));
+                finalHtml += \`<span class="match">\${escapeHtml(m.word)}</span>\`;
+                lastEnd = m.end;
+              }
+              finalHtml += escapeHtml(highlighted.slice(lastEnd));
+
+              const resDiv = document.getElementById('results');
+              resDiv.innerHTML += \`<div><span class="rating">★\${r.score}</span> [\${r.key}] \${finalHtml}</div>\n\`;
+              resDiv.scrollTop = resDiv.scrollHeight;
+            }
+          } else if (e.data.type === 'progress') {
+            testedCount += e.data.amount;
+          } else if (e.data.type === 'done') {
+            testedCount += e.data.total;
+          }
+        };
+
+        worker.postMessage({
+          startChar, endChar, keyLen, alphabetSize,
+          ctNum: new Uint8Array(ctNum),
+          kwNums,
+          alphabet
+        });
+
+        workers.push(worker);
+      }
+
+      // Progress updater
+      const updateProgress = () => {
+        if (shouldStop) return;
+        const now = performance.now();
+        const elapsed = (now - startTime) / 1000;
+        const speed = Math.round(testedCount / elapsed);
+        const percent = (testedCount / totalCombinations) * 100;
+
+        document.getElementById('tested').textContent = testedCount.toLocaleString();
+        document.getElementById('speed').textContent = speed.toLocaleString();
+        document.getElementById('progressFill').style.width = isNaN(percent) ? '0%' : Math.min(percent, 100).toFixed(1) + '%';
+
+        if (testedCount < totalCombinations) {
+          setTimeout(updateProgress, 100);
+        }
+      };
+      updateProgress();
+    }
+
+    function stopBrute() {
+      shouldStop = true;
+      workers.forEach(w => w.terminate());
+      workers = [];
+    }
+  </script>
 </body>
 </html>
+
