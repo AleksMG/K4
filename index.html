@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Vigenère Bruteforcer — Stable & Fast</title>
+  <title>Vigenère Bruteforcer — Works Offline</title>
   <style>
     body { background: #0d0d0d; color: #00ffcc; font-family: monospace; padding: 16px; }
     .field { margin: 8px 0; }
@@ -18,10 +18,10 @@
   </style>
 </head>
 <body>
-  <h2>⚡ Vigenère Bruteforcer — Works</h2>
+  <h2>⚡ Vigenère Bruteforcer — No Server Needed</h2>
 
   <div class="field">
-    <label>Alphabet (26 letters recommended):</label>
+    <label>Alphabet (26 letters):</label>
     <input id="alphabet" value="ABCDEFGHIJKLMNOPQRSTUVWXYZ">
   </div>
 
@@ -31,8 +31,8 @@
   </div>
 
   <div class="field">
-    <label>Key length (1–8 recommended):</label>
-    <input id="keyLen" type="number" value="6" min="1">
+    <label>Key length (1–7 recommended):</label>
+    <input id="keyLen" type="number" value="6" min="1" max="10">
   </div>
 
   <div class="field">
@@ -50,7 +50,6 @@
   <div id="results"></div>
 
   <script>
-    let workers = [];
     let shouldStop = false;
     let totalCombinations = 0;
     let testedCount = 0;
@@ -61,139 +60,89 @@
       return s.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m] || m));
     }
 
-    // === WORKER CODE (as string) ===
-    const workerCode = `
-      function decrypt(ctNum, keyIndices, alphabetSize) {
-        const plain = new Uint8Array(ctNum.length);
-        for (let i = 0; i < ctNum.length; i++) {
-          let p = ctNum[i] - keyIndices[i % keyIndices.length];
-          if (p <= 0) p += alphabetSize;
-          plain[i] = p;
-        }
-        return plain;
+    // Fast decrypt
+    function decrypt(ctNum, keyIndices, alphabetSize) {
+      const plain = new Uint8Array(ctNum.length);
+      for (let i = 0; i < ctNum.length; i++) {
+        let p = ctNum[i] - keyIndices[i % keyIndices.length];
+        if (p <= 0) p += alphabetSize;
+        plain[i] = p;
       }
+      return plain;
+    }
 
-      function findMatches(plain, kwNums) {
-        const matches = [];
-        let score = 0;
-        for (const { word, arr } of kwNums) {
-          const len = arr.length;
-          for (let start = 0; start <= plain.length - len; start++) {
-            let match = true;
-            for (let j = 0; j < len; j++) {
-              if (plain[start + j] !== arr[j]) { match = false; break; }
-            }
-            if (match) {
-              matches.push({ start, end: start + len, word });
-              score += word.length;
-            }
+    // Find all matches
+    function findMatches(plain, kwNums) {
+      const matches = [];
+      let score = 0;
+      for (const { word, arr } of kwNums) {
+        const len = arr.length;
+        for (let start = 0; start <= plain.length - len; start++) {
+          let ok = true;
+          for (let j = 0; j < len; j++) {
+            if (plain[start + j] !== arr[j]) { ok = false; break; }
           }
-        }
-        return { matches, score };
-      }
-
-      function* generateKeys(alphabetSize, keyLen, prefix = []) {
-        if (prefix.length === keyLen) {
-          yield new Uint8Array(prefix);
-          return;
-        }
-        for (let i = 0; i < alphabetSize; i++) {
-          yield* generateKeys(alphabetSize, keyLen, [...prefix, i]);
+          if (ok) {
+            matches.push({ start, end: start + len, word });
+            score += word.length;
+          }
         }
       }
+      return { matches, score };
+    }
 
-      self.onmessage = function(e) {
-        const { startChar, endChar, keyLen, alphabetSize, ctNum, kwNums, alphabet } = e.data;
-        const results = [];
-        const batchSize = 20;
+    // Generate next key (base-N counter)
+    function incrementKey(key, base) {
+      let i = key.length - 1;
+      while (i >= 0) {
+        key[i]++;
+        if (key[i] < base) return true;
+        key[i] = 0;
+        i--;
+      }
+      return false; // overflow → done
+    }
 
-        // Generate only keys where first char is in [startChar, endChar)
-        function* limitedKeys() {
-          for (let first = startChar; first < endChar; first++) {
-            if (keyLen === 1) {
-              yield new Uint8Array([first]);
-            } else {
-              for (const rest of generateKeys(alphabetSize, keyLen - 1)) {
-                const full = new Uint8Array(keyLen);
-                full[0] = first;
-                full.set(rest, 1);
-                yield full;
-              }
-            }
-          }
-        }
-
-        let count = 0;
-        for (const key of limitedKeys()) {
-          const plainBuf = decrypt(ctNum, key, alphabetSize);
-          const { matches, score } = findMatches(plainBuf, kwNums);
-          if (score > 0) {
-            let keyStr = '';
-            for (let idx of key) keyStr += alphabet[idx];
-            let plainStr = '';
-            for (let p of plainBuf) plainStr += alphabet[p - 1];
-            results.push({ key: keyStr, score, plain: plainStr, matches });
-            if (results.length >= batchSize) {
-              self.postMessage({ type: 'results', data: results });
-              results.length = 0;
-            }
-          }
-          count++;
-          if (count % 50000 === 0) {
-            self.postMessage({ type: 'progress', amount: count });
-            count = 0;
-          }
-        }
-        if (results.length > 0) {
-          self.postMessage({ type: 'results', data: results });
-        }
-        self.postMessage({ type: 'done', total: count });
-      };
-    `;
-
-    function startBrute() {
-      stopBrute();
+    async function startBrute() {
       shouldStop = false;
       resultsCache.clear();
       document.getElementById('results').innerHTML = '';
 
       const alphabet = document.getElementById('alphabet').value.toUpperCase();
       const alphabetSize = alphabet.length;
-      if (alphabetSize < 2) { alert('Alphabet too short!'); return; }
+      if (alphabetSize !== 26) {
+        alert('For best results, use 26-letter alphabet.');
+        return;
+      }
 
       const cipherText = document.getElementById('cipher').value.replace(/[^A-Z]/g, '').toUpperCase();
-      const keyLen = parseInt(document.getElementById('keyLen').value) || 1;
-      if (keyLen < 1) { alert('Key length must be ≥1'); return; }
+      const keyLen = parseInt(document.getElementById('keyLen').value) || 6;
+      if (keyLen < 1 || keyLen > 10) { alert('Key length 1–10'); return; }
 
       const keywords = document.getElementById('keywords').value
         .split(',').map(k => k.trim().toUpperCase()).filter(k => k.length >= 3);
 
-      // Total combinations
-      const total = Math.pow(alphabetSize, keyLen);
-      if (!isFinite(total) || total > 1e10) {
-        if (!confirm(`Total: ${total.toExponential(2)} keys. May take hours. Continue?`)) return;
-      }
-      totalCombinations = total;
-
-      // Convert cipher to numbers
-      const ctNum = [];
-      for (let ch of cipherText) {
-        const idx = alphabet.indexOf(ch);
-        if (idx !== -1) ctNum.push(idx + 1);
+      totalCombinations = Math.pow(26, keyLen);
+      if (totalCombinations > 2e9) {
+        if (!confirm(`Total: ${totalCombinations.toLocaleString()} keys. May take hours. Continue?`)) return;
       }
 
-      // Convert keywords
+      // Convert to numbers
+      const ctNum = new Uint8Array(cipherText.length);
+      for (let i = 0; i < cipherText.length; i++) {
+        ctNum[i] = alphabet.indexOf(cipherText[i]) + 1;
+      }
+
       const kwNums = [];
       for (const kw of keywords) {
-        const arr = [];
-        for (let ch of kw) {
-          const idx = alphabet.indexOf(ch);
-          if (idx === -1) { arr.length = 0; break; }
-          arr.push(idx + 1);
+        const arr = new Uint8Array(kw.length);
+        let valid = true;
+        for (let i = 0; i < kw.length; i++) {
+          const idx = alphabet.indexOf(kw[i]);
+          if (idx === -1) { valid = false; break; }
+          arr[i] = idx + 1;
         }
-        if (arr.length === kw.length) {
-          kwNums.push({ word: kw, arr: new Uint8Array(arr) });
-        }
+        if (valid) kwNums.push({ word: kw, arr: arr });
       }
 
       // UI
@@ -202,63 +151,59 @@
       document.getElementById('speed').textContent = '0';
       document.getElementById('progressFill').style.width = '0%';
 
-      // Launch workers
-      const numWorkers = Math.min(navigator.hardwareConcurrency || 4, alphabetSize);
-      const charsPerWorker = Math.ceil(alphabetSize / numWorkers);
-      workers = [];
+      // Init
+      const key = new Uint8Array(keyLen).fill(0);
       testedCount = 0;
       startTime = performance.now();
+      const batchSize = 80000; // balance speed & responsiveness
 
-      for (let i = 0; i < numWorkers; i++) {
-        const startChar = i * charsPerWorker;
-        const endChar = Math.min(startChar + charsPerWorker, alphabetSize);
-        if (startChar >= alphabetSize) break;
+      const processBatch = () => {
+        if (shouldStop) return;
 
-        const blob = new Blob([workerCode], { type: 'application/javascript' });
-        const worker = new Worker(URL.createObjectURL(blob));
+        for (let b = 0; b < batchSize; b++) {
+          const plainBuf = decrypt(ctNum, key, 26);
+          const { matches, score } = findMatches(plainBuf, kwNums);
 
-        worker.onmessage = (e) => {
-          if (e.data.type === 'results') {
-            for (const r of e.data.data) {
-              if (resultsCache.has(r.key)) continue;
-              resultsCache.add(r.key);
+          if (score > 0) {
+            let keyStr = '';
+            for (let i = 0; i < keyLen; i++) keyStr += alphabet[key[i]];
+            if (!resultsCache.has(keyStr)) {
+              resultsCache.add(keyStr);
+              let plainStr = '';
+              for (let p of plainBuf) plainStr += alphabet[p - 1];
 
-              let highlighted = r.plain;
-              const sorted = [...r.matches].sort((a, b) => a.start - b.start);
+              // Highlight all matches
+              const sorted = matches.sort((a, b) => a.start - b.start);
               let lastEnd = 0;
-              let finalHtml = '';
+              let highlighted = '';
               for (const m of sorted) {
                 if (m.start < lastEnd) continue;
-                finalHtml += escapeHtml(highlighted.slice(lastEnd, m.start));
-                finalHtml += \`<span class="match">\${escapeHtml(m.word)}</span>\`;
+                highlighted += escapeHtml(plainStr.slice(lastEnd, m.start));
+                highlighted += `<span class="match">${escapeHtml(m.word)}</span>`;
                 lastEnd = m.end;
               }
-              finalHtml += escapeHtml(highlighted.slice(lastEnd));
+              highlighted += escapeHtml(plainStr.slice(lastEnd));
 
               const resDiv = document.getElementById('results');
-              resDiv.innerHTML += \`<div><span class="rating">★\${r.score}</span> [\${r.key}] \${finalHtml}</div>\n\`;
+              resDiv.innerHTML += `<div><span class="rating">★${score}</span> [${keyStr}] ${highlighted}</div>\n`;
               resDiv.scrollTop = resDiv.scrollHeight;
             }
-          } else if (e.data.type === 'progress') {
-            testedCount += e.data.amount;
-          } else if (e.data.type === 'done') {
-            testedCount += e.data.total;
           }
-        };
 
-        worker.postMessage({
-          startChar, endChar, keyLen, alphabetSize,
-          ctNum: new Uint8Array(ctNum),
-          kwNums,
-          alphabet
-        });
+          // Next key
+          if (!incrementKey(key, 26)) {
+            shouldStop = true;
+            break;
+          }
 
-        workers.push(worker);
-      }
+          testedCount++;
+          if (testedCount >= totalCombinations) {
+            shouldStop = true;
+            break;
+          }
+        }
 
-      // Progress updater
-      const updateProgress = () => {
-        if (shouldStop) return;
+        // Update stats
         const now = performance.now();
         const elapsed = (now - startTime) / 1000;
         const speed = Math.round(testedCount / elapsed);
@@ -266,21 +211,19 @@
 
         document.getElementById('tested').textContent = testedCount.toLocaleString();
         document.getElementById('speed').textContent = speed.toLocaleString();
-        document.getElementById('progressFill').style.width = isNaN(percent) ? '0%' : Math.min(percent, 100).toFixed(1) + '%';
+        document.getElementById('progressFill').style.width = Math.min(percent, 100).toFixed(1) + '%';
 
-        if (testedCount < totalCombinations) {
-          setTimeout(updateProgress, 100);
+        if (!shouldStop) {
+          setTimeout(processBatch, 0); // yield to browser
         }
       };
-      updateProgress();
+
+      processBatch();
     }
 
     function stopBrute() {
       shouldStop = true;
-      workers.forEach(w => w.terminate());
-      workers = [];
     }
   </script>
 </body>
 </html>
-
