@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔐 TRUE ITN v1.0 — Neural Steganography System</title>
+    <title>🔐 TRUE ITN v1.1 — Neural Steganography System</title>
     <style>
         * {
             margin: 0;
@@ -57,6 +57,7 @@
             border: 1px solid #2a3040;
             border-radius: 16px;
             padding: 24px;
+            margin-bottom: 20px;
         }
 
         .panel h2 {
@@ -64,6 +65,11 @@
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 1px solid #2a3040;
+        }
+
+        .panel h3 {
+            color: #aa88ff;
+            margin: 15px 0 10px 0;
         }
 
         .form-group {
@@ -267,6 +273,34 @@
             border-radius: 2px;
         }
 
+        .route-display {
+            background: #0a0c14;
+            border: 1px solid #2a3040;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .route-address {
+            display: inline-block;
+            padding: 2px 4px;
+            margin: 1px;
+            background: #1a1f2a;
+            border-radius: 3px;
+            font-size: 0.7rem;
+        }
+
+        .route-address:hover {
+            background: #00ffff20;
+            cursor: pointer;
+        }
+
         .log-panel {
             background: #1a1f2a;
             border: 1px solid #2a3040;
@@ -292,6 +326,7 @@
         .log-entry.ok { color: #00ffaa; }
         .log-entry.err { color: #ff3366; }
         .log-entry.info { color: #00ffff; }
+        .log-entry.debug { color: #aa88ff; }
 
         .footer {
             margin-top: 24px;
@@ -307,13 +342,21 @@
         .footer strong {
             color: #00ffff;
         }
+
+        #debugPanel {
+            border-left: 3px solid #aa88ff;
+        }
+
+        #extractedPanel {
+            border-left: 3px solid #00ffaa;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>TRUE ITN v1.0</h1>
-            <div class="subtitle">Neural Steganography System · Full Reversibility</div>
+            <h1>TRUE ITN v1.1</h1>
+            <div class="subtitle">Neural Steganography System · Full Reversibility · Debug Panel</div>
         </div>
 
         <div class="grid">
@@ -468,13 +511,69 @@
                         <div class="stat-value" id="stegoStatus">READY</div>
                     </div>
                 </div>
-
-                <div class="log-panel" id="log"></div>
             </div>
         </div>
 
+        <!-- EXTRACTED MESSAGE PANEL -->
+        <div class="panel" id="extractedPanel" style="display:none;">
+            <h3>📨 EXTRACTED MESSAGE</h3>
+            <div class="output-box" id="extractedMessage"></div>
+            <div class="button-group">
+                <button class="btn btn-tertiary" onclick="copyExtracted()">📋 COPY</button>
+                <button class="btn btn-tertiary" onclick="document.getElementById('extractedPanel').style.display='none'">✖ CLOSE</button>
+            </div>
+        </div>
+
+        <!-- DEBUG PANEL -->
+        <div class="panel" id="debugPanel" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3>🔍 DEBUG: ROUTE VISUALIZATION</h3>
+                <button class="btn btn-tertiary" onclick="toggleDebug()">✖ HIDE</button>
+            </div>
+            
+            <div class="form-group">
+                <label>📊 ROUTE DATA (первые 50 адресов)</label>
+                <div class="route-display" id="routeDisplay">—</div>
+            </div>
+            
+            <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="stat-item">
+                    <div class="stat-label">Длина маршрута</div>
+                    <div class="stat-value" id="routeLength">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Мин адрес</div>
+                    <div class="stat-value" id="routeMin">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Макс адрес</div>
+                    <div class="stat-value" id="routeMax">0</div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>📈 РАСПРЕДЕЛЕНИЕ (гистограмма)</label>
+                <div style="background:#1a1f2a; padding:10px; border-radius:8px;">
+                    <canvas id="histogramCanvas" width="400" height="100" style="width:100%; height:100px;"></canvas>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-tertiary" onclick="copyRouteToClipboard()">📋 Копировать маршрут</button>
+                <button class="btn btn-tertiary" onclick="saveRouteToFile()">💾 Сохранить в файл</button>
+                <button class="btn btn-tertiary" onclick="compareRoutes()">🔄 Сравнить с предыдущим</button>
+            </div>
+        </div>
+
+        <!-- TOGGLE DEBUG BUTTON -->
+        <div style="text-align:right; margin-top:10px;">
+            <button class="btn btn-tertiary" onclick="toggleDebug()">🔍 Показать отладку маршрута</button>
+        </div>
+
+        <div class="log-panel" id="log"></div>
+
         <div class="footer">
-            <strong>TRUE ITN v1.0</strong> · Invertible Neural Network · 16-Head Attention · 4 Rotors · Neural-Guided LSB
+            <strong>TRUE ITN v1.1</strong> · Invertible Neural Network · 16-Head Attention · 4 Rotors · Neural-Guided LSB · Debug Panel
         </div>
     </div>
 
@@ -497,7 +596,7 @@
                 const x2 = x * x;
                 return x * (27 + x2) / (27 + 9 * x2);
             },
-            sin: (x) => Math.sin(x), // fallback to native
+            sin: (x) => Math.sin(x),
             cos: (x) => Math.cos(x),
             mod: (n, m) => ((n % m) + m) % m
         };
@@ -873,6 +972,8 @@
                 this.W_input = rng.matrix(this.dim, 6, 0.3);
 
                 this.commandHistory = [];
+                this.lastRoute = null;
+                this.previousRoute = null;
             }
 
             initState(step, prevCipher, context) {
@@ -928,6 +1029,7 @@
                     const idx = this.textRotors.charToIdx[char];
 
                     if (idx === undefined) {
+                        result += char;
                         continue;
                     }
 
@@ -960,6 +1062,7 @@
                     const idx = this.textRotors.charToIdx[char];
 
                     if (idx === undefined) {
+                        result += char;
                         continue;
                     }
 
@@ -995,8 +1098,17 @@
 
                 this.routeRotors.reset();
 
+                // Сохраняем предыдущий маршрут для сравнения
+                this.previousRoute = this.lastRoute;
+
                 const route = [];
                 let state = this.initState(0, 0, [0, 0, 0, 0]);
+
+                // Пропускаем шаги для заголовка
+                for (let i = 0; i < stepOffset; i++) {
+                    const proc = this.processState(state, i);
+                    state = proc.state;
+                }
 
                 for (let i = 0; i < secretLength * 8; i++) {
                     const proc = this.processState(state, i + stepOffset);
@@ -1005,6 +1117,7 @@
                     state = proc.state;
                 }
 
+                this.lastRoute = route;
                 return route;
             }
 
@@ -1108,6 +1221,7 @@
         let stegoLSB = null;
         let currentImage = null;
         let rotorInterval = null;
+        let lastRoute = null;
 
         // ====================================================================
         // UI FUNCTIONS
@@ -1210,7 +1324,188 @@
         }
 
         // ====================================================================
-        // GLOBAL FUNCTIONS (connected to buttons)
+        // DEBUG FUNCTIONS
+        // ====================================================================
+        window.toggleDebug = function() {
+            const panel = document.getElementById('debugPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        };
+
+        function displayRoute(route, title = 'Route') {
+            if (!route || route.length === 0) {
+                document.getElementById('routeDisplay').textContent = '— нет данных —';
+                return;
+            }
+
+            lastRoute = route;
+            document.getElementById('debugPanel').style.display = 'block';
+
+            document.getElementById('routeLength').textContent = route.length;
+            document.getElementById('routeMin').textContent = Math.min(...route);
+            document.getElementById('routeMax').textContent = Math.max(...route);
+
+            const displayCount = Math.min(50, route.length);
+            let html = '';
+
+            for (let i = 0; i < displayCount; i++) {
+                const addr = route[i];
+                const color = addr % 2 === 0 ? '#00ffff' : '#ff3366';
+                html += `<span class="route-address" style="color:${color}" title="адрес ${i}: ${addr}">${addr}</span> `;
+                if ((i + 1) % 10 === 0) html += '<br>';
+            }
+
+            if (route.length > displayCount) {
+                html += `<br>... и еще ${route.length - displayCount} адресов`;
+            }
+
+            document.getElementById('routeDisplay').innerHTML = html;
+            drawRouteHistogram(route);
+            
+            log(`📊 Route displayed: ${route.length} addresses, range ${Math.min(...route)}-${Math.max(...route)}`, 'debug');
+        }
+
+        function drawRouteHistogram(route) {
+            const canvas = document.getElementById('histogramCanvas');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const segments = 20;
+            const min = Math.min(...route);
+            const max = Math.max(...route);
+            const range = max - min;
+
+            const histogram = new Array(segments).fill(0);
+
+            route.forEach(addr => {
+                if (range === 0) {
+                    histogram[0]++;
+                } else {
+                    const segment = Math.floor(((addr - min) / range) * (segments - 1));
+                    histogram[segment]++;
+                }
+            });
+
+            const maxCount = Math.max(...histogram);
+            const barWidth = width / segments - 2;
+
+            for (let i = 0; i < segments; i++) {
+                const barHeight = (histogram[i] / maxCount) * height;
+                const x = i * (barWidth + 2);
+                const y = height - barHeight;
+
+                const hue = 120 + (histogram[i] / maxCount) * 120;
+                ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+                ctx.fillRect(x, y, barWidth, barHeight);
+
+                ctx.fillStyle = '#a0a8c0';
+                ctx.font = '8px monospace';
+                ctx.fillText(i, x, height - 5);
+            }
+
+            ctx.fillStyle = '#00ffff';
+            ctx.font = '8px monospace';
+            ctx.fillText(min, 0, 10);
+            ctx.fillText(max, width - 40, 10);
+        }
+
+        window.copyRouteToClipboard = function() {
+            if (!lastRoute) {
+                log('No route to copy', 'err');
+                return;
+            }
+
+            const text = lastRoute.join(', ');
+            navigator.clipboard.writeText(text);
+            log(`✅ Route copied (${lastRoute.length} addresses)`, 'ok');
+        };
+
+        window.saveRouteToFile = function() {
+            if (!lastRoute) {
+                log('No route to save', 'err');
+                return;
+            }
+
+            const data = {
+                timestamp: new Date().toISOString(),
+                length: lastRoute.length,
+                min: Math.min(...lastRoute),
+                max: Math.max(...lastRoute),
+                route: lastRoute
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `route_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            log(`✅ Route saved (${lastRoute.length} addresses)`, 'ok');
+        };
+
+        window.compareRoutes = function() {
+            if (!engine) {
+                log('Engine not initialized', 'err');
+                return;
+            }
+
+            if (!engine.previousRoute) {
+                log('No previous route to compare', 'err');
+                return;
+            }
+
+            if (!lastRoute) {
+                log('No current route', 'err');
+                return;
+            }
+
+            const prev = engine.previousRoute;
+            const curr = lastRoute;
+
+            if (prev.length !== curr.length) {
+                log(`❌ Routes have different lengths: ${prev.length} vs ${curr.length}`, 'err');
+                return;
+            }
+
+            let differences = 0;
+            for (let i = 0; i < Math.min(prev.length, curr.length); i++) {
+                if (prev[i] !== curr[i]) differences++;
+            }
+
+            const matchPercent = ((prev.length - differences) / prev.length * 100).toFixed(1);
+            
+            if (differences === 0) {
+                log(`✅ Routes are IDENTICAL (100% match)`, 'ok');
+            } else {
+                log(`⚠️ Routes differ: ${differences}/${prev.length} addresses (${matchPercent}% match)`, 'debug');
+                
+                // Показываем первые 10 различий
+                let diffLog = 'First 10 differences: ';
+                let count = 0;
+                for (let i = 0; i < prev.length && count < 10; i++) {
+                    if (prev[i] !== curr[i]) {
+                        diffLog += `[${i}: ${prev[i]}→${curr[i]}] `;
+                        count++;
+                    }
+                }
+                log(diffLog, 'debug');
+            }
+        };
+
+        window.copyExtracted = function() {
+            const text = document.getElementById('extractedMessage').textContent;
+            navigator.clipboard.writeText(text);
+            log('📋 Extracted message copied', 'ok');
+        };
+
+        // ====================================================================
+        // GLOBAL FUNCTIONS
         // ====================================================================
         window.runCrypto = async function(action) {
             try {
@@ -1238,7 +1533,7 @@
                     document.getElementById('statRev').className = `stat-value ${ok ? 'success' : 'error'}`;
                 }
 
-                log(`${action} completed`, 'ok');
+                log(`${action} completed: ${result.text}`, 'ok');
                 updateRotorsUI();
 
             } catch (error) {
@@ -1255,6 +1550,9 @@
                 const dec = engine.decrypt(enc.text);
                 const ok = dec.text === input;
                 log(`Test: ${ok ? 'PASSED' : 'FAILED'}`, ok ? 'ok' : 'err');
+                log(`Original: "${input}"`, 'info');
+                log(`Encrypted: "${enc.text}"`, 'debug');
+                log(`Decrypted: "${dec.text}"`, ok ? 'ok' : 'err');
             } catch (error) {
                 log(`Test error: ${error.message}`, 'err');
             }
@@ -1271,13 +1569,18 @@
 
                 showProgress(10);
 
+                // Шифруем секрет
                 const encrypted = engine.encrypt(secret);
                 const dataBytes = encrypted.text.split('').map(c => c.charCodeAt(0));
 
+                log(`Secret encrypted: ${encrypted.text} (${dataBytes.length} bytes)`, 'info');
+
                 showProgress(30);
 
+                // Загружаем изображение
                 const image = await loadImage(file);
 
+                // Проверяем вместимость
                 const maxBytes = Math.floor((image.width * image.height * 3) / 8) - HEADER_SIZE;
                 if (dataBytes.length > maxBytes) {
                     throw new Error(`Message ${dataBytes.length} bytes exceeds capacity (max ${maxBytes})`);
@@ -1285,15 +1588,26 @@
 
                 showProgress(50);
 
+                // Копируем данные
                 const stego = new Uint8ClampedArray(image.data);
 
+                // Встраиваем заголовок
                 stegoLSB.embedHeader(stego, dataBytes.length);
+                log(`Header embedded: marker + length ${dataBytes.length}`, 'info');
 
                 showProgress(70);
 
+                // Инициализируем роторы маршрута
                 engine.initRouteRotors(image.width, image.height);
-                const route = engine.generateRoute(dataBytes.length, HEADER_SIZE * 8);
 
+                // Генерируем маршрут
+                const route = engine.generateRoute(dataBytes.length, HEADER_SIZE * 8);
+                log(`Route generated: ${route.length} addresses`, 'info');
+
+                // Отображаем маршрут
+                displayRoute(route, 'Embed route');
+
+                // Встраиваем данные
                 for (let i = 0; i < dataBytes.length; i++) {
                     const byte = dataBytes[i];
                     for (let b = 0; b < 8; b++) {
@@ -1310,16 +1624,19 @@
                 showProgress(100);
                 setTimeout(hideProgress, 500);
 
+                // Сохраняем результат
                 currentImage = {
                     data: stego,
                     width: image.width,
                     height: image.height
                 };
 
+                // Обновляем превью
                 const ctx = image.ctx;
                 const newImageData = new ImageData(stego, image.width, image.height);
                 ctx.putImageData(newImageData, 0, 0);
 
+                // Обновляем статистику
                 const psnr = stegoLSB.calculatePSNR(image.data, stego);
 
                 document.getElementById('embeddedLen').textContent = dataBytes.length;
@@ -1328,7 +1645,7 @@
                 document.getElementById('stegoStatus').textContent = 'EMBEDDED';
                 document.getElementById('stegoStatus').className = 'stat-value success';
 
-                log(`Successfully embedded ${dataBytes.length} bytes`, 'ok');
+                log(`✅ Successfully embedded ${dataBytes.length} bytes (PSNR: ${psnr > 100 ? '∞' : psnr.toFixed(1)})`, 'ok');
 
             } catch (error) {
                 log(`Error: ${error.message}`, 'err');
@@ -1345,9 +1662,12 @@
 
                 showProgress(30);
 
+                // Загружаем изображение
                 const image = await loadImage(file);
 
+                // Читаем заголовок
                 const dataLength = stegoLSB.readHeader(image.data);
+                log(`Header: marker ${dataLength ? 'found' : 'not found'}, length=${dataLength}`, 'info');
 
                 if (!dataLength) {
                     throw new Error('Marker not found - not a stego image');
@@ -1355,11 +1675,19 @@
 
                 showProgress(50);
 
+                // Инициализируем роторы маршрута
                 engine.initRouteRotors(image.width, image.height);
+
+                // Генерируем маршрут
                 const route = engine.generateRoute(dataLength, HEADER_SIZE * 8);
+                log(`Route generated: ${route.length} addresses`, 'info');
+
+                // Отображаем маршрут
+                displayRoute(route, 'Extract route');
 
                 showProgress(70);
 
+                // Читаем данные
                 const bytes = [];
                 for (let i = 0; i < dataLength; i++) {
                     let byte = 0;
@@ -1375,16 +1703,26 @@
                     bytes.push(byte);
                 }
 
+                log(`Read ${bytes.length} bytes`, 'info');
+
                 showProgress(90);
 
+                // Преобразуем в текст
                 const encryptedText = String.fromCharCode(...bytes);
+                log(`Encrypted text: "${encryptedText}"`, 'debug');
+
+                // Расшифровываем
                 const decrypted = engine.decrypt(encryptedText);
+                log(`Decrypted text: "${decrypted.text}"`, 'info');
 
                 showProgress(100);
                 setTimeout(hideProgress, 500);
 
-                log(`Extracted: ${decrypted.text}`, 'ok');
-                alert(`Secret message: ${decrypted.text}`);
+                // Показываем результат
+                document.getElementById('extractedMessage').textContent = decrypted.text;
+                document.getElementById('extractedPanel').style.display = 'block';
+
+                log(`✅ Extracted message: "${decrypted.text}"`, 'ok');
 
             } catch (error) {
                 log(`Error: ${error.message}`, 'err');
@@ -1427,16 +1765,11 @@
                 link.href = canvas.toDataURL('image/png');
                 link.click();
 
-                log(`Downloaded as: ${finalName}`, 'ok');
+                log(`✅ Downloaded as: ${finalName}`, 'ok');
 
             } catch (error) {
                 log(`Error: ${error.message}`, 'err');
             }
-        };
-
-        window.setMode = function(mode) {
-            document.getElementById('modeSelect').value = mode;
-            initEngine();
         };
 
         // ====================================================================
@@ -1449,8 +1782,8 @@
             if (rotorInterval) clearInterval(rotorInterval);
             rotorInterval = setInterval(updateRotorsUI, 100);
 
-            log('TRUE ITN v1.0 initialized', 'ok');
-            log('Ready for encryption and steganography', 'info');
+            log('🚀 TRUE ITN v1.1 initialized', 'ok');
+            log('Debug panel available - click "Показать отладку маршрута"', 'info');
         });
 
         window.addEventListener('beforeunload', () => {
@@ -1459,7 +1792,7 @@
 
         document.getElementById('imageInput').addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
-                log(`Loaded: ${e.target.files[0].name}`, 'info');
+                log(`📸 Loaded: ${e.target.files[0].name}`, 'info');
             }
         });
 
