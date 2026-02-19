@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔐 TRUE ITN v1.2 — Neural Steganography System</title>
+    <title>🔐 TRUE ITN v1.3 — Neural Steganography System</title>
     <style>
         * {
             margin: 0;
@@ -355,8 +355,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>TRUE ITN v1.2</h1>
-            <div class="subtitle">Neural Steganography System · Full Reversibility · Fixed Route Generation</div>
+            <h1>TRUE ITN v1.3</h1>
+            <div class="subtitle">Neural Steganography · Unique Route Guarantee · Fixed Crypto</div>
         </div>
 
         <div class="grid">
@@ -445,7 +445,7 @@
 
             <!-- STEGANOGRAPHY PANEL -->
             <div class="panel">
-                <h2>🖼️ STEGANOGRAPHY</h2>
+                <h2>🖼️ STEGANOGRAPHY v2.0</h2>
 
                 <div class="form-group">
                     <label>📸 COVER IMAGE</label>
@@ -499,8 +499,8 @@
                         <div class="stat-value" id="embeddedLen">0</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-label">ROUTE</div>
-                        <div class="stat-value" id="routeLen">0</div>
+                        <div class="stat-label">UNIQUE</div>
+                        <div class="stat-value" id="uniqueCount">0</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-label">PSNR</div>
@@ -552,16 +552,18 @@
             </div>
             
             <div class="form-group">
-                <label>📈 РАСПРЕДЕЛЕНИЕ (гистограмма)</label>
-                <div style="background:#1a1f2a; padding:10px; border-radius:8px;">
-                    <canvas id="histogramCanvas" width="400" height="100" style="width:100%; height:100px;"></canvas>
+                <label>📈 УНИКАЛЬНОСТЬ</label>
+                <div class="stats-grid" style="grid-template-columns: 1fr;">
+                    <div class="stat-item">
+                        <div class="stat-label">Уникальных адресов</div>
+                        <div class="stat-value" id="routeUnique">0</div>
+                    </div>
                 </div>
             </div>
             
             <div class="button-group">
                 <button class="btn btn-tertiary" onclick="copyRouteToClipboard()">📋 Копировать маршрут</button>
                 <button class="btn btn-tertiary" onclick="saveRouteToFile()">💾 Сохранить в файл</button>
-                <button class="btn btn-tertiary" onclick="compareRoutes()">🔄 Сравнить с предыдущим</button>
             </div>
         </div>
 
@@ -573,7 +575,7 @@
         <div class="log-panel" id="log"></div>
 
         <div class="footer">
-            <strong>TRUE ITN v1.2</strong> · Invertible Neural Network · 16-Head Attention · 4 Rotors · Neural-Guided LSB · Fixed Route Generation
+            <strong>TRUE ITN v1.3</strong> · Invertible Neural Network · 16-Head Attention · 4 Rotors · Unique Route Guarantee
         </div>
     </div>
 
@@ -973,7 +975,6 @@
 
                 this.commandHistory = [];
                 this.lastRoute = null;
-                this.previousRoute = null;
             }
 
             initState(step, prevCipher, context) {
@@ -1082,25 +1083,28 @@
             }
 
             // ================================================================
-            // STEGANOGRAPHY METHODS - FIXED VERSION
+            // STEGANOGRAPHY v2.0 - UNIQUE ROUTE GENERATION
             // ================================================================
             initRouteRotors(imageWidth, imageHeight) {
                 const pixelCount = imageWidth * imageHeight;
-                // Создаем алфавит из ВСЕХ возможных адресов (как строки)
+                // Алфавит = все возможные адреса
                 const routeAlphabet = Array.from({ length: pixelCount }, (_, i) => i.toString());
                 this.routeRotors = new RotorSystem(routeAlphabet, this.password + "_ROUTE");
                 return pixelCount;
             }
 
-            generateRoute(secretLength, stepOffset = 0) {
+            generateUniqueRoute(neededLength, stepOffset = 0) {
                 if (!this.routeRotors) {
                     throw new Error("Route rotors not initialized");
                 }
 
+                // СБРАСЫВАЕМ ПОЗИЦИИ В 0
                 this.routeRotors.reset();
-                this.previousRoute = this.lastRoute;
-
+                
+                // БУДЕМ ИСПОЛЬЗОВАТЬ ПЕРВЫЙ РОТОР КАК ОСНОВУ
+                // но с динамическими сдвигами от нейросети
                 const route = [];
+                const used = new Set();
                 let state = this.initState(0, 0, [0, 0, 0, 0]);
 
                 // Пропускаем шаги для заголовка
@@ -1109,24 +1113,43 @@
                     state = proc.state;
                 }
 
-                for (let i = 0; i < secretLength * 8; i++) {
-                    const proc = this.processState(state, i + stepOffset);
+                let attempts = 0;
+                const maxAttempts = neededLength * 10;
+
+                while (route.length < neededLength && attempts < maxAttempts) {
+                    // Получаем команды от нейросети
+                    const proc = this.processState(state, attempts + stepOffset);
                     
-                    // Обновляем роторы
+                    // Обновляем ВСЕ роторы (они влияют на transform)
                     this.routeRotors.update(proc.commands);
                     
-                    // ВАЖНО: ИСПОЛЬЗУЕМ transform() КАК В ENCRYPT!
-                    // Берем позицию первого ротора и прогоняем через ВСЕ роторы
-                    const address = this.routeRotors.transform(this.routeRotors.positions[0]);
-                    route.push(address);
+                    // Генерируем кандидата: transform от текущей позиции
+                    // но позиции меняются динамически от нейросети
+                    const candidate = this.routeRotors.transform(this.routeRotors.positions[0]);
                     
+                    // Проверяем уникальность
+                    if (!used.has(candidate)) {
+                        used.add(candidate);
+                        route.push(candidate);
+                        
+                        // Логируем первые несколько для отладки
+                        if (route.length <= 5) {
+                            log(`Route #${route.length}: ${candidate} (from pos ${this.routeRotors.positions[0]})`, 'debug');
+                        }
+                    }
+                    
+                    // Обновляем состояние для следующего шага
                     state = proc.state;
+                    attempts++;
                 }
 
-                // Статистика для отладки
-                const unique = new Set(route).size;
-                console.log(`Route generated: len=${route.length}, min=${Math.min(...route)}, max=${Math.max(...route)}, unique=${unique}`);
+                if (route.length < neededLength) {
+                    throw new Error(`Cannot generate ${neededLength} unique addresses (got ${route.length})`);
+                }
 
+                log(`✅ Generated ${route.length} unique addresses (${attempts} attempts)`, 'ok');
+                log(`📊 Range: ${Math.min(...route)} - ${Math.max(...route)}`, 'info');
+                
                 this.lastRoute = route;
                 return route;
             }
@@ -1353,6 +1376,9 @@
             document.getElementById('routeLength').textContent = route.length;
             document.getElementById('routeMin').textContent = Math.min(...route);
             document.getElementById('routeMax').textContent = Math.max(...route);
+            
+            const unique = new Set(route).size;
+            document.getElementById('routeUnique').textContent = `${unique}/${route.length}`;
 
             const displayCount = Math.min(50, route.length);
             let html = '';
@@ -1369,58 +1395,8 @@
             }
 
             document.getElementById('routeDisplay').innerHTML = html;
-            drawRouteHistogram(route);
             
-            log(`📊 Route displayed: ${route.length} addresses, range ${Math.min(...route)}-${Math.max(...route)}`, 'debug');
-        }
-
-        function drawRouteHistogram(route) {
-            const canvas = document.getElementById('histogramCanvas');
-            if (!canvas) return;
-
-            const ctx = canvas.getContext('2d');
-            const width = canvas.width;
-            const height = canvas.height;
-
-            ctx.clearRect(0, 0, width, height);
-
-            const segments = 20;
-            const min = Math.min(...route);
-            const max = Math.max(...route);
-            const range = max - min;
-
-            const histogram = new Array(segments).fill(0);
-
-            route.forEach(addr => {
-                if (range === 0) {
-                    histogram[0]++;
-                } else {
-                    const segment = Math.floor(((addr - min) / range) * (segments - 1));
-                    histogram[segment]++;
-                }
-            });
-
-            const maxCount = Math.max(...histogram);
-            const barWidth = width / segments - 2;
-
-            for (let i = 0; i < segments; i++) {
-                const barHeight = (histogram[i] / maxCount) * height;
-                const x = i * (barWidth + 2);
-                const y = height - barHeight;
-
-                const hue = 120 + (histogram[i] / maxCount) * 120;
-                ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
-                ctx.fillRect(x, y, barWidth, barHeight);
-
-                ctx.fillStyle = '#a0a8c0';
-                ctx.font = '8px monospace';
-                ctx.fillText(i, x, height - 5);
-            }
-
-            ctx.fillStyle = '#00ffff';
-            ctx.font = '8px monospace';
-            ctx.fillText(min, 0, 10);
-            ctx.fillText(max, width - 40, 10);
+            log(`📊 Route: ${route.length} addresses, ${unique} unique`, unique === route.length ? 'ok' : 'err');
         }
 
         window.copyRouteToClipboard = function() {
@@ -1445,6 +1421,7 @@
                 length: lastRoute.length,
                 min: Math.min(...lastRoute),
                 max: Math.max(...lastRoute),
+                unique: new Set(lastRoute).size,
                 route: lastRoute
             };
 
@@ -1457,54 +1434,6 @@
             URL.revokeObjectURL(url);
 
             log(`✅ Route saved (${lastRoute.length} addresses)`, 'ok');
-        };
-
-        window.compareRoutes = function() {
-            if (!engine) {
-                log('Engine not initialized', 'err');
-                return;
-            }
-
-            if (!engine.previousRoute) {
-                log('No previous route to compare', 'err');
-                return;
-            }
-
-            if (!lastRoute) {
-                log('No current route', 'err');
-                return;
-            }
-
-            const prev = engine.previousRoute;
-            const curr = lastRoute;
-
-            if (prev.length !== curr.length) {
-                log(`❌ Routes have different lengths: ${prev.length} vs ${curr.length}`, 'err');
-                return;
-            }
-
-            let differences = 0;
-            for (let i = 0; i < Math.min(prev.length, curr.length); i++) {
-                if (prev[i] !== curr[i]) differences++;
-            }
-
-            const matchPercent = ((prev.length - differences) / prev.length * 100).toFixed(1);
-            
-            if (differences === 0) {
-                log(`✅ Routes are IDENTICAL (100% match)`, 'ok');
-            } else {
-                log(`⚠️ Routes differ: ${differences}/${prev.length} addresses (${matchPercent}% match)`, 'debug');
-                
-                let diffLog = 'First 10 differences: ';
-                let count = 0;
-                for (let i = 0; i < prev.length && count < 10; i++) {
-                    if (prev[i] !== curr[i]) {
-                        diffLog += `[${i}: ${prev[i]}→${curr[i]}] `;
-                        count++;
-                    }
-                }
-                log(diffLog, 'debug');
-            }
         };
 
         window.copyExtracted = function() {
@@ -1609,8 +1538,10 @@
                 // Инициализируем роторы маршрута
                 engine.initRouteRotors(image.width, image.height);
 
-                // Генерируем маршрут - ИСПОЛЬЗУЕМ ТУ ЖЕ ЛОГИКУ ЧТО И В ENCRYPT
-                const route = engine.generateRoute(dataBytes.length, HEADER_SIZE * 8);
+                // Генерируем УНИКАЛЬНЫЙ маршрут
+                const neededBits = dataBytes.length * 8;
+                const route = engine.generateUniqueRoute(neededBits, HEADER_SIZE * 8);
+                
                 log(`Route generated: ${route.length} addresses`, 'info');
 
                 // Отображаем маршрут
@@ -1647,14 +1578,15 @@
 
                 // Обновляем статистику
                 const psnr = stegoLSB.calculatePSNR(image.data, stego);
+                const unique = new Set(route).size;
 
                 document.getElementById('embeddedLen').textContent = dataBytes.length;
-                document.getElementById('routeLen').textContent = route.length;
+                document.getElementById('uniqueCount').textContent = `${unique}/${route.length}`;
                 document.getElementById('psnrValue').textContent = psnr > 100 ? '∞' : psnr.toFixed(1);
                 document.getElementById('stegoStatus').textContent = 'EMBEDDED';
                 document.getElementById('stegoStatus').className = 'stat-value success';
 
-                log(`✅ Successfully embedded ${dataBytes.length} bytes (PSNR: ${psnr > 100 ? '∞' : psnr.toFixed(1)})`, 'ok');
+                log(`✅ Successfully embedded ${dataBytes.length} bytes with ${unique} unique addresses`, 'ok');
 
             } catch (error) {
                 log(`Error: ${error.message}`, 'err');
@@ -1687,8 +1619,10 @@
                 // Инициализируем роторы маршрута
                 engine.initRouteRotors(image.width, image.height);
 
-                // Генерируем маршрут - ИСПОЛЬЗУЕМ ТУ ЖЕ ЛОГИКУ ЧТО И В ENCRYPT
-                const route = engine.generateRoute(dataLength, HEADER_SIZE * 8);
+                // Генерируем ТОТ ЖЕ уникальный маршрут
+                const neededBits = dataLength * 8;
+                const route = engine.generateUniqueRoute(neededBits, HEADER_SIZE * 8);
+                
                 log(`Route generated: ${route.length} addresses`, 'info');
 
                 // Отображаем маршрут
@@ -1791,8 +1725,8 @@
             if (rotorInterval) clearInterval(rotorInterval);
             rotorInterval = setInterval(updateRotorsUI, 100);
 
-            log('🚀 TRUE ITN v1.2 initialized', 'ok');
-            log('Route generation fixed - now uses transform() like encrypt', 'info');
+            log('🚀 TRUE ITN v1.3 initialized', 'ok');
+            log('Steganography v2.0: Unique route guarantee with neural guidance', 'info');
         });
 
         window.addEventListener('beforeunload', () => {
