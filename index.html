@@ -1,229 +1,1470 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Vigenère Bruteforcer — Works Offline</title>
-  <style>
-    body { background: #0d0d0d; color: #00ffcc; font-family: monospace; padding: 16px; }
-    .field { margin: 8px 0; }
-    input, textarea, button {
-      background: #1a1a1a; color: #00ffcc; border: 1px solid #00aa88; padding: 6px; width: 100%; box-sizing: border-box;
-    }
-    button { background: #004433; cursor: pointer; font-weight: bold; }
-    #progressBar { height: 20px; background: #111; border: 1px solid #007766; margin: 10px 0; }
-    #progressFill { height: 100%; background: linear-gradient(to right, #005555, #00ffaa); width: 0%; transition: width 0.1s; }
-    #results { background: #001100; border: 1px solid #007755; height: 300px; overflow-y: auto; padding: 8px; white-space: pre-wrap; }
-    .match { background: #330033; color: #ff66ff; padding: 0 2px; border-radius: 2px; }
-    .rating { color: #ffcc00; font-weight: bold; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 TRUE ITN v1.0 — Neural Steganography System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background: #0a0c14;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: #121620;
+            border: 1px solid #2a3040;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            color: #00ffff;
+            font-size: 2.5rem;
+        }
+
+        .header .subtitle {
+            color: #a0a8c0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1000px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: #121620;
+            border: 1px solid #2a3040;
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .panel h2 {
+            color: #00ffff;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #2a3040;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #a0a8c0;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            background: #1a1f2a;
+            border: 1px solid #2a3040;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
+        .btn-primary {
+            background: #00ffff;
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: #00cccc;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #ff3366;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #cc2255;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #00ffaa;
+            color: #000;
+        }
+
+        .btn-success:hover {
+            background: #00cc88;
+            transform: translateY(-2px);
+        }
+
+        .btn-tertiary {
+            background: #2a3040;
+            color: #fff;
+            border: 1px solid #3a4050;
+        }
+
+        .btn-tertiary:hover {
+            background: #3a4050;
+        }
+
+        .output-box {
+            background: #1a1f2a;
+            border: 2px solid #00ffaa;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 80px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            color: #00ffaa;
+            margin: 16px 0;
+            word-break: break-all;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .stat-item {
+            background: #1a1f2a;
+            border: 1px solid #2a3040;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #a0a8c0;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            color: #00ffff;
+            font-size: 1.2rem;
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+        .stat-value.success { color: #00ffaa; }
+        .stat-value.error { color: #ff3366; }
+
+        .rotor-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .rotor {
+            background: #1a1f2a;
+            border: 1px solid #2a3040;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .rotor.active {
+            border-color: #00ffff;
+            box-shadow: 0 0 10px rgba(0,255,255,0.3);
+        }
+
+        .rotor-label {
+            color: #a0a8c0;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+
+        .rotor-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #00ffaa;
+            font-family: monospace;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            border-radius: 8px;
+            border: 2px solid #2a3040;
+            margin: 16px 0;
+            display: none;
+        }
+
+        .image-preview.show {
+            display: block;
+        }
+
+        .progress-bar {
+            margin: 16px 0;
+            display: none;
+        }
+
+        .progress-bar.show {
+            display: block;
+        }
+
+        .progress-fill {
+            height: 4px;
+            background: #00ffff;
+            width: 0%;
+            transition: width 0.3s;
+            border-radius: 2px;
+        }
+
+        .log-panel {
+            background: #1a1f2a;
+            border: 1px solid #2a3040;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            font-family: monospace;
+        }
+
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #2a3040;
+            color: #a0a8c0;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-entry.ok { color: #00ffaa; }
+        .log-entry.err { color: #ff3366; }
+        .log-entry.info { color: #00ffff; }
+
+        .footer {
+            margin-top: 24px;
+            padding: 20px;
+            background: #121620;
+            border: 1px solid #2a3040;
+            border-radius: 16px;
+            text-align: center;
+            color: #a0a8c0;
+            font-size: 0.9rem;
+        }
+
+        .footer strong {
+            color: #00ffff;
+        }
+    </style>
 </head>
 <body>
-  <h2>⚡ Vigenère Bruteforcer — No Server Needed</h2>
+    <div class="container">
+        <div class="header">
+            <h1>TRUE ITN v1.0</h1>
+            <div class="subtitle">Neural Steganography System · Full Reversibility</div>
+        </div>
 
-  <div class="field">
-    <label>Alphabet (26 letters):</label>
-    <input id="alphabet" value="ABCDEFGHIJKLMNOPQRSTUVWXYZ">
-  </div>
+        <div class="grid">
+            <!-- CRYPTO PANEL -->
+            <div class="panel">
+                <h2>🔐 CRYPTO ENGINE</h2>
 
-  <div class="field">
-    <label>Ciphertext:</label>
-    <textarea id="cipher" rows="3">OBKRUOXOGHULBSOLIFBBWFLRVQQPRNGKSSOTWTQSJQSSEKZZWATJKLUDIAWINFBNYPVTTMZFPKWGDKZXTJCDIGKUHUAUEKCAR</textarea>
-  </div>
+                <div class="form-group">
+                    <label>🔤 TEXT ALPHABET</label>
+                    <input type="text" id="textAlphabet" value="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789">
+                </div>
 
-  <div class="field">
-    <label>Key length (1–7 recommended):</label>
-    <input id="keyLen" type="number" value="6" min="1" max="10">
-  </div>
+                <div class="form-group">
+                    <label>🔑 MASTER PASSWORD</label>
+                    <input type="text" id="password" value="ITN_V1_MASTER_SEED">
+                </div>
 
-  <div class="field">
-    <label>Keywords (comma-separated):</label>
-    <input id="keywords" value="BERLIN,CLOCK,NORTHEAST,EAST">
-  </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>🎯 MODE</label>
+                        <select id="modeSelect">
+                            <option value="classic" selected>CLASSIC</option>
+                            <option value="neural">NEURAL</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>⚡ PERFORMANCE</label>
+                        <select id="perfSelect">
+                            <option value="quality" selected>QUALITY</option>
+                            <option value="turbo">TURBO</option>
+                        </select>
+                    </div>
+                </div>
 
-  <button onclick="startBrute()">▶ Start</button>
-  <button onclick="stopBrute()">⏹ Stop</button>
+                <div class="form-group">
+                    <label>📝 INPUT TEXT</label>
+                    <textarea id="inputText" placeholder="Enter text to encrypt...">HELLO WORLD 123</textarea>
+                </div>
 
-  <div>Total combinations: <span id="totalCombi">0</span></div>
-  <div>Tested: <span id="tested">0</span> | Speed: <span id="speed">0</span>/sec</div>
-  <div id="progressBar"><div id="progressFill"></div></div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="runCrypto('encrypt')">🔒 ENCRYPT</button>
+                    <button class="btn btn-secondary" onclick="runCrypto('decrypt')">🔓 DECRYPT</button>
+                    <button class="btn btn-tertiary" onclick="runTest()">🧪 TEST</button>
+                </div>
 
-  <div id="results"></div>
+                <div class="output-box" id="outputText">—</div>
 
-  <script>
-    let shouldStop = false;
-    let totalCombinations = 0;
-    let testedCount = 0;
-    let startTime = 0;
-    const resultsCache = new Set();
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">LENGTH</div>
+                        <div class="stat-value" id="statLen">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">REVERSIBLE</div>
+                        <div class="stat-value" id="statRev">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">PATTERNS</div>
+                        <div class="stat-value" id="statPatterns">0/16</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">TIME</div>
+                        <div class="stat-value" id="statTime">0ms</div>
+                    </div>
+                </div>
 
-    function escapeHtml(s) {
-      return s.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m] || m));
-    }
+                <div class="rotor-grid" id="rotorViz">
+                    <div class="rotor" id="rotor-0">
+                        <div class="rotor-label">ROTOR 1</div>
+                        <div class="rotor-value" id="rotor-val-0">0</div>
+                    </div>
+                    <div class="rotor" id="rotor-1">
+                        <div class="rotor-label">ROTOR 2</div>
+                        <div class="rotor-value" id="rotor-val-1">0</div>
+                    </div>
+                    <div class="rotor" id="rotor-2">
+                        <div class="rotor-label">ROTOR 3</div>
+                        <div class="rotor-value" id="rotor-val-2">0</div>
+                    </div>
+                    <div class="rotor" id="rotor-3">
+                        <div class="rotor-label">ROTOR 4</div>
+                        <div class="rotor-value" id="rotor-val-3">0</div>
+                    </div>
+                </div>
+            </div>
 
-    // Fast decrypt
-    function decrypt(ctNum, keyIndices, alphabetSize) {
-      const plain = new Uint8Array(ctNum.length);
-      for (let i = 0; i < ctNum.length; i++) {
-        let p = ctNum[i] - keyIndices[i % keyIndices.length];
-        if (p <= 0) p += alphabetSize;
-        plain[i] = p;
-      }
-      return plain;
-    }
+            <!-- STEGANOGRAPHY PANEL -->
+            <div class="panel">
+                <h2>🖼️ STEGANOGRAPHY</h2>
 
-    // Find all matches
-    function findMatches(plain, kwNums) {
-      const matches = [];
-      let score = 0;
-      for (const { word, arr } of kwNums) {
-        const len = arr.length;
-        for (let start = 0; start <= plain.length - len; start++) {
-          let ok = true;
-          for (let j = 0; j < len; j++) {
-            if (plain[start + j] !== arr[j]) { ok = false; break; }
-          }
-          if (ok) {
-            matches.push({ start, end: start + len, word });
-            score += word.length;
-          }
-        }
-      }
-      return { matches, score };
-    }
+                <div class="form-group">
+                    <label>📸 COVER IMAGE</label>
+                    <input type="file" id="imageInput" accept="image/png,image/jpeg">
+                </div>
 
-    // Generate next key (base-N counter)
-    function incrementKey(key, base) {
-      let i = key.length - 1;
-      while (i >= 0) {
-        key[i]++;
-        if (key[i] < base) return true;
-        key[i] = 0;
-        i--;
-      }
-      return false; // overflow → done
-    }
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">WIDTH</div>
+                        <div class="stat-value" id="imageWidth">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">HEIGHT</div>
+                        <div class="stat-value" id="imageHeight">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">PIXELS</div>
+                        <div class="stat-value" id="imagePixels">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">CAPACITY</div>
+                        <div class="stat-value" id="imageCapacity">0 B</div>
+                    </div>
+                </div>
 
-    async function startBrute() {
-      shouldStop = false;
-      resultsCache.clear();
-      document.getElementById('results').innerHTML = '';
+                <div class="form-group">
+                    <label>📝 SECRET MESSAGE</label>
+                    <textarea id="secretText" placeholder="Secret message to hide...">TOP SECRET DATA</textarea>
+                </div>
 
-      const alphabet = document.getElementById('alphabet').value.toUpperCase();
-      const alphabetSize = alphabet.length;
-      if (alphabetSize !== 26) {
-        alert('For best results, use 26-letter alphabet.');
-        return;
-      }
+                <div class="form-group">
+                    <label>💾 FILENAME</label>
+                    <input type="text" id="filenameInput" value="stego_image" placeholder="Output filename">
+                </div>
 
-      const cipherText = document.getElementById('cipher').value.replace(/[^A-Z]/g, '').toUpperCase();
-      const keyLen = parseInt(document.getElementById('keyLen').value) || 6;
-      if (keyLen < 1 || keyLen > 10) { alert('Key length 1–10'); return; }
+                <div class="button-group">
+                    <button class="btn btn-success" onclick="embedInImage()">📥 EMBED</button>
+                    <button class="btn btn-secondary" onclick="extractFromImage()">📤 EXTRACT</button>
+                    <button class="btn btn-tertiary" onclick="downloadImage()">💾 DOWNLOAD</button>
+                </div>
 
-      const keywords = document.getElementById('keywords').value
-        .split(',').map(k => k.trim().toUpperCase()).filter(k => k.length >= 3);
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
 
-      totalCombinations = Math.pow(26, keyLen);
-      if (totalCombinations > 2e9) {
-        if (!confirm(`Total: ${totalCombinations.toLocaleString()} keys. May take hours. Continue?`)) return;
-      }
+                <canvas id="imagePreview" class="image-preview"></canvas>
 
-      // Convert to numbers
-      const ctNum = new Uint8Array(cipherText.length);
-      for (let i = 0; i < cipherText.length; i++) {
-        ctNum[i] = alphabet.indexOf(cipherText[i]) + 1;
-      }
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">EMBEDDED</div>
+                        <div class="stat-value" id="embeddedLen">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">ROUTE</div>
+                        <div class="stat-value" id="routeLen">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">PSNR</div>
+                        <div class="stat-value" id="psnrValue">∞</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">STATUS</div>
+                        <div class="stat-value" id="stegoStatus">READY</div>
+                    </div>
+                </div>
 
-      const kwNums = [];
-      for (const kw of keywords) {
-        const arr = new Uint8Array(kw.length);
-        let valid = true;
-        for (let i = 0; i < kw.length; i++) {
-          const idx = alphabet.indexOf(kw[i]);
-          if (idx === -1) { valid = false; break; }
-          arr[i] = idx + 1;
-        }
-        if (valid) kwNums.push({ word: kw, arr: arr });
-      }
+                <div class="log-panel" id="log"></div>
+            </div>
+        </div>
 
-      // UI
-      document.getElementById('totalCombi').textContent = totalCombinations.toLocaleString();
-      document.getElementById('tested').textContent = '0';
-      document.getElementById('speed').textContent = '0';
-      document.getElementById('progressFill').style.width = '0%';
+        <div class="footer">
+            <strong>TRUE ITN v1.0</strong> · Invertible Neural Network · 16-Head Attention · 4 Rotors · Neural-Guided LSB
+        </div>
+    </div>
 
-      // Init
-      const key = new Uint8Array(keyLen).fill(0);
-      testedCount = 0;
-      startTime = performance.now();
-      const batchSize = 80000; // balance speed & responsiveness
+    <script>
+        // ====================================================================
+        // CONSTANTS
+        // ====================================================================
+        const MARKER = [0xAA, 0xBB, 0xCC, 0xDD];
+        const MARKER_SIZE = 4;
+        const LENGTH_SIZE = 4;
+        const HEADER_SIZE = MARKER_SIZE + LENGTH_SIZE; // 8 байт
 
-      const processBatch = () => {
-        if (shouldStop) return;
+        // ====================================================================
+        // FAST MATH
+        // ====================================================================
+        const FastMath = {
+            tanh: (x) => {
+                if (x > 3) return 1;
+                if (x < -3) return -1;
+                const x2 = x * x;
+                return x * (27 + x2) / (27 + 9 * x2);
+            },
+            sin: (x) => Math.sin(x), // fallback to native
+            cos: (x) => Math.cos(x),
+            mod: (n, m) => ((n % m) + m) % m
+        };
 
-        for (let b = 0; b < batchSize; b++) {
-          const plainBuf = decrypt(ctNum, key, 26);
-          const { matches, score } = findMatches(plainBuf, kwNums);
+        const { tanh, sin, cos, mod } = FastMath;
 
-          if (score > 0) {
-            let keyStr = '';
-            for (let i = 0; i < keyLen; i++) keyStr += alphabet[key[i]];
-            if (!resultsCache.has(keyStr)) {
-              resultsCache.add(keyStr);
-              let plainStr = '';
-              for (let p of plainBuf) plainStr += alphabet[p - 1];
-
-              // Highlight all matches
-              const sorted = matches.sort((a, b) => a.start - b.start);
-              let lastEnd = 0;
-              let highlighted = '';
-              for (const m of sorted) {
-                if (m.start < lastEnd) continue;
-                highlighted += escapeHtml(plainStr.slice(lastEnd, m.start));
-                highlighted += `<span class="match">${escapeHtml(m.word)}</span>`;
-                lastEnd = m.end;
-              }
-              highlighted += escapeHtml(plainStr.slice(lastEnd));
-
-              const resDiv = document.getElementById('results');
-              resDiv.innerHTML += `<div><span class="rating">★${score}</span> [${keyStr}] ${highlighted}</div>\n`;
-              resDiv.scrollTop = resDiv.scrollHeight;
+        // ====================================================================
+        // SEEDED RANDOM
+        // ====================================================================
+        class SeededRandom {
+            constructor(seed) {
+                let h = 0x811c9dc5;
+                for (let i = 0; i < seed.length; i++) {
+                    h ^= seed.charCodeAt(i);
+                    h = Math.imul(h, 0x01000193);
+                }
+                this.seed = h >>> 0;
             }
-          }
 
-          // Next key
-          if (!incrementKey(key, 26)) {
-            shouldStop = true;
-            break;
-          }
+            next() {
+                this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
+                return this.seed / 0xFFFFFFFF;
+            }
 
-          testedCount++;
-          if (testedCount >= totalCombinations) {
-            shouldStop = true;
-            break;
-          }
+            nextInt(max) {
+                return Math.floor(this.next() * max);
+            }
+
+            matrix(rows, cols, scale = 0.1) {
+                const m = [];
+                for (let i = 0; i < rows; i++) {
+                    const row = [];
+                    for (let j = 0; j < cols; j++) {
+                        row.push((this.next() * 2 - 1) * scale);
+                    }
+                    m.push(row);
+                }
+                return m;
+            }
         }
 
-        // Update stats
-        const now = performance.now();
-        const elapsed = (now - startTime) / 1000;
-        const speed = Math.round(testedCount / elapsed);
-        const percent = (testedCount / totalCombinations) * 100;
+        // ====================================================================
+        // ACTIVATION PATTERNS
+        // ====================================================================
+        const ACTIVATION_PATTERNS = (() => {
+            const patterns = [];
+            for (let i = 0; i < 16; i++) {
+                patterns.push([
+                    (i & 1) ? 1 : 0,
+                    (i & 2) ? 1 : 0,
+                    (i & 4) ? 1 : 0,
+                    (i & 8) ? 1 : 0
+                ]);
+            }
+            return patterns;
+        })();
 
-        document.getElementById('tested').textContent = testedCount.toLocaleString();
-        document.getElementById('speed').textContent = speed.toLocaleString();
-        document.getElementById('progressFill').style.width = Math.min(percent, 100).toFixed(1) + '%';
+        // ====================================================================
+        // ATTENTION 16-HEAD
+        // ====================================================================
+        class Attention16 {
+            constructor(dim, seed) {
+                this.dim = dim;
+                this.numHeads = 16;
+                this.headDim = Math.floor(dim / 16);
 
-        if (!shouldStop) {
-          setTimeout(processBatch, 0); // yield to browser
+                const rng = new SeededRandom(seed + "_ATTN");
+                this.W_q = rng.matrix(this.dim, this.dim, 0.1);
+                this.W_k = rng.matrix(this.dim, this.dim, 0.1);
+                this.W_v = rng.matrix(this.dim, this.dim, 0.1);
+            }
+
+            forward(x) {
+                const q = new Float32Array(this.dim);
+                const k = new Float32Array(this.dim);
+                const v = new Float32Array(this.dim);
+
+                for (let i = 0; i < this.dim; i++) {
+                    let qs = 0, ks = 0, vs = 0;
+                    for (let j = 0; j < this.dim; j++) {
+                        qs += x[j] * this.W_q[i][j];
+                        ks += x[j] * this.W_k[i][j];
+                        vs += x[j] * this.W_v[i][j];
+                    }
+                    q[i] = tanh(qs);
+                    k[i] = tanh(ks);
+                    v[i] = tanh(vs);
+                }
+
+                const scores = new Float32Array(16);
+                for (let h = 0; h < 16; h++) {
+                    const start = h * this.headDim;
+                    let score = 0;
+                    for (let i = 0; i < this.headDim; i++) {
+                        score += q[start + i] * k[start + i];
+                    }
+                    scores[h] = tanh(score / Math.sqrt(this.headDim));
+                }
+
+                const output = new Float32Array(this.dim);
+                for (let h = 0; h < 16; h++) {
+                    const start = h * this.headDim;
+                    for (let i = 0; i < this.headDim; i++) {
+                        output[start + i] = v[start + i] * scores[h];
+                    }
+                }
+
+                return { output, scores: Array.from(scores) };
+            }
         }
-      };
 
-      processBatch();
-    }
+        // ====================================================================
+        // FLEXIBLE DRIVER
+        // ====================================================================
+        class FlexibleDriver {
+            constructor(dim, workingDim, memoryDim, seed) {
+                this.workingDim = workingDim;
+                this.memoryDim = memoryDim;
+                this.patternsUsed = new Set();
 
-    function stopBrute() {
-      shouldStop = true;
-    }
-  </script>
+                const rng = new SeededRandom(seed + "_DRIVER");
+
+                this.W_pattern = rng.matrix(16, workingDim + memoryDim, 0.1);
+                this.W_decision = rng.matrix(16, workingDim + memoryDim, 0.1);
+                this.W_memory = rng.matrix(memoryDim, 16, 0.1);
+                this.W_rotor_noise = Array.from({ length: 4 }, () =>
+                    Array.from({ length: 16 }, () => (rng.next() * 2 - 1) * 0.3)
+                );
+            }
+
+            selectPattern(attentionScores, memory, step) {
+                const input = attentionScores.concat(Array.from(memory));
+                let bestScore = -Infinity;
+                let bestPattern = 0;
+
+                for (let p = 0; p < 16; p++) {
+                    let score = 0;
+                    for (let j = 0; j < input.length; j++) {
+                        score += input[j] * this.W_pattern[p][j];
+                    }
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestPattern = p;
+                    }
+                }
+
+                const finalPattern = mod(bestPattern + (step % 5), 16);
+                this.patternsUsed.add(finalPattern);
+                return ACTIVATION_PATTERNS[finalPattern];
+            }
+
+            decide(attentionScores, memory, step) {
+                const activePattern = this.selectPattern(attentionScores, memory, step);
+                const input = attentionScores.concat(Array.from(memory));
+                const values = new Float32Array(16);
+
+                for (let i = 0; i < 16; i++) {
+                    let sum = 0;
+                    for (let j = 0; j < input.length; j++) {
+                        sum += input[j] * this.W_decision[i][j];
+                    }
+                    values[i] = tanh(sum);
+                }
+
+                const commands = [];
+                for (let r = 0; r < 4; r++) {
+                    const b = r * 4;
+                    let delta = Math.floor(values[b] * 15);
+                    const dir = values[b + 1] > 0 ? 1 : -1;
+                    let speed = Math.floor(Math.abs(values[b + 2]) * 7) + 1;
+
+                    let noiseSum = 0;
+                    for (let j = 0; j < 16; j++) {
+                        noiseSum += values[j] * this.W_rotor_noise[r][j];
+                    }
+                    delta += Math.floor(tanh(noiseSum) * 5);
+
+                    const phase = attentionScores[r % attentionScores.length] * Math.PI;
+                    const resonance = sin(attentionScores[0] - attentionScores[1]) * 2;
+
+                    delta = Math.max(-15, Math.min(15, delta));
+                    speed = Math.max(1, Math.min(10, speed));
+
+                    commands.push({
+                        delta,
+                        dir,
+                        speed,
+                        phase,
+                        resonance,
+                        active: activePattern[r] === 1
+                    });
+                }
+
+                return { commands, values: Array.from(values) };
+            }
+
+            updateMemory(memory, decisionValues) {
+                const newMem = new Float32Array(this.memoryDim);
+                for (let i = 0; i < this.memoryDim; i++) {
+                    let sum = 0;
+                    for (let j = 0; j < 16; j++) {
+                        sum += decisionValues[j] * this.W_memory[i][j];
+                    }
+                    newMem[i] = memory[i] + tanh(sum) * 0.1;
+                }
+                return newMem;
+            }
+        }
+
+        // ====================================================================
+        // DRIVER BLOCK
+        // ====================================================================
+        class DriverBlock {
+            constructor(dim, seed, blockId) {
+                this.dim = dim;
+                this.workingDim = Math.floor(dim * 0.7);
+                this.memoryDim = dim - this.workingDim;
+
+                this.attention = new Attention16(this.workingDim, seed + `_B${blockId}`);
+                this.driver = new FlexibleDriver(dim, this.workingDim, this.memoryDim, seed + `_B${blockId}`);
+
+                const rng = new SeededRandom(seed + `_BLOCK_${blockId}`);
+                this.W_f = rng.matrix(this.workingDim, this.workingDim, 0.1);
+                this.W_g = rng.matrix(this.workingDim, this.workingDim, 0.1);
+            }
+
+            forward(state, step) {
+                const working = state.slice(0, this.workingDim);
+                const memory = state.slice(this.workingDim);
+
+                const attn = this.attention.forward(working);
+                const decision = this.driver.decide(attn.scores, memory, step);
+                const newMem = this.driver.updateMemory(memory, decision.values);
+
+                const half = Math.floor(this.workingDim / 2);
+                const x1 = working.slice(0, half);
+                const x2 = working.slice(half);
+
+                const f_out = new Float32Array(half);
+                for (let i = 0; i < half; i++) {
+                    let sum = 0;
+                    for (let j = 0; j < half; j++) {
+                        sum += x2[j] * this.W_f[i][j];
+                    }
+                    f_out[i] = tanh(sum);
+                }
+
+                const y1 = new Float32Array(half);
+                for (let i = 0; i < half; i++) {
+                    y1[i] = x1[i] + f_out[i];
+                }
+
+                const g_out = new Float32Array(half);
+                for (let i = 0; i < half; i++) {
+                    let sum = 0;
+                    for (let j = 0; j < half; j++) {
+                        sum += y1[j] * this.W_g[i][j];
+                    }
+                    g_out[i] = tanh(sum);
+                }
+
+                const y2 = new Float32Array(half);
+                for (let i = 0; i < half; i++) {
+                    y2[i] = x2[i] + g_out[i];
+                }
+
+                const newState = new Float32Array(this.dim);
+                newState.set(y1, 0);
+                newState.set(y2, half);
+                newState.set(newMem, this.workingDim);
+
+                return {
+                    state: newState,
+                    commands: decision.commands,
+                    attentionScores: attn.scores
+                };
+            }
+        }
+
+        // ====================================================================
+        // ROTOR SYSTEM
+        // ====================================================================
+        class RotorSystem {
+            constructor(alphabet, seed) {
+                this.alphabet = alphabet;
+                this.N = alphabet.length;
+
+                this.charToIdx = {};
+                for (let i = 0; i < this.N; i++) {
+                    this.charToIdx[alphabet[i]] = i;
+                }
+
+                const rng = new SeededRandom(seed + "_ROTORS");
+                this.rotors = [];
+                this.rotorsInv = [];
+
+                for (let i = 0; i < 4; i++) {
+                    const arr = Array.from({ length: this.N }, (_, idx) => idx);
+                    for (let j = this.N - 1; j > 0; j--) {
+                        const k = rng.nextInt(j + 1);
+                        [arr[j], arr[k]] = [arr[k], arr[j]];
+                    }
+
+                    const rotorChars = arr.map(idx => alphabet[idx]);
+                    this.rotors.push(rotorChars);
+
+                    const inv = new Array(this.N);
+                    for (let pos = 0; pos < this.N; pos++) {
+                        inv[this.charToIdx[rotorChars[pos]]] = pos;
+                    }
+                    this.rotorsInv.push(inv);
+                }
+
+                this.positions = [0, 0, 0, 0];
+            }
+
+            reset() {
+                this.positions = [0, 0, 0, 0];
+            }
+
+            update(commands) {
+                for (let r = 0; r < 4; r++) {
+                    if (!commands[r].active) continue;
+                    this.positions[r] = mod(
+                        this.positions[r] + commands[r].delta * commands[r].speed * commands[r].dir,
+                        this.N
+                    );
+                }
+            }
+
+            transform(idx) {
+                for (let r = 0; r < 4; r++) {
+                    const shifted = mod(idx + this.positions[r], this.N);
+                    const mapped = this.charToIdx[this.rotors[r][shifted]];
+                    idx = mod(mapped - this.positions[r], this.N);
+                }
+                return idx;
+            }
+
+            inverseTransform(idx) {
+                for (let r = 3; r >= 0; r--) {
+                    const shifted = mod(idx + this.positions[r], this.N);
+                    const mapped = this.rotorsInv[r][shifted];
+                    idx = mod(mapped - this.positions[r], this.N);
+                }
+                return idx;
+            }
+        }
+
+        // ====================================================================
+        // CRYPTO ENGINE
+        // ====================================================================
+        class CryptoEngine {
+            constructor(textAlphabet, password, mode = 'classic') {
+                this.textAlphabet = textAlphabet;
+                this.password = password;
+                this.mode = mode;
+
+                this.dim = 338;
+                this.blocks = 12;
+                this.workingDim = Math.floor(this.dim * 0.7);
+                this.memoryDim = this.dim - this.workingDim;
+
+                this.textRotors = new RotorSystem(textAlphabet, password + "_TEXT");
+                this.routeRotors = null;
+
+                this.blocks_data = [];
+                for (let b = 0; b < this.blocks; b++) {
+                    this.blocks_data.push(new DriverBlock(this.dim, password + "_" + mode, b));
+                }
+
+                const rng = new SeededRandom(password + "_INPUT");
+                this.W_input = rng.matrix(this.dim, 6, 0.3);
+
+                this.commandHistory = [];
+            }
+
+            initState(step, prevCipher, context) {
+                const input = [
+                    (step % 50) / 50,
+                    prevCipher / this.textAlphabet.length,
+                    ...context.map(c => c / this.textAlphabet.length)
+                ];
+
+                const state = new Float32Array(this.dim);
+                for (let i = 0; i < this.dim; i++) {
+                    let sum = 0;
+                    for (let j = 0; j < 6; j++) {
+                        sum += input[j] * this.W_input[i][j];
+                    }
+                    state[i] = tanh(sum);
+                }
+                return state;
+            }
+
+            processState(state, step) {
+                let current = state;
+                let lastCommands = null;
+                let lastAttention = null;
+
+                for (let b = 0; b < this.blocks; b++) {
+                    const result = this.blocks_data[b].forward(current, step);
+                    current = result.state;
+                    if (b === this.blocks - 1) {
+                        lastCommands = result.commands;
+                        lastAttention = result.attentionScores;
+                    }
+                }
+
+                return {
+                    state: current,
+                    commands: lastCommands,
+                    attention: lastAttention
+                };
+            }
+
+            encrypt(text) {
+                this.textRotors.reset();
+                this.commandHistory = [];
+
+                let result = "";
+                let prevCipher = 0;
+                let context = [0, 0, 0, 0];
+                const start = performance.now();
+
+                for (let i = 0; i < text.length; i++) {
+                    const char = text[i];
+                    const idx = this.textRotors.charToIdx[char];
+
+                    if (idx === undefined) {
+                        continue;
+                    }
+
+                    const state = this.initState(i, prevCipher, context);
+                    const proc = this.processState(state, i);
+
+                    this.textRotors.update(proc.commands);
+                    this.commandHistory.push(proc.commands);
+
+                    const newIdx = this.textRotors.transform(idx);
+                    result += this.textAlphabet[newIdx];
+
+                    prevCipher = newIdx;
+                    context = [context[1], context[2], context[3], newIdx];
+                }
+
+                const time = performance.now() - start;
+                return { text: result, time, commands: this.commandHistory };
+            }
+
+            decrypt(text) {
+                this.textRotors.reset();
+
+                let result = "";
+                let prevCipher = 0;
+                let context = [0, 0, 0, 0];
+
+                for (let i = 0; i < text.length; i++) {
+                    const char = text[i];
+                    const idx = this.textRotors.charToIdx[char];
+
+                    if (idx === undefined) {
+                        continue;
+                    }
+
+                    const state = this.initState(i, prevCipher, context);
+                    const proc = this.processState(state, i);
+
+                    this.textRotors.update(proc.commands);
+
+                    const newIdx = this.textRotors.inverseTransform(idx);
+                    result += this.textAlphabet[newIdx];
+
+                    prevCipher = idx;
+                    context = [context[1], context[2], context[3], idx];
+                }
+
+                return { text: result };
+            }
+
+            // ================================================================
+            // STEGANOGRAPHY METHODS
+            // ================================================================
+            initRouteRotors(imageWidth, imageHeight) {
+                const pixelCount = imageWidth * imageHeight;
+                const routeAlphabet = Array.from({ length: pixelCount }, (_, i) => i.toString());
+                this.routeRotors = new RotorSystem(routeAlphabet, this.password + "_ROUTE");
+                return pixelCount;
+            }
+
+            generateRoute(secretLength, stepOffset = 0) {
+                if (!this.routeRotors) {
+                    throw new Error("Route rotors not initialized");
+                }
+
+                this.routeRotors.reset();
+
+                const route = [];
+                let state = this.initState(0, 0, [0, 0, 0, 0]);
+
+                for (let i = 0; i < secretLength * 8; i++) {
+                    const proc = this.processState(state, i + stepOffset);
+                    this.routeRotors.update(proc.commands);
+                    route.push(this.routeRotors.positions[0]);
+                    state = proc.state;
+                }
+
+                return route;
+            }
+
+            verifyReversibility(original, encrypted) {
+                const decrypted = this.decrypt(encrypted).text;
+                return {
+                    success: decrypted === original,
+                    original,
+                    encrypted,
+                    decrypted
+                };
+            }
+        }
+
+        // ====================================================================
+        // LSB STEGANOGRAPHY
+        // ====================================================================
+        class LSBSteganography {
+            textToBits(text) {
+                const bits = [];
+                for (let i = 0; i < text.length; i++) {
+                    const byte = text.charCodeAt(i);
+                    for (let b = 0; b < 8; b++) {
+                        bits.push((byte >> b) & 1);
+                    }
+                }
+                return bits;
+            }
+
+            bitsToText(bits) {
+                let text = '';
+                for (let i = 0; i < bits.length; i += 8) {
+                    let byte = 0;
+                    for (let b = 0; b < 8; b++) {
+                        byte |= (bits[i + b] || 0) << b;
+                    }
+                    text += String.fromCharCode(byte);
+                }
+                return text;
+            }
+
+            embedHeader(imageData, dataLength) {
+                const header = [
+                    MARKER[0], MARKER[1], MARKER[2], MARKER[3],
+                    (dataLength >> 24) & 0xFF,
+                    (dataLength >> 16) & 0xFF,
+                    (dataLength >> 8) & 0xFF,
+                    dataLength & 0xFF
+                ];
+
+                for (let i = 0; i < 8; i++) {
+                    const byte = header[i];
+                    for (let b = 0; b < 8; b++) {
+                        const pixelIdx = (i * 8 + b) * 4;
+                        if (pixelIdx < imageData.length) {
+                            const bit = (byte >> b) & 1;
+                            imageData[pixelIdx] = (imageData[pixelIdx] & 0xFE) | bit;
+                        }
+                    }
+                }
+            }
+
+            readHeader(imageData) {
+                const header = [];
+                for (let i = 0; i < 8; i++) {
+                    let byte = 0;
+                    for (let b = 0; b < 8; b++) {
+                        const pixelIdx = (i * 8 + b) * 4;
+                        if (pixelIdx < imageData.length) {
+                            const bit = imageData[pixelIdx] & 1;
+                            byte |= (bit << b);
+                        }
+                    }
+                    header.push(byte);
+                }
+
+                if (header[0] !== MARKER[0] || header[1] !== MARKER[1] ||
+                    header[2] !== MARKER[2] || header[3] !== MARKER[3]) {
+                    return null;
+                }
+
+                return (header[4] << 24) | (header[5] << 16) | (header[6] << 8) | header[7];
+            }
+
+            calculatePSNR(original, stego) {
+                let mse = 0;
+                for (let i = 0; i < original.length; i++) {
+                    const diff = original[i] - stego[i];
+                    mse += diff * diff;
+                }
+                mse /= original.length;
+                if (mse === 0) return Infinity;
+                return 10 * Math.log10((255 * 255) / mse);
+            }
+        }
+
+        // ====================================================================
+        // GLOBAL VARIABLES
+        // ====================================================================
+        let engine = null;
+        let stegoLSB = null;
+        let currentImage = null;
+        let rotorInterval = null;
+
+        // ====================================================================
+        // UI FUNCTIONS
+        // ====================================================================
+        function log(msg, type = 'info') {
+            const logEl = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logEl.insertBefore(entry, logEl.firstChild);
+            while (logEl.children.length > 50) {
+                logEl.removeChild(logEl.lastChild);
+            }
+        }
+
+        function showProgress(percent) {
+            const bar = document.getElementById('progressBar');
+            const fill = document.getElementById('progressFill');
+            bar.classList.add('show');
+            fill.style.width = percent + '%';
+        }
+
+        function hideProgress() {
+            const bar = document.getElementById('progressBar');
+            bar.classList.remove('show');
+        }
+
+        function updateRotorsUI() {
+            if (!engine || !engine.textRotors) return;
+            for (let r = 0; r < 4; r++) {
+                const rotorEl = document.getElementById(`rotor-${r}`);
+                const valEl = document.getElementById(`rotor-val-${r}`);
+                if (rotorEl && valEl) {
+                    rotorEl.classList.toggle('active', engine.textRotors.positions[r] > 0);
+                    valEl.textContent = engine.textRotors.positions[r];
+                }
+            }
+        }
+
+        function validateInputs() {
+            const textAlphabet = document.getElementById('textAlphabet').value;
+            const password = document.getElementById('password').value;
+            const inputText = document.getElementById('inputText').value;
+
+            if (!textAlphabet) throw new Error('Alphabet cannot be empty');
+            if (!password) throw new Error('Password cannot be empty');
+            if (!inputText) throw new Error('Input text cannot be empty');
+
+            return true;
+        }
+
+        function initEngine() {
+            const textAlphabet = document.getElementById('textAlphabet').value;
+            const password = document.getElementById('password').value;
+            const mode = document.getElementById('modeSelect').value;
+
+            if (!textAlphabet || !password) return;
+            engine = new CryptoEngine(textAlphabet, password, mode);
+            log('Engine initialized', 'ok');
+        }
+
+        function loadImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.getElementById('imagePreview');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        canvas.classList.add('show');
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+
+                        const imageData = ctx.getImageData(0, 0, img.width, img.height);
+
+                        document.getElementById('imageWidth').textContent = img.width;
+                        document.getElementById('imageHeight').textContent = img.height;
+                        document.getElementById('imagePixels').textContent = img.width * img.height;
+
+                        const capacity = Math.floor((img.width * img.height * 3) / 8);
+                        document.getElementById('imageCapacity').textContent = 
+                            capacity > 1024 ? `${Math.floor(capacity / 1024)} KB` : `${capacity} B`;
+
+                        resolve({
+                            width: img.width,
+                            height: img.height,
+                            data: imageData.data,
+                            ctx,
+                            canvas
+                        });
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // ====================================================================
+        // GLOBAL FUNCTIONS (connected to buttons)
+        // ====================================================================
+        window.runCrypto = async function(action) {
+            try {
+                validateInputs();
+                if (!engine) initEngine();
+
+                const input = document.getElementById('inputText').value;
+                const isEncrypt = action === 'encrypt';
+
+                showProgress(30);
+
+                const result = isEncrypt ? engine.encrypt(input) : engine.decrypt(input);
+
+                showProgress(100);
+                setTimeout(hideProgress, 500);
+
+                document.getElementById('outputText').textContent = result.text;
+                document.getElementById('statLen').textContent = `${input.length} → ${result.text.length}`;
+                document.getElementById('statTime').textContent = result.time ? `${result.time.toFixed(1)}ms` : '0ms';
+
+                if (isEncrypt) {
+                    const verify = engine.decrypt(result.text);
+                    const ok = verify.text === input;
+                    document.getElementById('statRev').textContent = ok ? '✅' : '❌';
+                    document.getElementById('statRev').className = `stat-value ${ok ? 'success' : 'error'}`;
+                }
+
+                log(`${action} completed`, 'ok');
+                updateRotorsUI();
+
+            } catch (error) {
+                log(`Error: ${error.message}`, 'err');
+                hideProgress();
+            }
+        };
+
+        window.runTest = function() {
+            try {
+                if (!engine) initEngine();
+                const input = document.getElementById('inputText').value || 'TEST123';
+                const enc = engine.encrypt(input);
+                const dec = engine.decrypt(enc.text);
+                const ok = dec.text === input;
+                log(`Test: ${ok ? 'PASSED' : 'FAILED'}`, ok ? 'ok' : 'err');
+            } catch (error) {
+                log(`Test error: ${error.message}`, 'err');
+            }
+        };
+
+        window.embedInImage = async function() {
+            try {
+                const file = document.getElementById('imageInput').files[0];
+                const secret = document.getElementById('secretText').value;
+
+                if (!file) throw new Error('Select an image');
+                if (!secret) throw new Error('Enter secret message');
+                if (!engine) initEngine();
+
+                showProgress(10);
+
+                const encrypted = engine.encrypt(secret);
+                const dataBytes = encrypted.text.split('').map(c => c.charCodeAt(0));
+
+                showProgress(30);
+
+                const image = await loadImage(file);
+
+                const maxBytes = Math.floor((image.width * image.height * 3) / 8) - HEADER_SIZE;
+                if (dataBytes.length > maxBytes) {
+                    throw new Error(`Message ${dataBytes.length} bytes exceeds capacity (max ${maxBytes})`);
+                }
+
+                showProgress(50);
+
+                const stego = new Uint8ClampedArray(image.data);
+
+                stegoLSB.embedHeader(stego, dataBytes.length);
+
+                showProgress(70);
+
+                engine.initRouteRotors(image.width, image.height);
+                const route = engine.generateRoute(dataBytes.length, HEADER_SIZE * 8);
+
+                for (let i = 0; i < dataBytes.length; i++) {
+                    const byte = dataBytes[i];
+                    for (let b = 0; b < 8; b++) {
+                        const bit = (byte >> b) & 1;
+                        const address = route[i * 8 + b];
+                        const pixelIdx = address * 4;
+                        const channel = address % 3;
+                        if (pixelIdx + channel < stego.length) {
+                            stego[pixelIdx + channel] = (stego[pixelIdx + channel] & 0xFE) | bit;
+                        }
+                    }
+                }
+
+                showProgress(100);
+                setTimeout(hideProgress, 500);
+
+                currentImage = {
+                    data: stego,
+                    width: image.width,
+                    height: image.height
+                };
+
+                const ctx = image.ctx;
+                const newImageData = new ImageData(stego, image.width, image.height);
+                ctx.putImageData(newImageData, 0, 0);
+
+                const psnr = stegoLSB.calculatePSNR(image.data, stego);
+
+                document.getElementById('embeddedLen').textContent = dataBytes.length;
+                document.getElementById('routeLen').textContent = route.length;
+                document.getElementById('psnrValue').textContent = psnr > 100 ? '∞' : psnr.toFixed(1);
+                document.getElementById('stegoStatus').textContent = 'EMBEDDED';
+                document.getElementById('stegoStatus').className = 'stat-value success';
+
+                log(`Successfully embedded ${dataBytes.length} bytes`, 'ok');
+
+            } catch (error) {
+                log(`Error: ${error.message}`, 'err');
+                hideProgress();
+            }
+        };
+
+        window.extractFromImage = async function() {
+            try {
+                const file = document.getElementById('imageInput').files[0];
+
+                if (!file) throw new Error('Select an image');
+                if (!engine) initEngine();
+
+                showProgress(30);
+
+                const image = await loadImage(file);
+
+                const dataLength = stegoLSB.readHeader(image.data);
+
+                if (!dataLength) {
+                    throw new Error('Marker not found - not a stego image');
+                }
+
+                showProgress(50);
+
+                engine.initRouteRotors(image.width, image.height);
+                const route = engine.generateRoute(dataLength, HEADER_SIZE * 8);
+
+                showProgress(70);
+
+                const bytes = [];
+                for (let i = 0; i < dataLength; i++) {
+                    let byte = 0;
+                    for (let b = 0; b < 8; b++) {
+                        const address = route[i * 8 + b];
+                        const pixelIdx = address * 4;
+                        const channel = address % 3;
+                        if (pixelIdx + channel < image.data.length) {
+                            const bit = image.data[pixelIdx + channel] & 1;
+                            byte |= (bit << b);
+                        }
+                    }
+                    bytes.push(byte);
+                }
+
+                showProgress(90);
+
+                const encryptedText = String.fromCharCode(...bytes);
+                const decrypted = engine.decrypt(encryptedText);
+
+                showProgress(100);
+                setTimeout(hideProgress, 500);
+
+                log(`Extracted: ${decrypted.text}`, 'ok');
+                alert(`Secret message: ${decrypted.text}`);
+
+            } catch (error) {
+                log(`Error: ${error.message}`, 'err');
+                hideProgress();
+            }
+        };
+
+        window.downloadImage = function() {
+            try {
+                if (!currentImage) {
+                    throw new Error('No image to download');
+                }
+
+                const filenameInput = document.getElementById('filenameInput');
+                let baseName = filenameInput.value.trim();
+
+                if (!baseName) {
+                    baseName = 'stego_image';
+                    filenameInput.value = baseName;
+                }
+
+                baseName = baseName.replace(/[^a-zA-Z0-9_\-]/g, '_');
+                const timestamp = new Date().getTime();
+                const finalName = `${baseName}_${timestamp}.png`;
+
+                const canvas = document.createElement('canvas');
+                canvas.width = currentImage.width;
+                canvas.height = currentImage.height;
+
+                const ctx = canvas.getContext('2d');
+                const imageData = new ImageData(
+                    new Uint8ClampedArray(currentImage.data),
+                    currentImage.width,
+                    currentImage.height
+                );
+                ctx.putImageData(imageData, 0, 0);
+
+                const link = document.createElement('a');
+                link.download = finalName;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                log(`Downloaded as: ${finalName}`, 'ok');
+
+            } catch (error) {
+                log(`Error: ${error.message}`, 'err');
+            }
+        };
+
+        window.setMode = function(mode) {
+            document.getElementById('modeSelect').value = mode;
+            initEngine();
+        };
+
+        // ====================================================================
+        // INITIALIZATION
+        // ====================================================================
+        window.addEventListener('load', () => {
+            stegoLSB = new LSBSteganography();
+            initEngine();
+
+            if (rotorInterval) clearInterval(rotorInterval);
+            rotorInterval = setInterval(updateRotorsUI, 100);
+
+            log('TRUE ITN v1.0 initialized', 'ok');
+            log('Ready for encryption and steganography', 'info');
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (rotorInterval) clearInterval(rotorInterval);
+        });
+
+        document.getElementById('imageInput').addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                log(`Loaded: ${e.target.files[0].name}`, 'info');
+            }
+        });
+
+        document.getElementById('modeSelect').addEventListener('change', initEngine);
+        document.getElementById('perfSelect').addEventListener('change', initEngine);
+    </script>
 </body>
 </html>
