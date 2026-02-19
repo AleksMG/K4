@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔐 TRUE ITN v1.1 — Neural Steganography System</title>
+    <title>🔐 TRUE ITN v1.2 — Neural Steganography System</title>
     <style>
         * {
             margin: 0;
@@ -355,8 +355,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>TRUE ITN v1.1</h1>
-            <div class="subtitle">Neural Steganography System · Full Reversibility · Debug Panel</div>
+            <h1>TRUE ITN v1.2</h1>
+            <div class="subtitle">Neural Steganography System · Full Reversibility · Fixed Route Generation</div>
         </div>
 
         <div class="grid">
@@ -573,7 +573,7 @@
         <div class="log-panel" id="log"></div>
 
         <div class="footer">
-            <strong>TRUE ITN v1.1</strong> · Invertible Neural Network · 16-Head Attention · 4 Rotors · Neural-Guided LSB · Debug Panel
+            <strong>TRUE ITN v1.2</strong> · Invertible Neural Network · 16-Head Attention · 4 Rotors · Neural-Guided LSB · Fixed Route Generation
         </div>
     </div>
 
@@ -1082,10 +1082,11 @@
             }
 
             // ================================================================
-            // STEGANOGRAPHY METHODS
+            // STEGANOGRAPHY METHODS - FIXED VERSION
             // ================================================================
             initRouteRotors(imageWidth, imageHeight) {
                 const pixelCount = imageWidth * imageHeight;
+                // Создаем алфавит из ВСЕХ возможных адресов (как строки)
                 const routeAlphabet = Array.from({ length: pixelCount }, (_, i) => i.toString());
                 this.routeRotors = new RotorSystem(routeAlphabet, this.password + "_ROUTE");
                 return pixelCount;
@@ -1097,8 +1098,6 @@
                 }
 
                 this.routeRotors.reset();
-
-                // Сохраняем предыдущий маршрут для сравнения
                 this.previousRoute = this.lastRoute;
 
                 const route = [];
@@ -1112,10 +1111,21 @@
 
                 for (let i = 0; i < secretLength * 8; i++) {
                     const proc = this.processState(state, i + stepOffset);
+                    
+                    // Обновляем роторы
                     this.routeRotors.update(proc.commands);
-                    route.push(this.routeRotors.positions[0]);
+                    
+                    // ВАЖНО: ИСПОЛЬЗУЕМ transform() КАК В ENCRYPT!
+                    // Берем позицию первого ротора и прогоняем через ВСЕ роторы
+                    const address = this.routeRotors.transform(this.routeRotors.positions[0]);
+                    route.push(address);
+                    
                     state = proc.state;
                 }
+
+                // Статистика для отладки
+                const unique = new Set(route).size;
+                console.log(`Route generated: len=${route.length}, min=${Math.min(...route)}, max=${Math.max(...route)}, unique=${unique}`);
 
                 this.lastRoute = route;
                 return route;
@@ -1485,7 +1495,6 @@
             } else {
                 log(`⚠️ Routes differ: ${differences}/${prev.length} addresses (${matchPercent}% match)`, 'debug');
                 
-                // Показываем первые 10 различий
                 let diffLog = 'First 10 differences: ';
                 let count = 0;
                 for (let i = 0; i < prev.length && count < 10; i++) {
@@ -1600,7 +1609,7 @@
                 // Инициализируем роторы маршрута
                 engine.initRouteRotors(image.width, image.height);
 
-                // Генерируем маршрут
+                // Генерируем маршрут - ИСПОЛЬЗУЕМ ТУ ЖЕ ЛОГИКУ ЧТО И В ENCRYPT
                 const route = engine.generateRoute(dataBytes.length, HEADER_SIZE * 8);
                 log(`Route generated: ${route.length} addresses`, 'info');
 
@@ -1678,7 +1687,7 @@
                 // Инициализируем роторы маршрута
                 engine.initRouteRotors(image.width, image.height);
 
-                // Генерируем маршрут
+                // Генерируем маршрут - ИСПОЛЬЗУЕМ ТУ ЖЕ ЛОГИКУ ЧТО И В ENCRYPT
                 const route = engine.generateRoute(dataLength, HEADER_SIZE * 8);
                 log(`Route generated: ${route.length} addresses`, 'info');
 
@@ -1782,8 +1791,8 @@
             if (rotorInterval) clearInterval(rotorInterval);
             rotorInterval = setInterval(updateRotorsUI, 100);
 
-            log('🚀 TRUE ITN v1.1 initialized', 'ok');
-            log('Debug panel available - click "Показать отладку маршрута"', 'info');
+            log('🚀 TRUE ITN v1.2 initialized', 'ok');
+            log('Route generation fixed - now uses transform() like encrypt', 'info');
         });
 
         window.addEventListener('beforeunload', () => {
