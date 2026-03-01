@@ -125,19 +125,19 @@ const FOOTBALL_CONFIG = {
     BALL: { 
         radius: 8, 
         friction: 0.98,
-        maxSpeed: 25
+        maxSpeed: 45
     },
     PLAYER: {
         radius: 15,
-        maxSpeed: 9,
-        maxSpeedWithBall: 6.5,
-        acceleration: 0.15,
-        passSpeed: 18,
-        shotSpeed: 22,
+        maxSpeed: 15,
+        maxSpeedWithBall: 8.5,
+        acceleration: 0.25,
+        passSpeed: 38,
+        shotSpeed: 75,
         passAccuracy: 0.82,
         shotAccuracy: 0.75,
         interceptRadius: 35,
-        kickCooldown: 15
+        kickCooldown: 5
     },
     POSITIONS: {
         goalkeeper: { attack: { x: 50, y: 300 }, defend: { x: 50, y: 300 } },
@@ -639,7 +639,7 @@ class FootballPlayer {
             const dist = Math.hypot(dx, dy);
             
             // Не пасуем слишком близко или слишком далеко
-            if (dist < 50 || dist > 350) continue;
+            if (dist < 100 || dist > 550) continue;
             
             // Проверка на перехват
             let interceptRisk = 0;
@@ -720,8 +720,8 @@ class FootballPlayer {
         // Сила удара от расстояния
         let power;
         if (distToGoal < 100) power = 14;
-        else if (distToGoal < 200) power = 18;
-        else power = 22;
+        else if (distToGoal < 200) power = 28;
+        else power = 42;
         
         // Цель - угол ворот
         const targetY = FOOTBALL_CONFIG.GOAL.y + (Math.random() > 0.5 ? -40 : 40);
