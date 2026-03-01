@@ -2,1745 +2,1273 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔐 TRUE ITN v1.3 — Neural Steganography System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>⚽ AI FOOTBALL v8.0.3 - РЕАЛЬНЫЙ ФУТБОЛ</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: #0a0c14;
-            color: #fff;
-            padding: 20px;
+            background: #0a0a15;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
         }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .header {
-            background: #121620;
-            border: 1px solid #2a3040;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-
-        .header h1 {
-            color: #00ffff;
-            font-size: 2.5rem;
-        }
-
-        .header .subtitle {
-            color: #a0a8c0;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-
-        @media (max-width: 1000px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .panel {
-            background: #121620;
-            border: 1px solid #2a3040;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 20px;
-        }
-
-        .panel h2 {
-            color: #00ffff;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #2a3040;
-        }
-
-        .panel h3 {
-            color: #aa88ff;
-            margin: 15px 0 10px 0;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            color: #a0a8c0;
-            margin-bottom: 6px;
-            font-size: 0.9rem;
-        }
-
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
+        #gameCanvas {
+            position: absolute;
+            top: 50px;
+            left: 0;
             width: 100%;
-            background: #1a1f2a;
-            border: 1px solid #2a3040;
-            border-radius: 8px;
-            padding: 10px 12px;
-            color: #fff;
-            font-size: 0.95rem;
+            height: calc(100vh - 50px);
+            background: #1a5c1a;
         }
-
-        .form-group textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .button-group {
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: #121225;
+            border-bottom: 1px solid #2a2a45;
             display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin: 20px 0;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+            z-index: 100;
         }
-
-        .btn {
-            flex: 1;
-            min-width: 120px;
-            padding: 12px 16px;
+        .fps {
+            color: #00ff9d;
+            font-family: monospace;
+        }
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .score.blue { color: #00aaff; }
+        .score.red { color: #ff5500; }
+        .time {
+            color: #ffaa00;
+            font-size: 20px;
+        }
+        .controls {
+            position: absolute;
+            right: 20px;
+            top: 60px;
+            width: 300px;
+            background: rgba(18, 18, 37, 0.95);
+            border: 1px solid #2a2a45;
+            border-radius: 10px;
+            padding: 15px;
+            z-index: 50;
+            backdrop-filter: blur(5px);
+        }
+        .controls button {
+            padding: 8px 12px;
+            margin: 5px;
             border: none;
-            border-radius: 8px;
-            font-weight: 600;
+            border-radius: 5px;
             cursor: pointer;
-            transition: 0.2s;
-            text-transform: uppercase;
-            font-size: 0.85rem;
+            font-weight: bold;
         }
-
-        .btn-primary {
-            background: #00ffff;
-            color: #000;
-        }
-
-        .btn-primary:hover {
-            background: #00cccc;
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: #ff3366;
-            color: #fff;
-        }
-
-        .btn-secondary:hover {
-            background: #cc2255;
-            transform: translateY(-2px);
-        }
-
-        .btn-success {
-            background: #00ffaa;
-            color: #000;
-        }
-
-        .btn-success:hover {
-            background: #00cc88;
-            transform: translateY(-2px);
-        }
-
-        .btn-tertiary {
-            background: #2a3040;
-            color: #fff;
-            border: 1px solid #3a4050;
-        }
-
-        .btn-tertiary:hover {
-            background: #3a4050;
-        }
-
-        .output-box {
-            background: #1a1f2a;
-            border: 2px solid #00ffaa;
-            border-radius: 8px;
-            padding: 16px;
-            min-height: 80px;
-            max-height: 200px;
-            overflow-y: auto;
-            font-family: monospace;
-            color: #00ffaa;
-            margin: 16px 0;
-            word-break: break-all;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin: 16px 0;
-        }
-
-        .stat-item {
-            background: #1a1f2a;
-            border: 1px solid #2a3040;
-            border-radius: 8px;
-            padding: 12px;
-            text-align: center;
-        }
-
-        .stat-label {
-            color: #a0a8c0;
-            font-size: 0.8rem;
-            margin-bottom: 4px;
-        }
-
-        .stat-value {
-            color: #00ffff;
-            font-size: 1.2rem;
-            font-weight: 600;
-            font-family: monospace;
-        }
-
-        .stat-value.success { color: #00ffaa; }
-        .stat-value.error { color: #ff3366; }
-
-        .rotor-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin: 20px 0;
-        }
-
-        .rotor {
-            background: #1a1f2a;
-            border: 1px solid #2a3040;
-            border-radius: 8px;
-            padding: 12px;
-            text-align: center;
-        }
-
-        .rotor.active {
-            border-color: #00ffff;
-            box-shadow: 0 0 10px rgba(0,255,255,0.3);
-        }
-
-        .rotor-label {
-            color: #a0a8c0;
-            font-size: 0.8rem;
-            margin-bottom: 8px;
-        }
-
-        .rotor-value {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #00ffaa;
-            font-family: monospace;
-        }
-
-        .image-preview {
-            max-width: 100%;
-            border-radius: 8px;
-            border: 2px solid #2a3040;
-            margin: 16px 0;
-            display: none;
-        }
-
-        .image-preview.show {
-            display: block;
-        }
-
-        .progress-bar {
-            margin: 16px 0;
-            display: none;
-        }
-
-        .progress-bar.show {
-            display: block;
-        }
-
-        .progress-fill {
-            height: 4px;
-            background: #00ffff;
-            width: 0%;
-            transition: width 0.3s;
-            border-radius: 2px;
-        }
-
-        .route-display {
-            background: #0a0c14;
-            border: 1px solid #2a3040;
-            border-radius: 8px;
-            padding: 12px;
-            margin: 10px 0;
-            max-height: 150px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.8rem;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-
-        .route-address {
-            display: inline-block;
-            padding: 2px 4px;
-            margin: 1px;
-            background: #1a1f2a;
-            border-radius: 3px;
-            font-size: 0.7rem;
-        }
-
-        .route-address:hover {
-            background: #00ffff20;
-            cursor: pointer;
-        }
-
-        .log-panel {
-            background: #1a1f2a;
-            border: 1px solid #2a3040;
-            border-radius: 8px;
-            padding: 12px;
-            margin-top: 20px;
-            max-height: 150px;
-            overflow-y: auto;
-            font-size: 0.85rem;
-            font-family: monospace;
-        }
-
-        .log-entry {
-            padding: 4px 0;
-            border-bottom: 1px solid #2a3040;
-            color: #a0a8c0;
-        }
-
-        .log-entry:last-child {
-            border-bottom: none;
-        }
-
-        .log-entry.ok { color: #00ffaa; }
-        .log-entry.err { color: #ff3366; }
-        .log-entry.info { color: #00ffff; }
-        .log-entry.debug { color: #aa88ff; }
-
-        .footer {
-            margin-top: 24px;
-            padding: 20px;
-            background: #121620;
-            border: 1px solid #2a3040;
-            border-radius: 16px;
-            text-align: center;
-            color: #a0a8c0;
-            font-size: 0.9rem;
-        }
-
-        .footer strong {
-            color: #00ffff;
-        }
-
-        #debugPanel {
-            border-left: 3px solid #aa88ff;
-        }
-
-        #extractedPanel {
-            border-left: 3px solid #00ffaa;
-        }
+        .btn-start { background: #00aaff; color: black; }
+        .btn-reset { background: #ff4444; color: white; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>TRUE ITN v1.3</h1>
-            <div class="subtitle">Neural Steganography · Unique Route Guarantee · Fixed Crypto</div>
+    <div class="header">
+        <h1>⚽ AI FOOTBALL <span style="color:#ff0066">v8.0.3 PRO</span></h1>
+        <div class="score">
+            <span class="score blue" id="scoreBlue">0</span> - 
+            <span class="score red" id="scoreRed">0</span>
         </div>
-
-        <div class="grid">
-            <!-- CRYPTO PANEL -->
-            <div class="panel">
-                <h2>🔐 CRYPTO ENGINE</h2>
-
-                <div class="form-group">
-                    <label>🔤 TEXT ALPHABET</label>
-                    <input type="text" id="textAlphabet" value="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789">
-                </div>
-
-                <div class="form-group">
-                    <label>🔑 MASTER PASSWORD</label>
-                    <input type="text" id="password" value="ITN_V1_MASTER_SEED">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>🎯 MODE</label>
-                        <select id="modeSelect">
-                            <option value="classic" selected>CLASSIC</option>
-                            <option value="neural">NEURAL</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>⚡ PERFORMANCE</label>
-                        <select id="perfSelect">
-                            <option value="quality" selected>QUALITY</option>
-                            <option value="turbo">TURBO</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>📝 INPUT TEXT</label>
-                    <textarea id="inputText" placeholder="Enter text to encrypt...">HELLO WORLD 123</textarea>
-                </div>
-
-                <div class="button-group">
-                    <button class="btn btn-primary" onclick="runCrypto('encrypt')">🔒 ENCRYPT</button>
-                    <button class="btn btn-secondary" onclick="runCrypto('decrypt')">🔓 DECRYPT</button>
-                    <button class="btn btn-tertiary" onclick="runTest()">🧪 TEST</button>
-                </div>
-
-                <div class="output-box" id="outputText">—</div>
-
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-label">LENGTH</div>
-                        <div class="stat-value" id="statLen">0</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">REVERSIBLE</div>
-                        <div class="stat-value" id="statRev">-</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">PATTERNS</div>
-                        <div class="stat-value" id="statPatterns">0/16</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">TIME</div>
-                        <div class="stat-value" id="statTime">0ms</div>
-                    </div>
-                </div>
-
-                <div class="rotor-grid" id="rotorViz">
-                    <div class="rotor" id="rotor-0">
-                        <div class="rotor-label">ROTOR 1</div>
-                        <div class="rotor-value" id="rotor-val-0">0</div>
-                    </div>
-                    <div class="rotor" id="rotor-1">
-                        <div class="rotor-label">ROTOR 2</div>
-                        <div class="rotor-value" id="rotor-val-1">0</div>
-                    </div>
-                    <div class="rotor" id="rotor-2">
-                        <div class="rotor-label">ROTOR 3</div>
-                        <div class="rotor-value" id="rotor-val-2">0</div>
-                    </div>
-                    <div class="rotor" id="rotor-3">
-                        <div class="rotor-label">ROTOR 4</div>
-                        <div class="rotor-value" id="rotor-val-3">0</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- STEGANOGRAPHY PANEL -->
-            <div class="panel">
-                <h2>🖼️ STEGANOGRAPHY v2.0</h2>
-
-                <div class="form-group">
-                    <label>📸 COVER IMAGE</label>
-                    <input type="file" id="imageInput" accept="image/png,image/jpeg">
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-label">WIDTH</div>
-                        <div class="stat-value" id="imageWidth">0</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">HEIGHT</div>
-                        <div class="stat-value" id="imageHeight">0</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">PIXELS</div>
-                        <div class="stat-value" id="imagePixels">0</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">CAPACITY</div>
-                        <div class="stat-value" id="imageCapacity">0 B</div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>📝 SECRET MESSAGE</label>
-                    <textarea id="secretText" placeholder="Secret message to hide...">TOP SECRET DATA</textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>💾 FILENAME</label>
-                    <input type="text" id="filenameInput" value="stego_image" placeholder="Output filename">
-                </div>
-
-                <div class="button-group">
-                    <button class="btn btn-success" onclick="embedInImage()">📥 EMBED</button>
-                    <button class="btn btn-secondary" onclick="extractFromImage()">📤 EXTRACT</button>
-                    <button class="btn btn-tertiary" onclick="downloadImage()">💾 DOWNLOAD</button>
-                </div>
-
-                <div class="progress-bar" id="progressBar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-
-                <canvas id="imagePreview" class="image-preview"></canvas>
-
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-label">EMBEDDED</div>
-                        <div class="stat-value" id="embeddedLen">0</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">UNIQUE</div>
-                        <div class="stat-value" id="uniqueCount">0</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">PSNR</div>
-                        <div class="stat-value" id="psnrValue">∞</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">STATUS</div>
-                        <div class="stat-value" id="stegoStatus">READY</div>
-                    </div>
-                </div>
-            </div>
+        <div class="time" id="matchTime">00:00</div>
+        <div class="fps" id="fpsCounter">FPS: 0</div>
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+    
+    <div class="controls">
+        <h3 style="color:#00f2ff; margin-bottom:10px;">⚙️ УПРАВЛЕНИЕ</h3>
+        <button class="btn-start" id="btnStart">▶ СТАРТ</button>
+        <button class="btn-reset" id="btnReset">🔄 СБРОС</button>
+        <hr style="border-color:#2a2a45; margin:10px 0;">
+        <div>
+            <label>👥 Игроков: <span id="agentCountValue">6</span></label>
+            <input type="range" id="agentCount" min="2" max="8" step="1" value="6" style="width:100%">
         </div>
-
-        <!-- EXTRACTED MESSAGE PANEL -->
-        <div class="panel" id="extractedPanel" style="display:none;">
-            <h3>📨 EXTRACTED MESSAGE</h3>
-            <div class="output-box" id="extractedMessage"></div>
-            <div class="button-group">
-                <button class="btn btn-tertiary" onclick="copyExtracted()">📋 COPY</button>
-                <button class="btn btn-tertiary" onclick="document.getElementById('extractedPanel').style.display='none'">✖ CLOSE</button>
-            </div>
+        <div style="margin-top:10px">
+            <label>🎯 Скорость: <span id="agentSpeedValue">10</span></label>
+            <input type="range" id="agentSpeed" min="5" max="15" step="1" value="10" style="width:100%">
         </div>
-
-        <!-- DEBUG PANEL -->
-        <div class="panel" id="debugPanel" style="display:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3>🔍 DEBUG: ROUTE VISUALIZATION</h3>
-                <button class="btn btn-tertiary" onclick="toggleDebug()">✖ HIDE</button>
-            </div>
-            
-            <div class="form-group">
-                <label>📊 ROUTE DATA (первые 50 адресов)</label>
-                <div class="route-display" id="routeDisplay">—</div>
-            </div>
-            
-            <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
-                <div class="stat-item">
-                    <div class="stat-label">Длина маршрута</div>
-                    <div class="stat-value" id="routeLength">0</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Мин адрес</div>
-                    <div class="stat-value" id="routeMin">0</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Макс адрес</div>
-                    <div class="stat-value" id="routeMax">0</div>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label>📈 УНИКАЛЬНОСТЬ</label>
-                <div class="stats-grid" style="grid-template-columns: 1fr;">
-                    <div class="stat-item">
-                        <div class="stat-label">Уникальных адресов</div>
-                        <div class="stat-value" id="routeUnique">0</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="button-group">
-                <button class="btn btn-tertiary" onclick="copyRouteToClipboard()">📋 Копировать маршрут</button>
-                <button class="btn btn-tertiary" onclick="saveRouteToFile()">💾 Сохранить в файл</button>
-            </div>
+        <div style="margin-top:10px">
+            <label>👁️ Зрение: <span id="viewRadiusValue">300</span></label>
+            <input type="range" id="viewRadius" min="150" max="500" step="10" value="300" style="width:100%">
         </div>
-
-        <!-- TOGGLE DEBUG BUTTON -->
-        <div style="text-align:right; margin-top:10px;">
-            <button class="btn btn-tertiary" onclick="toggleDebug()">🔍 Показать отладку маршрута</button>
-        </div>
-
-        <div class="log-panel" id="log"></div>
-
-        <div class="footer">
-            <strong>TRUE ITN v1.3</strong> · Invertible Neural Network · 16-Head Attention · 4 Rotors · Unique Route Guarantee
+        <hr style="border-color:#2a2a45; margin:10px 0;">
+        <div style="font-size:12px; color:#b0b0d0; text-align:center">
+            Cortex-2 Neural Network | Реальный футбол
         </div>
     </div>
 
-    <script>
-        // ====================================================================
-        // CONSTANTS
-        // ====================================================================
-        const MARKER = [0xAA, 0xBB, 0xCC, 0xDD];
-        const MARKER_SIZE = 4;
-        const LENGTH_SIZE = 4;
-        const HEADER_SIZE = MARKER_SIZE + LENGTH_SIZE; // 8 байт
+<script>
+'use strict';
 
-        // ====================================================================
-        // FAST MATH
-        // ====================================================================
-        const FastMath = {
-            tanh: (x) => {
-                if (x > 3) return 1;
-                if (x < -3) return -1;
-                const x2 = x * x;
-                return x * (27 + x2) / (27 + 9 * x2);
-            },
-            sin: (x) => Math.sin(x),
-            cos: (x) => Math.cos(x),
-            mod: (n, m) => ((n % m) + m) % m
+// ===========================================
+// КОНФИГУРАЦИЯ - ТОЛЬКО ФУТБОЛ
+// ===========================================
+const FOOTBALL_CONFIG = {
+    FIELD: { width: 1000, height: 600 },
+    GOAL: { 
+        width: 160,  // ширина ворот
+        y: 300,
+        postTop: 220,
+        postBottom: 380 
+    },
+    BALL: { 
+        radius: 8, 
+        friction: 0.98,
+        maxSpeed: 25
+    },
+    PLAYER: {
+        radius: 15,
+        maxSpeed: 9,
+        maxSpeedWithBall: 6.5,
+        acceleration: 0.15,
+        passSpeed: 18,
+        shotSpeed: 22,
+        passAccuracy: 0.82,
+        shotAccuracy: 0.75,
+        interceptRadius: 35,
+        kickCooldown: 15
+    },
+    POSITIONS: {
+        goalkeeper: { attack: { x: 50, y: 300 }, defend: { x: 50, y: 300 } },
+        defender: { attack: { x: 250, y: 300 }, defend: { x: 150, y: 300 } },
+        midfielder: { attack: { x: 500, y: 300 }, defend: { x: 400, y: 300 } },
+        forward: { attack: { x: 800, y: 300 }, defend: { x: 600, y: 300 } }
+    }
+};
+
+// ===========================================
+// CORTEX-2 BRAIN (СОКРАЩЕННАЯ ВЕРСИЯ ДЛЯ ФУТБОЛА)
+// ===========================================
+class Cortex2Brain {
+    constructor(config = {}) {
+        this.seed = config.seed || 'football_cortex_' + Date.now();
+        this.lr = config.lr || 0.01;
+        this.gamma = 0.99;
+        this.lambda = 0.95;
+        
+        // Размеры слоев
+        this.INPUT_DIM = 64;
+        this.HIDDEN1 = 48;
+        this.HIDDEN2 = 32;
+        this.OUTPUT_DIM = 16;
+        
+        // Инициализация весов
+        this.W1 = this._initMatrix(this.INPUT_DIM, this.HIDDEN1, 0.1);
+        this.b1 = this._initVector(this.HIDDEN1, 0);
+        
+        this.W2 = this._initMatrix(this.HIDDEN1, this.HIDDEN2, 0.1);
+        this.b2 = this._initVector(this.HIDDEN2, 0);
+        
+        this.W3 = this._initMatrix(this.HIDDEN2, this.OUTPUT_DIM, 0.1);
+        this.b3 = this._initVector(this.OUTPUT_DIM, 0);
+        
+        // Critic (оценка ценности)
+        this.Wv = this._initVector(this.HIDDEN2, 0.1);
+        this.bv = 0;
+        
+        // Состояние
+        this.h1 = new Float32Array(this.HIDDEN1);
+        this.h2 = new Float32Array(this.HIDDEN2);
+        this.output = new Float32Array(this.OUTPUT_DIM);
+        
+        // Для обучения
+        this.traces = [];
+        this.stats = { tdErrors: [] };
+    }
+    
+    _initMatrix(rows, cols, scale) {
+        const mat = [];
+        for (let i = 0; i < rows; i++) {
+            const row = new Float32Array(cols);
+            for (let j = 0; j < cols; j++) {
+                row[j] = (Math.random() * 2 - 1) * scale;
+            }
+            mat.push(row);
+        }
+        return mat;
+    }
+    
+    _initVector(len, scale) {
+        const vec = new Float32Array(len);
+        for (let i = 0; i < len; i++) {
+            vec[i] = (Math.random() * 2 - 1) * scale;
+        }
+        return vec;
+    }
+    
+    _relu(x) { return x > 0 ? x : 0.01 * x; }
+    _tanh(x) { 
+        if (x > 20) return 1;
+        if (x < -20) return -1;
+        const e = Math.exp(2 * x);
+        return (e - 1) / (e + 1);
+    }
+    _sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+    
+    forward(inputs) {
+        if (!inputs || inputs.length !== this.INPUT_DIM) {
+            inputs = new Array(this.INPUT_DIM).fill(0);
+        }
+        
+        // Слой 1
+        for (let i = 0; i < this.HIDDEN1; i++) {
+            let sum = this.b1[i];
+            for (let j = 0; j < this.INPUT_DIM; j++) {
+                sum += inputs[j] * this.W1[j][i];
+            }
+            this.h1[i] = this._relu(sum);
+        }
+        
+        // Слой 2
+        for (let i = 0; i < this.HIDDEN2; i++) {
+            let sum = this.b2[i];
+            for (let j = 0; j < this.HIDDEN1; j++) {
+                sum += this.h1[j] * this.W2[j][i];
+            }
+            this.h2[i] = this._relu(sum);
+        }
+        
+        // Выходной слой
+        for (let i = 0; i < this.OUTPUT_DIM; i++) {
+            let sum = this.b3[i];
+            for (let j = 0; j < this.HIDDEN2; j++) {
+                sum += this.h2[j] * this.W3[j][i];
+            }
+            this.output[i] = this._tanh(sum);
+        }
+        
+        // Ценность состояния (для обучения)
+        let value = this.bv;
+        for (let i = 0; i < this.HIDDEN2; i++) {
+            value += this.h2[i] * this.Wv[i];
+        }
+        
+        return {
+            output: Array.from(this.output),
+            value: this._tanh(value),
+            hidden: Array.from(this.h2)
         };
-
-        const { tanh, sin, cos, mod } = FastMath;
-
-        // ====================================================================
-        // SEEDED RANDOM
-        // ====================================================================
-        class SeededRandom {
-            constructor(seed) {
-                let h = 0x811c9dc5;
-                for (let i = 0; i < seed.length; i++) {
-                    h ^= seed.charCodeAt(i);
-                    h = Math.imul(h, 0x01000193);
-                }
-                this.seed = h >>> 0;
-            }
-
-            next() {
-                this.seed = (this.seed * 1664525 + 1013904223) >>> 0;
-                return this.seed / 0xFFFFFFFF;
-            }
-
-            nextInt(max) {
-                return Math.floor(this.next() * max);
-            }
-
-            matrix(rows, cols, scale = 0.1) {
-                const m = [];
-                for (let i = 0; i < rows; i++) {
-                    const row = [];
-                    for (let j = 0; j < cols; j++) {
-                        row.push((this.next() * 2 - 1) * scale);
-                    }
-                    m.push(row);
-                }
-                return m;
-            }
-        }
-
-        // ====================================================================
-        // ACTIVATION PATTERNS
-        // ====================================================================
-        const ACTIVATION_PATTERNS = (() => {
-            const patterns = [];
-            for (let i = 0; i < 16; i++) {
-                patterns.push([
-                    (i & 1) ? 1 : 0,
-                    (i & 2) ? 1 : 0,
-                    (i & 4) ? 1 : 0,
-                    (i & 8) ? 1 : 0
-                ]);
-            }
-            return patterns;
-        })();
-
-        // ====================================================================
-        // ATTENTION 16-HEAD
-        // ====================================================================
-        class Attention16 {
-            constructor(dim, seed) {
-                this.dim = dim;
-                this.numHeads = 16;
-                this.headDim = Math.floor(dim / 16);
-
-                const rng = new SeededRandom(seed + "_ATTN");
-                this.W_q = rng.matrix(this.dim, this.dim, 0.1);
-                this.W_k = rng.matrix(this.dim, this.dim, 0.1);
-                this.W_v = rng.matrix(this.dim, this.dim, 0.1);
-            }
-
-            forward(x) {
-                const q = new Float32Array(this.dim);
-                const k = new Float32Array(this.dim);
-                const v = new Float32Array(this.dim);
-
-                for (let i = 0; i < this.dim; i++) {
-                    let qs = 0, ks = 0, vs = 0;
-                    for (let j = 0; j < this.dim; j++) {
-                        qs += x[j] * this.W_q[i][j];
-                        ks += x[j] * this.W_k[i][j];
-                        vs += x[j] * this.W_v[i][j];
-                    }
-                    q[i] = tanh(qs);
-                    k[i] = tanh(ks);
-                    v[i] = tanh(vs);
-                }
-
-                const scores = new Float32Array(16);
-                for (let h = 0; h < 16; h++) {
-                    const start = h * this.headDim;
-                    let score = 0;
-                    for (let i = 0; i < this.headDim; i++) {
-                        score += q[start + i] * k[start + i];
-                    }
-                    scores[h] = tanh(score / Math.sqrt(this.headDim));
-                }
-
-                const output = new Float32Array(this.dim);
-                for (let h = 0; h < 16; h++) {
-                    const start = h * this.headDim;
-                    for (let i = 0; i < this.headDim; i++) {
-                        output[start + i] = v[start + i] * scores[h];
-                    }
-                }
-
-                return { output, scores: Array.from(scores) };
-            }
-        }
-
-        // ====================================================================
-        // FLEXIBLE DRIVER
-        // ====================================================================
-        class FlexibleDriver {
-            constructor(dim, workingDim, memoryDim, seed) {
-                this.workingDim = workingDim;
-                this.memoryDim = memoryDim;
-                this.patternsUsed = new Set();
-
-                const rng = new SeededRandom(seed + "_DRIVER");
-
-                this.W_pattern = rng.matrix(16, workingDim + memoryDim, 0.1);
-                this.W_decision = rng.matrix(16, workingDim + memoryDim, 0.1);
-                this.W_memory = rng.matrix(memoryDim, 16, 0.1);
-                this.W_rotor_noise = Array.from({ length: 4 }, () =>
-                    Array.from({ length: 16 }, () => (rng.next() * 2 - 1) * 0.3)
-                );
-            }
-
-            selectPattern(attentionScores, memory, step) {
-                const input = attentionScores.concat(Array.from(memory));
-                let bestScore = -Infinity;
-                let bestPattern = 0;
-
-                for (let p = 0; p < 16; p++) {
-                    let score = 0;
-                    for (let j = 0; j < input.length; j++) {
-                        score += input[j] * this.W_pattern[p][j];
-                    }
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestPattern = p;
-                    }
-                }
-
-                const finalPattern = mod(bestPattern + (step % 5), 16);
-                this.patternsUsed.add(finalPattern);
-                return ACTIVATION_PATTERNS[finalPattern];
-            }
-
-            decide(attentionScores, memory, step) {
-                const activePattern = this.selectPattern(attentionScores, memory, step);
-                const input = attentionScores.concat(Array.from(memory));
-                const values = new Float32Array(16);
-
-                for (let i = 0; i < 16; i++) {
-                    let sum = 0;
-                    for (let j = 0; j < input.length; j++) {
-                        sum += input[j] * this.W_decision[i][j];
-                    }
-                    values[i] = tanh(sum);
-                }
-
-                const commands = [];
-                for (let r = 0; r < 4; r++) {
-                    const b = r * 4;
-                    let delta = Math.floor(values[b] * 15);
-                    const dir = values[b + 1] > 0 ? 1 : -1;
-                    let speed = Math.floor(Math.abs(values[b + 2]) * 7) + 1;
-
-                    let noiseSum = 0;
-                    for (let j = 0; j < 16; j++) {
-                        noiseSum += values[j] * this.W_rotor_noise[r][j];
-                    }
-                    delta += Math.floor(tanh(noiseSum) * 5);
-
-                    const phase = attentionScores[r % attentionScores.length] * Math.PI;
-                    const resonance = sin(attentionScores[0] - attentionScores[1]) * 2;
-
-                    delta = Math.max(-15, Math.min(15, delta));
-                    speed = Math.max(1, Math.min(10, speed));
-
-                    commands.push({
-                        delta,
-                        dir,
-                        speed,
-                        phase,
-                        resonance,
-                        active: activePattern[r] === 1
-                    });
-                }
-
-                return { commands, values: Array.from(values) };
-            }
-
-            updateMemory(memory, decisionValues) {
-                const newMem = new Float32Array(this.memoryDim);
-                for (let i = 0; i < this.memoryDim; i++) {
-                    let sum = 0;
-                    for (let j = 0; j < 16; j++) {
-                        sum += decisionValues[j] * this.W_memory[i][j];
-                    }
-                    newMem[i] = memory[i] + tanh(sum) * 0.1;
-                }
-                return newMem;
-            }
-        }
-
-        // ====================================================================
-        // DRIVER BLOCK
-        // ====================================================================
-        class DriverBlock {
-            constructor(dim, seed, blockId) {
-                this.dim = dim;
-                this.workingDim = Math.floor(dim * 0.7);
-                this.memoryDim = dim - this.workingDim;
-
-                this.attention = new Attention16(this.workingDim, seed + `_B${blockId}`);
-                this.driver = new FlexibleDriver(dim, this.workingDim, this.memoryDim, seed + `_B${blockId}`);
-
-                const rng = new SeededRandom(seed + `_BLOCK_${blockId}`);
-                this.W_f = rng.matrix(this.workingDim, this.workingDim, 0.1);
-                this.W_g = rng.matrix(this.workingDim, this.workingDim, 0.1);
-            }
-
-            forward(state, step) {
-                const working = state.slice(0, this.workingDim);
-                const memory = state.slice(this.workingDim);
-
-                const attn = this.attention.forward(working);
-                const decision = this.driver.decide(attn.scores, memory, step);
-                const newMem = this.driver.updateMemory(memory, decision.values);
-
-                const half = Math.floor(this.workingDim / 2);
-                const x1 = working.slice(0, half);
-                const x2 = working.slice(half);
-
-                const f_out = new Float32Array(half);
-                for (let i = 0; i < half; i++) {
-                    let sum = 0;
-                    for (let j = 0; j < half; j++) {
-                        sum += x2[j] * this.W_f[i][j];
-                    }
-                    f_out[i] = tanh(sum);
-                }
-
-                const y1 = new Float32Array(half);
-                for (let i = 0; i < half; i++) {
-                    y1[i] = x1[i] + f_out[i];
-                }
-
-                const g_out = new Float32Array(half);
-                for (let i = 0; i < half; i++) {
-                    let sum = 0;
-                    for (let j = 0; j < half; j++) {
-                        sum += y1[j] * this.W_g[i][j];
-                    }
-                    g_out[i] = tanh(sum);
-                }
-
-                const y2 = new Float32Array(half);
-                for (let i = 0; i < half; i++) {
-                    y2[i] = x2[i] + g_out[i];
-                }
-
-                const newState = new Float32Array(this.dim);
-                newState.set(y1, 0);
-                newState.set(y2, half);
-                newState.set(newMem, this.workingDim);
-
-                return {
-                    state: newState,
-                    commands: decision.commands,
-                    attentionScores: attn.scores
-                };
-            }
-        }
-
-        // ====================================================================
-        // ROTOR SYSTEM
-        // ====================================================================
-        class RotorSystem {
-            constructor(alphabet, seed) {
-                this.alphabet = alphabet;
-                this.N = alphabet.length;
-
-                this.charToIdx = {};
-                for (let i = 0; i < this.N; i++) {
-                    this.charToIdx[alphabet[i]] = i;
-                }
-
-                const rng = new SeededRandom(seed + "_ROTORS");
-                this.rotors = [];
-                this.rotorsInv = [];
-
-                for (let i = 0; i < 4; i++) {
-                    const arr = Array.from({ length: this.N }, (_, idx) => idx);
-                    for (let j = this.N - 1; j > 0; j--) {
-                        const k = rng.nextInt(j + 1);
-                        [arr[j], arr[k]] = [arr[k], arr[j]];
-                    }
-
-                    const rotorChars = arr.map(idx => alphabet[idx]);
-                    this.rotors.push(rotorChars);
-
-                    const inv = new Array(this.N);
-                    for (let pos = 0; pos < this.N; pos++) {
-                        inv[this.charToIdx[rotorChars[pos]]] = pos;
-                    }
-                    this.rotorsInv.push(inv);
-                }
-
-                this.positions = [0, 0, 0, 0];
-            }
-
-            reset() {
-                this.positions = [0, 0, 0, 0];
-            }
-
-            update(commands) {
-                for (let r = 0; r < 4; r++) {
-                    if (!commands[r].active) continue;
-                    this.positions[r] = mod(
-                        this.positions[r] + commands[r].delta * commands[r].speed * commands[r].dir,
-                        this.N
-                    );
-                }
-            }
-
-            transform(idx) {
-                for (let r = 0; r < 4; r++) {
-                    const shifted = mod(idx + this.positions[r], this.N);
-                    const mapped = this.charToIdx[this.rotors[r][shifted]];
-                    idx = mod(mapped - this.positions[r], this.N);
-                }
-                return idx;
-            }
-
-            inverseTransform(idx) {
-                for (let r = 3; r >= 0; r--) {
-                    const shifted = mod(idx + this.positions[r], this.N);
-                    const mapped = this.rotorsInv[r][shifted];
-                    idx = mod(mapped - this.positions[r], this.N);
-                }
-                return idx;
-            }
-        }
-
-        // ====================================================================
-        // CRYPTO ENGINE
-        // ====================================================================
-        class CryptoEngine {
-            constructor(textAlphabet, password, mode = 'classic') {
-                this.textAlphabet = textAlphabet;
-                this.password = password;
-                this.mode = mode;
-
-                this.dim = 338;
-                this.blocks = 12;
-                this.workingDim = Math.floor(this.dim * 0.7);
-                this.memoryDim = this.dim - this.workingDim;
-
-                this.textRotors = new RotorSystem(textAlphabet, password + "_TEXT");
-                this.routeRotors = null;
-
-                this.blocks_data = [];
-                for (let b = 0; b < this.blocks; b++) {
-                    this.blocks_data.push(new DriverBlock(this.dim, password + "_" + mode, b));
-                }
-
-                const rng = new SeededRandom(password + "_INPUT");
-                this.W_input = rng.matrix(this.dim, 6, 0.3);
-
-                this.commandHistory = [];
-                this.lastRoute = null;
-            }
-
-            initState(step, prevCipher, context) {
-                const input = [
-                    (step % 50) / 50,
-                    prevCipher / this.textAlphabet.length,
-                    ...context.map(c => c / this.textAlphabet.length)
-                ];
-
-                const state = new Float32Array(this.dim);
-                for (let i = 0; i < this.dim; i++) {
-                    let sum = 0;
-                    for (let j = 0; j < 6; j++) {
-                        sum += input[j] * this.W_input[i][j];
-                    }
-                    state[i] = tanh(sum);
-                }
-                return state;
-            }
-
-            processState(state, step) {
-                let current = state;
-                let lastCommands = null;
-                let lastAttention = null;
-
-                for (let b = 0; b < this.blocks; b++) {
-                    const result = this.blocks_data[b].forward(current, step);
-                    current = result.state;
-                    if (b === this.blocks - 1) {
-                        lastCommands = result.commands;
-                        lastAttention = result.attentionScores;
-                    }
-                }
-
-                return {
-                    state: current,
-                    commands: lastCommands,
-                    attention: lastAttention
-                };
-            }
-
-            encrypt(text) {
-                this.textRotors.reset();
-                this.commandHistory = [];
-
-                let result = "";
-                let prevCipher = 0;
-                let context = [0, 0, 0, 0];
-                const start = performance.now();
-
-                for (let i = 0; i < text.length; i++) {
-                    const char = text[i];
-                    const idx = this.textRotors.charToIdx[char];
-
-                    if (idx === undefined) {
-                        result += char;
-                        continue;
-                    }
-
-                    const state = this.initState(i, prevCipher, context);
-                    const proc = this.processState(state, i);
-
-                    this.textRotors.update(proc.commands);
-                    this.commandHistory.push(proc.commands);
-
-                    const newIdx = this.textRotors.transform(idx);
-                    result += this.textAlphabet[newIdx];
-
-                    prevCipher = newIdx;
-                    context = [context[1], context[2], context[3], newIdx];
-                }
-
-                const time = performance.now() - start;
-                return { text: result, time, commands: this.commandHistory };
-            }
-
-            decrypt(text) {
-                this.textRotors.reset();
-
-                let result = "";
-                let prevCipher = 0;
-                let context = [0, 0, 0, 0];
-
-                for (let i = 0; i < text.length; i++) {
-                    const char = text[i];
-                    const idx = this.textRotors.charToIdx[char];
-
-                    if (idx === undefined) {
-                        result += char;
-                        continue;
-                    }
-
-                    const state = this.initState(i, prevCipher, context);
-                    const proc = this.processState(state, i);
-
-                    this.textRotors.update(proc.commands);
-
-                    const newIdx = this.textRotors.inverseTransform(idx);
-                    result += this.textAlphabet[newIdx];
-
-                    prevCipher = idx;
-                    context = [context[1], context[2], context[3], idx];
-                }
-
-                return { text: result };
-            }
-
-            // ================================================================
-            // STEGANOGRAPHY v2.0 - UNIQUE ROUTE GENERATION
-            // ================================================================
-            initRouteRotors(imageWidth, imageHeight) {
-                const pixelCount = imageWidth * imageHeight;
-                // Алфавит = все возможные адреса
-                const routeAlphabet = Array.from({ length: pixelCount }, (_, i) => i.toString());
-                this.routeRotors = new RotorSystem(routeAlphabet, this.password + "_ROUTE");
-                return pixelCount;
-            }
-
-            generateUniqueRoute(neededLength, stepOffset = 0) {
-                if (!this.routeRotors) {
-                    throw new Error("Route rotors not initialized");
-                }
-
-                // СБРАСЫВАЕМ ПОЗИЦИИ В 0
-                this.routeRotors.reset();
-                
-                // БУДЕМ ИСПОЛЬЗОВАТЬ ПЕРВЫЙ РОТОР КАК ОСНОВУ
-                // но с динамическими сдвигами от нейросети
-                const route = [];
-                const used = new Set();
-                let state = this.initState(0, 0, [0, 0, 0, 0]);
-
-                // Пропускаем шаги для заголовка
-                for (let i = 0; i < stepOffset; i++) {
-                    const proc = this.processState(state, i);
-                    state = proc.state;
-                }
-
-                let attempts = 0;
-                const maxAttempts = neededLength * 10;
-
-                while (route.length < neededLength && attempts < maxAttempts) {
-                    // Получаем команды от нейросети
-                    const proc = this.processState(state, attempts + stepOffset);
-                    
-                    // Обновляем ВСЕ роторы (они влияют на transform)
-                    this.routeRotors.update(proc.commands);
-                    
-                    // Генерируем кандидата: transform от текущей позиции
-                    // но позиции меняются динамически от нейросети
-                    const candidate = this.routeRotors.transform(this.routeRotors.positions[0]);
-                    
-                    // Проверяем уникальность
-                    if (!used.has(candidate)) {
-                        used.add(candidate);
-                        route.push(candidate);
-                        
-                        // Логируем первые несколько для отладки
-                        if (route.length <= 5) {
-                            log(`Route #${route.length}: ${candidate} (from pos ${this.routeRotors.positions[0]})`, 'debug');
-                        }
-                    }
-                    
-                    // Обновляем состояние для следующего шага
-                    state = proc.state;
-                    attempts++;
-                }
-
-                if (route.length < neededLength) {
-                    throw new Error(`Cannot generate ${neededLength} unique addresses (got ${route.length})`);
-                }
-
-                log(`✅ Generated ${route.length} unique addresses (${attempts} attempts)`, 'ok');
-                log(`📊 Range: ${Math.min(...route)} - ${Math.max(...route)}`, 'info');
-                
-                this.lastRoute = route;
-                return route;
-            }
-
-            verifyReversibility(original, encrypted) {
-                const decrypted = this.decrypt(encrypted).text;
-                return {
-                    success: decrypted === original,
-                    original,
-                    encrypted,
-                    decrypted
-                };
-            }
-        }
-
-        // ====================================================================
-        // LSB STEGANOGRAPHY
-        // ====================================================================
-        class LSBSteganography {
-            textToBits(text) {
-                const bits = [];
-                for (let i = 0; i < text.length; i++) {
-                    const byte = text.charCodeAt(i);
-                    for (let b = 0; b < 8; b++) {
-                        bits.push((byte >> b) & 1);
-                    }
-                }
-                return bits;
-            }
-
-            bitsToText(bits) {
-                let text = '';
-                for (let i = 0; i < bits.length; i += 8) {
-                    let byte = 0;
-                    for (let b = 0; b < 8; b++) {
-                        byte |= (bits[i + b] || 0) << b;
-                    }
-                    text += String.fromCharCode(byte);
-                }
-                return text;
-            }
-
-            embedHeader(imageData, dataLength) {
-                const header = [
-                    MARKER[0], MARKER[1], MARKER[2], MARKER[3],
-                    (dataLength >> 24) & 0xFF,
-                    (dataLength >> 16) & 0xFF,
-                    (dataLength >> 8) & 0xFF,
-                    dataLength & 0xFF
-                ];
-
-                for (let i = 0; i < 8; i++) {
-                    const byte = header[i];
-                    for (let b = 0; b < 8; b++) {
-                        const pixelIdx = (i * 8 + b) * 4;
-                        if (pixelIdx < imageData.length) {
-                            const bit = (byte >> b) & 1;
-                            imageData[pixelIdx] = (imageData[pixelIdx] & 0xFE) | bit;
-                        }
-                    }
-                }
-            }
-
-            readHeader(imageData) {
-                const header = [];
-                for (let i = 0; i < 8; i++) {
-                    let byte = 0;
-                    for (let b = 0; b < 8; b++) {
-                        const pixelIdx = (i * 8 + b) * 4;
-                        if (pixelIdx < imageData.length) {
-                            const bit = imageData[pixelIdx] & 1;
-                            byte |= (bit << b);
-                        }
-                    }
-                    header.push(byte);
-                }
-
-                if (header[0] !== MARKER[0] || header[1] !== MARKER[1] ||
-                    header[2] !== MARKER[2] || header[3] !== MARKER[3]) {
-                    return null;
-                }
-
-                return (header[4] << 24) | (header[5] << 16) | (header[6] << 8) | header[7];
-            }
-
-            calculatePSNR(original, stego) {
-                let mse = 0;
-                for (let i = 0; i < original.length; i++) {
-                    const diff = original[i] - stego[i];
-                    mse += diff * diff;
-                }
-                mse /= original.length;
-                if (mse === 0) return Infinity;
-                return 10 * Math.log10((255 * 255) / mse);
-            }
-        }
-
-        // ====================================================================
-        // GLOBAL VARIABLES
-        // ====================================================================
-        let engine = null;
-        let stegoLSB = null;
-        let currentImage = null;
-        let rotorInterval = null;
-        let lastRoute = null;
-
-        // ====================================================================
-        // UI FUNCTIONS
-        // ====================================================================
-        function log(msg, type = 'info') {
-            const logEl = document.getElementById('log');
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${type}`;
-            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            logEl.insertBefore(entry, logEl.firstChild);
-            while (logEl.children.length > 50) {
-                logEl.removeChild(logEl.lastChild);
-            }
-        }
-
-        function showProgress(percent) {
-            const bar = document.getElementById('progressBar');
-            const fill = document.getElementById('progressFill');
-            bar.classList.add('show');
-            fill.style.width = percent + '%';
-        }
-
-        function hideProgress() {
-            const bar = document.getElementById('progressBar');
-            bar.classList.remove('show');
-        }
-
-        function updateRotorsUI() {
-            if (!engine || !engine.textRotors) return;
-            for (let r = 0; r < 4; r++) {
-                const rotorEl = document.getElementById(`rotor-${r}`);
-                const valEl = document.getElementById(`rotor-val-${r}`);
-                if (rotorEl && valEl) {
-                    rotorEl.classList.toggle('active', engine.textRotors.positions[r] > 0);
-                    valEl.textContent = engine.textRotors.positions[r];
+    }
+    
+    mutate(rate = 0.05) {
+        let mutations = 0;
+        
+        // Мутация весов
+        for (let i = 0; i < this.W1.length; i++) {
+            for (let j = 0; j < this.W1[i].length; j++) {
+                if (Math.random() < rate) {
+                    this.W1[i][j] += (Math.random() * 2 - 1) * 0.1;
+                    mutations++;
                 }
             }
         }
-
-        function validateInputs() {
-            const textAlphabet = document.getElementById('textAlphabet').value;
-            const password = document.getElementById('password').value;
-            const inputText = document.getElementById('inputText').value;
-
-            if (!textAlphabet) throw new Error('Alphabet cannot be empty');
-            if (!password) throw new Error('Password cannot be empty');
-            if (!inputText) throw new Error('Input text cannot be empty');
-
-            return true;
+        
+        for (let i = 0; i < this.W2.length; i++) {
+            for (let j = 0; j < this.W2[i].length; j++) {
+                if (Math.random() < rate) {
+                    this.W2[i][j] += (Math.random() * 2 - 1) * 0.1;
+                    mutations++;
+                }
+            }
         }
+        
+        return mutations;
+    }
+    
+    clone() {
+        const clone = new Cortex2Brain({ seed: this.seed + '_clone' });
+        clone.W1 = this.W1.map(r => r.slice());
+        clone.W2 = this.W2.map(r => r.slice());
+        clone.W3 = this.W3.map(r => r.slice());
+        clone.Wv = this.Wv.slice();
+        clone.b1 = this.b1.slice();
+        clone.b2 = this.b2.slice();
+        clone.b3 = this.b3.slice();
+        clone.bv = this.bv;
+        return clone;
+    }
+}
 
-        function initEngine() {
-            const textAlphabet = document.getElementById('textAlphabet').value;
-            const password = document.getElementById('password').value;
-            const mode = document.getElementById('modeSelect').value;
-
-            if (!textAlphabet || !password) return;
-            engine = new CryptoEngine(textAlphabet, password, mode);
-            log('Engine initialized', 'ok');
+// ===========================================
+// МЯЧ - ПРАВИЛЬНАЯ ФИЗИКА
+// ===========================================
+class FootballBall {
+    constructor(x, y) {
+        this.x = x || 500;
+        this.y = y || 300;
+        this.vx = 0;
+        this.vy = 0;
+        this.owner = null; // ID игрока, кто последний коснулся
+        this.lastTouchTeam = null;
+        this.radius = FOOTBALL_CONFIG.BALL.radius;
+        this.trail = [];
+    }
+    
+    update() {
+        // Движение
+        this.x += this.vx;
+        this.y += this.vy;
+        
+        // Трение
+        this.vx *= FOOTBALL_CONFIG.BALL.friction;
+        this.vy *= FOOTBALL_CONFIG.BALL.friction;
+        
+        if (Math.abs(this.vx) < 0.1) this.vx = 0;
+        if (Math.abs(this.vy) < 0.1) this.vy = 0;
+        
+        // Максимальная скорость
+        const speed = Math.hypot(this.vx, this.vy);
+        if (speed > FOOTBALL_CONFIG.BALL.maxSpeed) {
+            const scale = FOOTBALL_CONFIG.BALL.maxSpeed / speed;
+            this.vx *= scale;
+            this.vy *= scale;
         }
-
-        function loadImage(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.getElementById('imagePreview');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        canvas.classList.add('show');
-
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
-
-                        const imageData = ctx.getImageData(0, 0, img.width, img.height);
-
-                        document.getElementById('imageWidth').textContent = img.width;
-                        document.getElementById('imageHeight').textContent = img.height;
-                        document.getElementById('imagePixels').textContent = img.width * img.height;
-
-                        const capacity = Math.floor((img.width * img.height * 3) / 8);
-                        document.getElementById('imageCapacity').textContent = 
-                            capacity > 1024 ? `${Math.floor(capacity / 1024)} KB` : `${capacity} B`;
-
-                        resolve({
-                            width: img.width,
-                            height: img.height,
-                            data: imageData.data,
-                            ctx,
-                            canvas
-                        });
-                    };
-                    img.onerror = reject;
-                    img.src = e.target.result;
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
+        
+        // Границы поля (с учетом ворот)
+        const goalTop = FOOTBALL_CONFIG.GOAL.postTop;
+        const goalBottom = FOOTBALL_CONFIG.GOAL.postBottom;
+        
+        // Левая граница
+        if (this.x < this.radius) {
+            if (this.y >= goalTop && this.y <= goalBottom) {
+                // ГОЛ! обрабатывается в world
+            } else {
+                this.vx *= -0.5;
+                this.x = this.radius;
+            }
         }
+        
+        // Правая граница
+        if (this.x > FOOTBALL_CONFIG.FIELD.width - this.radius) {
+            if (this.y >= goalTop && this.y <= goalBottom) {
+                // ГОЛ!
+            } else {
+                this.vx *= -0.5;
+                this.x = FOOTBALL_CONFIG.FIELD.width - this.radius;
+            }
+        }
+        
+        // Верх/низ
+        if (this.y < this.radius) {
+            this.vy *= -0.5;
+            this.y = this.radius;
+        }
+        if (this.y > FOOTBALL_CONFIG.FIELD.height - this.radius) {
+            this.vy *= -0.5;
+            this.y = FOOTBALL_CONFIG.FIELD.height - this.radius;
+        }
+        
+        // След
+        if (this.trail.length === 0 || 
+            Math.hypot(this.trail[0].x - this.x, this.trail[0].y - this.y) > 20) {
+            this.trail.unshift({ x: this.x, y: this.y, age: 0 });
+            if (this.trail.length > 10) this.trail.pop();
+        }
+        this.trail.forEach(t => t.age++);
+        
+        // Сброс владения если мяч далеко
+        if (this.owner) {
+            const owner = window.arenaGame?.world?.getAgent(this.owner);
+            if (!owner || Math.hypot(owner.x - this.x, owner.y - this.y) > 40) {
+                this.owner = null;
+            }
+        }
+    }
+    
+    kick(angle, power, playerId) {
+        this.vx = Math.cos(angle) * power;
+        this.vy = Math.sin(angle) * power;
+        this.owner = playerId;
+    }
+    
+    checkGoal() {
+        const goalTop = FOOTBALL_CONFIG.GOAL.postTop;
+        const goalBottom = FOOTBALL_CONFIG.GOAL.postBottom;
+        
+        // Гол в левые ворота
+        if (this.x < 0 && this.y > goalTop && this.y < goalBottom) {
+            return { team: 'red', x: 0, y: this.y };
+        }
+        
+        // Гол в правые ворота
+        if (this.x > FOOTBALL_CONFIG.FIELD.width && this.y > goalTop && this.y < goalBottom) {
+            return { team: 'blue', x: FOOTBALL_CONFIG.FIELD.width, y: this.y };
+        }
+        
+        return null;
+    }
+    
+    draw(ctx) {
+        // След
+        if (this.trail.length > 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 3;
+            ctx.moveTo(this.trail[0].x, this.trail[0].y);
+            for (let i = 1; i < this.trail.length; i++) {
+                ctx.lineTo(this.trail[i].x, this.trail[i].y);
+            }
+            ctx.stroke();
+        }
+        
+        // Мяч
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Пятна
+        ctx.fillStyle = '#333';
+        ctx.beginPath();
+        ctx.arc(this.x - 3, this.y - 2, 2, 0, Math.PI * 2);
+        ctx.arc(this.x + 3, this.y + 2, 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
 
-        // ====================================================================
-        // DEBUG FUNCTIONS
-        // ====================================================================
-        window.toggleDebug = function() {
-            const panel = document.getElementById('debugPanel');
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+// ===========================================
+// ИГРОК - ФУТБОЛЬНАЯ МЕХАНИКА
+// ===========================================
+class FootballPlayer {
+    constructor(id, team, role, x, y, color) {
+        this.id = id;
+        this.team = team;
+        this.role = role;
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.color = color;
+        
+        // Состояние
+        this.hasBall = false;
+        this.kickCooldown = 0;
+        this.stamina = 100;
+        
+        // Характеристики (будут влиять на выходы Cortex)
+        this.stats = {
+            speed: 7 + Math.random() * 2,
+            passAcc: 0.7 + Math.random() * 0.2,
+            shotAcc: 0.6 + Math.random() * 0.2,
+            aggression: 0.3 + Math.random() * 0.4
         };
-
-        function displayRoute(route, title = 'Route') {
-            if (!route || route.length === 0) {
-                document.getElementById('routeDisplay').textContent = '— нет данных —';
-                return;
-            }
-
-            lastRoute = route;
-            document.getElementById('debugPanel').style.display = 'block';
-
-            document.getElementById('routeLength').textContent = route.length;
-            document.getElementById('routeMin').textContent = Math.min(...route);
-            document.getElementById('routeMax').textContent = Math.max(...route);
+        
+        // Мозг
+        this.net = new Cortex2Brain({ seed: `${team}_${role}_${id}` });
+        
+        // Текущее решение
+        this.decision = {
+            action: 'move',
+            targetX: x,
+            targetY: y,
+            targetPlayer: null,
+            power: 0
+        };
+        
+        // История для отладки
+        this.lastDecision = null;
+        this.inputs = new Array(64).fill(0);
+    }
+    
+    // ========== СБОР ВХОДНЫХ ДАННЫХ ==========
+    getInputs(ball, teammates, opponents) {
+        const inputs = new Array(64).fill(0);
+        const maxDist = 500;
+        
+        // 0-1: позиция мяча относительно игрока
+        inputs[0] = (ball.x - this.x) / maxDist;
+        inputs[1] = (ball.y - this.y) / maxDist;
+        
+        // 2-3: скорость мяча
+        inputs[2] = ball.vx / 20;
+        inputs[3] = ball.vy / 20;
+        
+        // 4: дистанция до мяча
+        inputs[4] = Math.min(Math.hypot(ball.x - this.x, ball.y - this.y) / maxDist, 1);
+        
+        // 5-6: ворота противника
+        const enemyGoalX = this.team === 'blue' ? FOOTBALL_CONFIG.FIELD.width : 0;
+        inputs[5] = (enemyGoalX - this.x) / maxDist;
+        inputs[6] = (FOOTBALL_CONFIG.GOAL.y - this.y) / maxDist;
+        
+        // 7-8: свои ворота
+        const myGoalX = this.team === 'blue' ? 0 : FOOTBALL_CONFIG.FIELD.width;
+        inputs[7] = (myGoalX - this.x) / maxDist;
+        
+        // 9-12: ближайший партнер
+        if (teammates.length > 0) {
+            const nearest = teammates[0];
+            inputs[9] = (nearest.x - this.x) / maxDist;
+            inputs[10] = (nearest.y - this.y) / maxDist;
+            inputs[11] = Math.min(Math.hypot(nearest.x - this.x, nearest.y - this.y) / maxDist, 1);
+        }
+        
+        // 13-16: ближайший соперник
+        if (opponents.length > 0) {
+            const nearest = opponents[0];
+            inputs[13] = (nearest.x - this.x) / maxDist;
+            inputs[14] = (nearest.y - this.y) / maxDist;
+            inputs[15] = Math.min(Math.hypot(nearest.x - this.x, nearest.y - this.y) / maxDist, 1);
+        }
+        
+        // 17: есть ли мяч
+        inputs[17] = this.hasBall ? 1 : 0;
+        
+        // 18-19: куда должен бежать по роли
+        let targetX, targetY;
+        if (this.team === 'blue') {
+            targetX = this.role === 'forward' ? 800 : 
+                     this.role === 'midfielder' ? 500 : 
+                     this.role === 'defender' ? 250 : 50;
+        } else {
+            targetX = this.role === 'forward' ? 200 : 
+                     this.role === 'midfielder' ? 500 : 
+                     this.role === 'defender' ? 750 : 950;
+        }
+        targetY = this.role === 'goalkeeper' ? 300 : 
+                 300 + (parseInt(this.id.split('_')[1]) - 3) * 50;
+        
+        inputs[18] = (targetX - this.x) / maxDist;
+        inputs[19] = (targetY - this.y) / maxDist;
+        
+        // 20: выносливость
+        inputs[20] = this.stamina / 100;
+        
+        // 21-22: скорость игрока
+        inputs[21] = this.vx / 10;
+        inputs[22] = this.vy / 10;
+        
+        this.inputs = inputs;
+        return inputs;
+    }
+    
+    // ========== ИНТЕРПРЕТАЦИЯ ВЫХОДОВ CORTEX ==========
+    setOutput(output, value) {
+        // output[0] - движение вправо/влево (-1..1)
+        // output[1] - движение вверх/вниз (-1..1)
+        // output[2] - пас (0..1)
+        // output[3] - удар (0..1)
+        // output[4] - отбор/агрессия (0..1)
+        // output[5] - дриблинг/скорость (0..1)
+        // output[6..15] - запасные
+        
+        // Сохраняем решение
+        this.lastDecision = {
+            output: output.slice(),
+            value: value,
+            action: 'idle'
+        };
+        
+        // Базовая скорость
+        const speedBase = this.hasBall ? 
+            FOOTBALL_CONFIG.PLAYER.maxSpeedWithBall : 
+            FOOTBALL_CONFIG.PLAYER.maxSpeed;
+        
+        // Влияние выносливости
+        const staminaFactor = 0.5 + this.stamina / 200;
+        
+        // Движение
+        const moveX = output[0] * speedBase * staminaFactor;
+        const moveY = output[1] * speedBase * staminaFactor;
+        
+        // Плавное ускорение
+        this.vx += (moveX - this.vx) * FOOTBALL_CONFIG.PLAYER.acceleration;
+        this.vy += (moveY - this.vy) * FOOTBALL_CONFIG.PLAYER.acceleration;
+        
+        // Действия
+        if (output[2] > 0.7 && this.hasBall && this.kickCooldown <= 0) {
+            this.lastDecision.action = 'pass';
+        } else if (output[3] > 0.7 && this.hasBall && this.kickCooldown <= 0) {
+            this.lastDecision.action = 'shoot';
+        } else if (output[4] > 0.7 && !this.hasBall) {
+            this.lastDecision.action = 'tackle';
+        } else if (output[5] > 0.5 && this.hasBall) {
+            this.lastDecision.action = 'dribble';
+        } else {
+            this.lastDecision.action = 'move';
+        }
+        
+        // Выносливость
+        if (Math.abs(output[0]) > 0.5 || Math.abs(output[1]) > 0.5) {
+            this.stamina = Math.max(0, this.stamina - 0.1);
+        } else {
+            this.stamina = Math.min(100, this.stamina + 0.05);
+        }
+    }
+    
+    // ========== ДВИЖЕНИЕ ==========
+    move() {
+        this.x += this.vx;
+        this.y += this.vy;
+        
+        // Трение
+        this.vx *= 0.95;
+        this.vy *= 0.95;
+        
+        // Границы
+        this.x = Math.max(20, Math.min(FOOTBALL_CONFIG.FIELD.width - 20, this.x));
+        this.y = Math.max(20, Math.min(FOOTBALL_CONFIG.FIELD.height - 20, this.y));
+        
+        if (this.kickCooldown > 0) this.kickCooldown--;
+    }
+    
+    // ========== ПАС ==========
+    pass(ball, teammates, opponents) {
+        if (!this.hasBall) return null;
+        
+        // Ищем лучшую цель
+        let bestTarget = null;
+        let bestScore = -Infinity;
+        
+        for (const mate of teammates) {
+            if (mate.id === this.id) continue;
             
-            const unique = new Set(route).size;
-            document.getElementById('routeUnique').textContent = `${unique}/${route.length}`;
-
-            const displayCount = Math.min(50, route.length);
-            let html = '';
-
-            for (let i = 0; i < displayCount; i++) {
-                const addr = route[i];
-                const color = addr % 2 === 0 ? '#00ffff' : '#ff3366';
-                html += `<span class="route-address" style="color:${color}" title="адрес ${i}: ${addr}">${addr}</span> `;
-                if ((i + 1) % 10 === 0) html += '<br>';
-            }
-
-            if (route.length > displayCount) {
-                html += `<br>... и еще ${route.length - displayCount} адресов`;
-            }
-
-            document.getElementById('routeDisplay').innerHTML = html;
+            const dx = mate.x - this.x;
+            const dy = mate.y - this.y;
+            const dist = Math.hypot(dx, dy);
             
-            log(`📊 Route: ${route.length} addresses, ${unique} unique`, unique === route.length ? 'ok' : 'err');
+            // Не пасуем слишком близко или слишком далеко
+            if (dist < 50 || dist > 350) continue;
+            
+            // Проверка на перехват
+            let interceptRisk = 0;
+            for (const opp of opponents) {
+                const distToLine = Math.abs(
+                    (opp.y - this.y) * dx - (opp.x - this.x) * dy
+                ) / dist;
+                
+                if (distToLine < 40) {
+                    interceptRisk += (1 - distToLine / 40) * 
+                                     (1 - Math.hypot(opp.x - mate.x, opp.y - mate.y) / 200);
+                }
+            }
+            
+            // Оценка
+            let score = 1000 / dist;
+            score -= interceptRisk * 300;
+            
+            // Нападающий в штрафной - приоритет
+            if (mate.role === 'forward' && 
+                ((this.team === 'blue' && mate.x > 700) || 
+                 (this.team === 'red' && mate.x < 300))) {
+                score += 200;
+            }
+            
+            if (score > bestScore) {
+                bestScore = score;
+                bestTarget = mate;
+            }
         }
-
-        window.copyRouteToClipboard = function() {
-            if (!lastRoute) {
-                log('No route to copy', 'err');
-                return;
-            }
-
-            const text = lastRoute.join(', ');
-            navigator.clipboard.writeText(text);
-            log(`✅ Route copied (${lastRoute.length} addresses)`, 'ok');
+        
+        if (!bestTarget) return null;
+        
+        // Расчет паса с упреждением
+        const dx = bestTarget.x - this.x;
+        const dy = bestTarget.y - this.y;
+        const dist = Math.hypot(dx, dy);
+        
+        // Время полета
+        const flightTime = dist / FOOTBALL_CONFIG.PLAYER.passSpeed;
+        
+        // Предсказание позиции принимающего
+        const interceptX = bestTarget.x + bestTarget.vx * flightTime;
+        const interceptY = bestTarget.y + bestTarget.vy * flightTime;
+        
+        // Угол паса
+        const angle = Math.atan2(interceptY - this.y, interceptX - this.x);
+        
+        // Точность
+        const accuracy = this.stats.passAcc * FOOTBALL_CONFIG.PLAYER.passAccuracy;
+        const error = (1 - accuracy) * 0.15;
+        const finalAngle = angle + (Math.random() - 0.5) * error;
+        
+        // Сила паса
+        const power = Math.min(dist * 0.9, FOOTBALL_CONFIG.PLAYER.passSpeed);
+        
+        // Пас
+        ball.kick(finalAngle, power, this.id);
+        this.hasBall = false;
+        this.kickCooldown = FOOTBALL_CONFIG.PLAYER.kickCooldown;
+        
+        return {
+            type: 'pass',
+            from: this.id,
+            to: bestTarget.id,
+            power,
+            angle: finalAngle
         };
-
-        window.saveRouteToFile = function() {
-            if (!lastRoute) {
-                log('No route to save', 'err');
-                return;
-            }
-
-            const data = {
-                timestamp: new Date().toISOString(),
-                length: lastRoute.length,
-                min: Math.min(...lastRoute),
-                max: Math.max(...lastRoute),
-                unique: new Set(lastRoute).size,
-                route: lastRoute
-            };
-
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `route_${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-
-            log(`✅ Route saved (${lastRoute.length} addresses)`, 'ok');
+    }
+    
+    // ========== УДАР ==========
+    shoot(ball) {
+        const enemyGoalX = this.team === 'blue' ? 
+            FOOTBALL_CONFIG.FIELD.width : 0;
+        
+        const distToGoal = Math.abs(enemyGoalX - this.x);
+        
+        // Сила удара от расстояния
+        let power;
+        if (distToGoal < 100) power = 14;
+        else if (distToGoal < 200) power = 18;
+        else power = 22;
+        
+        // Цель - угол ворот
+        const targetY = FOOTBALL_CONFIG.GOAL.y + (Math.random() > 0.5 ? -40 : 40);
+        
+        const dx = enemyGoalX - this.x;
+        const dy = targetY - this.y;
+        const angle = Math.atan2(dy, dx);
+        
+        // Точность
+        const accuracy = this.stats.shotAcc * FOOTBALL_CONFIG.PLAYER.shotAccuracy;
+        const error = (1 - accuracy) * 0.12;
+        const finalAngle = angle + (Math.random() - 0.5) * error;
+        
+        // Удар
+        ball.kick(finalAngle, power, this.id);
+        this.hasBall = false;
+        this.kickCooldown = FOOTBALL_CONFIG.PLAYER.kickCooldown;
+        
+        return {
+            type: 'shot',
+            from: this.id,
+            power,
+            targetY
         };
-
-        window.copyExtracted = function() {
-            const text = document.getElementById('extractedMessage').textContent;
-            navigator.clipboard.writeText(text);
-            log('📋 Extracted message copied', 'ok');
-        };
-
-        // ====================================================================
-        // GLOBAL FUNCTIONS
-        // ====================================================================
-        window.runCrypto = async function(action) {
-            try {
-                validateInputs();
-                if (!engine) initEngine();
-
-                const input = document.getElementById('inputText').value;
-                const isEncrypt = action === 'encrypt';
-
-                showProgress(30);
-
-                const result = isEncrypt ? engine.encrypt(input) : engine.decrypt(input);
-
-                showProgress(100);
-                setTimeout(hideProgress, 500);
-
-                document.getElementById('outputText').textContent = result.text;
-                document.getElementById('statLen').textContent = `${input.length} → ${result.text.length}`;
-                document.getElementById('statTime').textContent = result.time ? `${result.time.toFixed(1)}ms` : '0ms';
-
-                if (isEncrypt) {
-                    const verify = engine.decrypt(result.text);
-                    const ok = verify.text === input;
-                    document.getElementById('statRev').textContent = ok ? '✅' : '❌';
-                    document.getElementById('statRev').className = `stat-value ${ok ? 'success' : 'error'}`;
-                }
-
-                log(`${action} completed: ${result.text}`, 'ok');
-                updateRotorsUI();
-
-            } catch (error) {
-                log(`Error: ${error.message}`, 'err');
-                hideProgress();
-            }
-        };
-
-        window.runTest = function() {
-            try {
-                if (!engine) initEngine();
-                const input = document.getElementById('inputText').value || 'TEST123';
-                const enc = engine.encrypt(input);
-                const dec = engine.decrypt(enc.text);
-                const ok = dec.text === input;
-                log(`Test: ${ok ? 'PASSED' : 'FAILED'}`, ok ? 'ok' : 'err');
-                log(`Original: "${input}"`, 'info');
-                log(`Encrypted: "${enc.text}"`, 'debug');
-                log(`Decrypted: "${dec.text}"`, ok ? 'ok' : 'err');
-            } catch (error) {
-                log(`Test error: ${error.message}`, 'err');
-            }
-        };
-
-        window.embedInImage = async function() {
-            try {
-                const file = document.getElementById('imageInput').files[0];
-                const secret = document.getElementById('secretText').value;
-
-                if (!file) throw new Error('Select an image');
-                if (!secret) throw new Error('Enter secret message');
-                if (!engine) initEngine();
-
-                showProgress(10);
-
-                // Шифруем секрет
-                const encrypted = engine.encrypt(secret);
-                const dataBytes = encrypted.text.split('').map(c => c.charCodeAt(0));
-
-                log(`Secret encrypted: ${encrypted.text} (${dataBytes.length} bytes)`, 'info');
-
-                showProgress(30);
-
-                // Загружаем изображение
-                const image = await loadImage(file);
-
-                // Проверяем вместимость
-                const maxBytes = Math.floor((image.width * image.height * 3) / 8) - HEADER_SIZE;
-                if (dataBytes.length > maxBytes) {
-                    throw new Error(`Message ${dataBytes.length} bytes exceeds capacity (max ${maxBytes})`);
-                }
-
-                showProgress(50);
-
-                // Копируем данные
-                const stego = new Uint8ClampedArray(image.data);
-
-                // Встраиваем заголовок
-                stegoLSB.embedHeader(stego, dataBytes.length);
-                log(`Header embedded: marker + length ${dataBytes.length}`, 'info');
-
-                showProgress(70);
-
-                // Инициализируем роторы маршрута
-                engine.initRouteRotors(image.width, image.height);
-
-                // Генерируем УНИКАЛЬНЫЙ маршрут
-                const neededBits = dataBytes.length * 8;
-                const route = engine.generateUniqueRoute(neededBits, HEADER_SIZE * 8);
+    }
+    
+    // ========== ОТБОР ==========
+    tackle(ball, opponents) {
+        // Ищем ближайшего соперника с мячом
+        const opponentWithBall = opponents.find(o => o.hasBall);
+        if (!opponentWithBall) return null;
+        
+        const dist = Math.hypot(opponentWithBall.x - this.x, opponentWithBall.y - this.y);
+        
+        if (dist < 30) {
+            // Шанс отбора
+            const tackleChance = 0.4 + this.stats.aggression * 0.3;
+            
+            if (Math.random() < tackleChance) {
+                // Отбор
+                ball.owner = this.id;
+                this.hasBall = true;
+                opponentWithBall.hasBall = false;
                 
-                log(`Route generated: ${route.length} addresses`, 'info');
-
-                // Отображаем маршрут
-                displayRoute(route, 'Embed route');
-
-                // Встраиваем данные
-                for (let i = 0; i < dataBytes.length; i++) {
-                    const byte = dataBytes[i];
-                    for (let b = 0; b < 8; b++) {
-                        const bit = (byte >> b) & 1;
-                        const address = route[i * 8 + b];
-                        const pixelIdx = address * 4;
-                        const channel = address % 3;
-                        if (pixelIdx + channel < stego.length) {
-                            stego[pixelIdx + channel] = (stego[pixelIdx + channel] & 0xFE) | bit;
-                        }
-                    }
-                }
-
-                showProgress(100);
-                setTimeout(hideProgress, 500);
-
-                // Сохраняем результат
-                currentImage = {
-                    data: stego,
-                    width: image.width,
-                    height: image.height
+                // Мяч отлетает
+                const angle = Math.atan2(this.y - opponentWithBall.y, this.x - opponentWithBall.x);
+                ball.kick(angle, 3, this.id);
+                
+                this.kickCooldown = 10;
+                
+                return {
+                    type: 'tackle_success',
+                    opponent: opponentWithBall.id
                 };
-
-                // Обновляем превью
-                const ctx = image.ctx;
-                const newImageData = new ImageData(stego, image.width, image.height);
-                ctx.putImageData(newImageData, 0, 0);
-
-                // Обновляем статистику
-                const psnr = stegoLSB.calculatePSNR(image.data, stego);
-                const unique = new Set(route).size;
-
-                document.getElementById('embeddedLen').textContent = dataBytes.length;
-                document.getElementById('uniqueCount').textContent = `${unique}/${route.length}`;
-                document.getElementById('psnrValue').textContent = psnr > 100 ? '∞' : psnr.toFixed(1);
-                document.getElementById('stegoStatus').textContent = 'EMBEDDED';
-                document.getElementById('stegoStatus').className = 'stat-value success';
-
-                log(`✅ Successfully embedded ${dataBytes.length} bytes with ${unique} unique addresses`, 'ok');
-
-            } catch (error) {
-                log(`Error: ${error.message}`, 'err');
-                hideProgress();
-            }
-        };
-
-        window.extractFromImage = async function() {
-            try {
-                const file = document.getElementById('imageInput').files[0];
-
-                if (!file) throw new Error('Select an image');
-                if (!engine) initEngine();
-
-                showProgress(30);
-
-                // Загружаем изображение
-                const image = await loadImage(file);
-
-                // Читаем заголовок
-                const dataLength = stegoLSB.readHeader(image.data);
-                log(`Header: marker ${dataLength ? 'found' : 'not found'}, length=${dataLength}`, 'info');
-
-                if (!dataLength) {
-                    throw new Error('Marker not found - not a stego image');
-                }
-
-                showProgress(50);
-
-                // Инициализируем роторы маршрута
-                engine.initRouteRotors(image.width, image.height);
-
-                // Генерируем ТОТ ЖЕ уникальный маршрут
-                const neededBits = dataLength * 8;
-                const route = engine.generateUniqueRoute(neededBits, HEADER_SIZE * 8);
+            } else {
+                // Неудачный отбор
+                this.vx += (this.x - opponentWithBall.x) * 0.2;
+                this.vy += (this.y - opponentWithBall.y) * 0.2;
                 
-                log(`Route generated: ${route.length} addresses`, 'info');
-
-                // Отображаем маршрут
-                displayRoute(route, 'Extract route');
-
-                showProgress(70);
-
-                // Читаем данные
-                const bytes = [];
-                for (let i = 0; i < dataLength; i++) {
-                    let byte = 0;
-                    for (let b = 0; b < 8; b++) {
-                        const address = route[i * 8 + b];
-                        const pixelIdx = address * 4;
-                        const channel = address % 3;
-                        if (pixelIdx + channel < image.data.length) {
-                            const bit = image.data[pixelIdx + channel] & 1;
-                            byte |= (bit << b);
-                        }
-                    }
-                    bytes.push(byte);
-                }
-
-                log(`Read ${bytes.length} bytes`, 'info');
-
-                showProgress(90);
-
-                // Преобразуем в текст
-                const encryptedText = String.fromCharCode(...bytes);
-                log(`Encrypted text: "${encryptedText}"`, 'debug');
-
-                // Расшифровываем
-                const decrypted = engine.decrypt(encryptedText);
-                log(`Decrypted text: "${decrypted.text}"`, 'info');
-
-                showProgress(100);
-                setTimeout(hideProgress, 500);
-
-                // Показываем результат
-                document.getElementById('extractedMessage').textContent = decrypted.text;
-                document.getElementById('extractedPanel').style.display = 'block';
-
-                log(`✅ Extracted message: "${decrypted.text}"`, 'ok');
-
-            } catch (error) {
-                log(`Error: ${error.message}`, 'err');
-                hideProgress();
+                return {
+                    type: 'tackle_fail',
+                    opponent: opponentWithBall.id
+                };
             }
+        }
+        
+        return null;
+    }
+    
+    // ========== ПЕРЕХВАТ ==========
+    intercept(ball) {
+        if (this.hasBall || ball.owner === this.id || !ball.owner) return false;
+        
+        const dist = Math.hypot(ball.x - this.x, ball.y - this.y);
+        
+        if (dist < 40 && Math.hypot(ball.vx, ball.vy) > 2) {
+            // Предсказание траектории
+            const futureX = ball.x + ball.vx * 0.5;
+            const futureY = ball.y + ball.vy * 0.5;
+            
+            const interceptDist = Math.hypot(futureX - this.x, futureY - this.y);
+            
+            if (interceptDist < 30) {
+                // Перехват
+                ball.vx *= 0.3;
+                ball.vy *= 0.3;
+                ball.owner = this.id;
+                this.hasBall = true;
+                this.kickCooldown = 5;
+                
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    // ========== ВЕДЕНИЕ ==========
+    dribble(ball) {
+        if (!this.hasBall) return;
+        
+        // Мяч должен быть перед игроком
+        const desiredBallX = this.x + Math.cos(this.lastDecision?.angle || 0) * 20;
+        const desiredBallY = this.y + Math.sin(this.lastDecision?.angle || 0) * 20;
+        
+        const ballDist = Math.hypot(ball.x - desiredBallX, ball.y - desiredBallY);
+        
+        if (ballDist > 10) {
+            // Подправляем мяч
+            const angle = Math.atan2(desiredBallY - ball.y, desiredBallX - ball.x);
+            ball.kick(angle, 2, this.id);
+        }
+    }
+    
+    // ========== ОБНОВЛЕНИЕ ==========
+    update(ball, teammates, opponents) {
+        // Получаем входные данные
+        const inputs = this.getInputs(ball, teammates, opponents);
+        
+        // Forward через Cortex
+        const result = this.net.forward(inputs);
+        
+        // Применяем выход
+        this.setOutput(result.output, result.value);
+        
+        // Выполняем действие
+        let event = null;
+        
+        switch(this.lastDecision.action) {
+            case 'pass':
+                event = this.pass(ball, teammates, opponents);
+                break;
+            case 'shoot':
+                event = this.shoot(ball);
+                break;
+            case 'tackle':
+                event = this.tackle(ball, opponents);
+                break;
+            case 'dribble':
+                this.dribble(ball);
+                break;
+        }
+        
+        // Перехват
+        if (!this.hasBall && Math.random() < 0.1) {
+            this.intercept(ball);
+        }
+        
+        // Движение
+        this.move();
+        
+        // Обновляем владение
+        const distToBall = Math.hypot(ball.x - this.x, ball.y - this.y);
+        
+        if (!this.hasBall && ball.owner === this.id) {
+            this.hasBall = true;
+        }
+        
+        if (this.hasBall && distToBall > 25) {
+            this.hasBall = false;
+        }
+        
+        if (!this.hasBall && !ball.owner && distToBall < 15) {
+            ball.owner = this.id;
+            this.hasBall = true;
+        }
+        
+        return event;
+    }
+    
+    draw(ctx, showVision) {
+        // Игрок
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, FOOTBALL_CONFIG.PLAYER.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Роль
+        ctx.fillStyle = 'white';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.role[0].toUpperCase(), this.x, this.y - 20);
+        
+        // Если с мячом
+        if (this.hasBall) {
+            ctx.strokeStyle = 'yellow';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, FOOTBALL_CONFIG.PLAYER.radius + 3, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        
+        // Выносливость
+        ctx.fillStyle = '#333';
+        ctx.fillRect(this.x - 15, this.y - 25, 30, 3);
+        ctx.fillStyle = this.stamina > 50 ? '#00ff9d' : '#ff4444';
+        ctx.fillRect(this.x - 15, this.y - 25, 30 * (this.stamina / 100), 3);
+        
+        // Vision
+        if (showVision) {
+            ctx.strokeStyle = 'rgba(0,255,0,0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 200, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+}
+
+// ===========================================
+// МИР - ОСНОВНОЙ ЦИКЛ
+// ===========================================
+class FootballWorld {
+    constructor() {
+        this.ball = new FootballBall(500, 300);
+        this.players = [];
+        this.score = { blue: 0, red: 0 };
+        this.time = 0;
+        this.step = 0;
+        this.events = [];
+        
+        this.teamPlayers = {
+            blue: [],
+            red: []
         };
-
-        window.downloadImage = function() {
-            try {
-                if (!currentImage) {
-                    throw new Error('No image to download');
-                }
-
-                const filenameInput = document.getElementById('filenameInput');
-                let baseName = filenameInput.value.trim();
-
-                if (!baseName) {
-                    baseName = 'stego_image';
-                    filenameInput.value = baseName;
-                }
-
-                baseName = baseName.replace(/[^a-zA-Z0-9_\-]/g, '_');
-                const timestamp = new Date().getTime();
-                const finalName = `${baseName}_${timestamp}.png`;
-
-                const canvas = document.createElement('canvas');
-                canvas.width = currentImage.width;
-                canvas.height = currentImage.height;
-
-                const ctx = canvas.getContext('2d');
-                const imageData = new ImageData(
-                    new Uint8ClampedArray(currentImage.data),
-                    currentImage.width,
-                    currentImage.height
-                );
-                ctx.putImageData(imageData, 0, 0);
-
-                const link = document.createElement('a');
-                link.download = finalName;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-
-                log(`✅ Downloaded as: ${finalName}`, 'ok');
-
-            } catch (error) {
-                log(`Error: ${error.message}`, 'err');
+    }
+    
+    spawnPlayers(count = 6) {
+        this.players = [];
+        this.teamPlayers.blue = [];
+        this.teamPlayers.red = [];
+        
+        const colors = { blue: '#00aaff', red: '#ff5500' };
+        
+        // Синяя команда
+        const blueRoles = [
+            'goalkeeper',
+            'defender', 'defender',
+            'midfielder', 'midfielder',
+            'forward'
+        ];
+        
+        for (let i = 0; i < count; i++) {
+            const role = blueRoles[i % blueRoles.length];
+            let x, y;
+            
+            switch(role) {
+                case 'goalkeeper': x = 50; y = 300; break;
+                case 'defender': x = 200; y = 200 + (i % 2) * 200; break;
+                case 'midfielder': x = 400; y = 250 + (i % 2) * 100; break;
+                case 'forward': x = 700; y = 300; break;
+                default: x = 500; y = 300;
             }
+            
+            const player = new FootballPlayer(
+                `blue_${i}`,
+                'blue',
+                role,
+                x + (Math.random() * 20 - 10),
+                y + (Math.random() * 20 - 10),
+                colors.blue
+            );
+            
+            this.players.push(player);
+            this.teamPlayers.blue.push(player);
+        }
+        
+        // Красная команда
+        const redRoles = [
+            'goalkeeper',
+            'defender', 'defender',
+            'midfielder', 'midfielder',
+            'forward'
+        ];
+        
+        for (let i = 0; i < count; i++) {
+            const role = redRoles[i % redRoles.length];
+            let x, y;
+            
+            switch(role) {
+                case 'goalkeeper': x = 950; y = 300; break;
+                case 'defender': x = 800; y = 200 + (i % 2) * 200; break;
+                case 'midfielder': x = 600; y = 250 + (i % 2) * 100; break;
+                case 'forward': x = 300; y = 300; break;
+                default: x = 500; y = 300;
+            }
+            
+            const player = new FootballPlayer(
+                `red_${i}`,
+                'red',
+                role,
+                x + (Math.random() * 20 - 10),
+                y + (Math.random() * 20 - 10),
+                colors.red
+            );
+            
+            this.players.push(player);
+            this.teamPlayers.red.push(player);
+        }
+    }
+    
+    getAgent(id) {
+        return this.players.find(p => p.id === id);
+    }
+    
+    update() {
+        this.step++;
+        this.time = this.step / 60;
+        
+        // Обновляем мяч
+        this.ball.update();
+        
+        // Сортируем игроков по дистанции до мяча (для обработки)
+        const playersByDistance = [...this.players].sort((a, b) => {
+            const da = Math.hypot(a.x - this.ball.x, a.y - this.ball.y);
+            const db = Math.hypot(b.x - this.ball.x, b.y - this.ball.y);
+            return da - db;
+        });
+        
+        // Обновляем игроков
+        this.events = [];
+        
+        for (const player of playersByDistance) {
+            const teammates = this.teamPlayers[player.team].filter(p => p.id !== player.id);
+            const opponents = this.teamPlayers[player.team === 'blue' ? 'red' : 'blue'];
+            
+            const event = player.update(this.ball, teammates, opponents);
+            if (event) this.events.push(event);
+        }
+        
+        // Проверка гола
+        const goal = this.ball.checkGoal();
+        if (goal) {
+            this.score[goal.team]++;
+            this.resetAfterGoal();
+        }
+        
+        // Мутация каждые 1000 шагов
+        if (this.step % 1000 === 0) {
+            this.mutatePlayers();
+        }
+    }
+    
+    resetAfterGoal() {
+        // Сброс мяча
+        this.ball = new FootballBall(500, 300);
+        
+        // Возврат игроков на позиции
+        this.players.forEach(player => {
+            if (player.team === 'blue') {
+                switch(player.role) {
+                    case 'goalkeeper': player.x = 50; player.y = 300; break;
+                    case 'defender': player.x = 200; player.y = player.id.includes('0') ? 200 : 400; break;
+                    case 'midfielder': player.x = 400; player.y = player.id.includes('2') ? 250 : 350; break;
+                    case 'forward': player.x = 700; player.y = 300; break;
+                }
+            } else {
+                switch(player.role) {
+                    case 'goalkeeper': player.x = 950; player.y = 300; break;
+                    case 'defender': player.x = 800; player.y = player.id.includes('0') ? 200 : 400; break;
+                    case 'midfielder': player.x = 600; player.y = player.id.includes('2') ? 250 : 350; break;
+                    case 'forward': player.x = 300; player.y = 300; break;
+                }
+            }
+            player.vx = 0;
+            player.vy = 0;
+            player.hasBall = false;
+        });
+        
+        this.ball.owner = null;
+    }
+    
+    mutatePlayers() {
+        // Мутируем случайных игроков
+        for (const player of this.players) {
+            if (Math.random() < 0.1) {
+                const mutations = player.net.mutate(0.1);
+                if (mutations > 0) {
+                    console.log(`🧬 Мутация у ${player.id}: ${mutations} изменений`);
+                }
+            }
+        }
+    }
+    
+    draw(ctx, vision = false) {
+        // Поле
+        ctx.fillStyle = '#1a5c1a';
+        ctx.fillRect(0, 0, FOOTBALL_CONFIG.FIELD.width, FOOTBALL_CONFIG.FIELD.height);
+        
+        // Разметка
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 2;
+        
+        // Линии
+        ctx.strokeRect(10, 10, FOOTBALL_CONFIG.FIELD.width - 20, FOOTBALL_CONFIG.FIELD.height - 20);
+        
+        // Центр
+        ctx.beginPath();
+        ctx.moveTo(FOOTBALL_CONFIG.FIELD.width / 2, 10);
+        ctx.lineTo(FOOTBALL_CONFIG.FIELD.width / 2, FOOTBALL_CONFIG.FIELD.height - 10);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(FOOTBALL_CONFIG.FIELD.width / 2, FOOTBALL_CONFIG.FIELD.height / 2, 60, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Вратарские
+        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        ctx.fillRect(0, 220, 20, 160);
+        ctx.fillRect(FOOTBALL_CONFIG.FIELD.width - 20, 220, 20, 160);
+        
+        // Игроки
+        this.players.forEach(p => p.draw(ctx, vision));
+        
+        // Мяч
+        this.ball.draw(ctx);
+        
+        // Счет
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 36px Arial';
+        ctx.fillText(this.score.blue, 400, 80);
+        ctx.fillText(this.score.red, 560, 80);
+        
+        // Время
+        ctx.font = '24px Arial';
+        const minutes = Math.floor(this.time / 60);
+        const seconds = Math.floor(this.time % 60);
+        ctx.fillText(`${minutes}:${seconds.toString().padStart(2, '0')}`, 450, 130);
+    }
+}
+
+// ===========================================
+// ДВИЖОК ИГРЫ
+// ===========================================
+class GameEngine {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        
+        this.world = new FootballWorld();
+        this.world.spawnPlayers(6);
+        
+        this.running = false;
+        this.lastTime = 0;
+        this.fps = 60;
+        this.vision = false;
+        
+        this.setupCanvas();
+        this.setupEvents();
+    }
+    
+    setupCanvas() {
+        const resize = () => {
+            this.canvas.width = FOOTBALL_CONFIG.FIELD.width;
+            this.canvas.height = FOOTBALL_CONFIG.FIELD.height;
         };
-
-        // ====================================================================
-        // INITIALIZATION
-        // ====================================================================
-        window.addEventListener('load', () => {
-            stegoLSB = new LSBSteganography();
-            initEngine();
-
-            if (rotorInterval) clearInterval(rotorInterval);
-            rotorInterval = setInterval(updateRotorsUI, 100);
-
-            log('🚀 TRUE ITN v1.3 initialized', 'ok');
-            log('Steganography v2.0: Unique route guarantee with neural guidance', 'info');
-        });
-
-        window.addEventListener('beforeunload', () => {
-            if (rotorInterval) clearInterval(rotorInterval);
-        });
-
-        document.getElementById('imageInput').addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                log(`📸 Loaded: ${e.target.files[0].name}`, 'info');
+        resize();
+        window.addEventListener('resize', resize);
+    }
+    
+    setupEvents() {
+        document.getElementById('btnStart').onclick = () => this.toggle();
+        document.getElementById('btnReset').onclick = () => this.reset();
+        
+        document.getElementById('agentCount').oninput = (e) => {
+            document.getElementById('agentCountValue').textContent = e.target.value;
+        };
+        
+        document.getElementById('agentSpeed').oninput = (e) => {
+            const val = parseFloat(e.target.value);
+            document.getElementById('agentSpeedValue').textContent = val;
+            FOOTBALL_CONFIG.PLAYER.maxSpeed = val;
+        };
+        
+        document.getElementById('viewRadius').oninput = (e) => {
+            document.getElementById('viewRadiusValue').textContent = e.target.value;
+        };
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ') {
+                e.preventDefault();
+                this.toggle();
+            } else if (e.key === 'v') {
+                this.vision = !this.vision;
             }
         });
+    }
+    
+    toggle() {
+        this.running = !this.running;
+        const btn = document.getElementById('btnStart');
+        btn.textContent = this.running ? '⏸ ПАУЗА' : '▶ СТАРТ';
+        if (this.running) {
+            this.lastTime = performance.now();
+            this.loop();
+        }
+    }
+    
+    reset() {
+        this.running = false;
+        document.getElementById('btnStart').textContent = '▶ СТАРТ';
+        
+        const count = parseInt(document.getElementById('agentCount').value);
+        this.world = new FootballWorld();
+        this.world.spawnPlayers(count);
+    }
+    
+    loop() {
+        if (!this.running) return;
+        
+        const now = performance.now();
+        const delta = now - this.lastTime;
+        
+        if (delta > 16) {
+            this.fps = Math.round(1000 / delta);
+            document.getElementById('fpsCounter').textContent = `FPS: ${this.fps}`;
+            
+            // Обновление мира
+            this.world.update();
+            
+            // Обновление UI
+            document.getElementById('scoreBlue').textContent = this.world.score.blue;
+            document.getElementById('scoreRed').textContent = this.world.score.red;
+            
+            const minutes = Math.floor(this.world.time / 60);
+            const seconds = Math.floor(this.world.time % 60);
+            document.getElementById('matchTime').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Отрисовка
+            this.world.draw(this.ctx, this.vision);
+            
+            this.lastTime = now;
+        }
+        
+        requestAnimationFrame(() => this.loop());
+    }
+}
 
-        document.getElementById('modeSelect').addEventListener('change', initEngine);
-        document.getElementById('perfSelect').addEventListener('change', initEngine);
-    </script>
+// ===========================================
+// ЗАПУСК
+// ===========================================
+window.addEventListener('load', () => {
+    window.arenaGame = new GameEngine();
+    console.log('⚽ AI FOOTBALL v8.0.3 - РЕАЛЬНЫЙ ФУТБОЛ');
+    console.log('🧠 Cortex-2 управляет игроками');
+});
+</script>
 </body>
 </html>
