@@ -8,7 +8,7 @@
     :root {
       --bg: #020203;
       --surface: #08090b;
-      --border: #12131a;
+      --border: #2a2a3a;
       --text: #e2e2e8;
       --muted: #5a5a6e;
       --accent: #00ffa3;
@@ -33,58 +33,44 @@
       overflow: hidden;
       margin: 0;
       padding: 0;
-      position: fixed; /* Фиксируем body */
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
     }
 
-    /* ═══════════════════════════════════════════════════════════════════════
-       МАКЕТ С ФИКСИРОВАННЫМИ РАЗМЕРАМИ
-       ═══════════════════════════════════════════════════════════════════════ */
+    /* =============== МАКЕТ С АДАПТАЦИЕЙ =============== */
     .layout {
-      display: grid;
-      grid-template-columns: 1fr 320px;
+      display: flex;
       height: 100%;
       width: 100%;
       background: var(--border);
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-    }
-
-    @media (max-width: 900px) {
-      .layout { grid-template-columns: 1fr; }
-      .sidebar { display: none; }
     }
 
     .chat-col {
+      flex: 1;
       background: var(--bg);
       display: flex;
       flex-direction: column;
       height: 100%;
-      width: 100%;
-      overflow: hidden;
-      position: relative;
+      min-width: 300px;
     }
 
     .sidebar {
+      width: 320px;
       background: var(--surface);
       padding: 1rem;
       display: flex;
       flex-direction: column;
       gap: 1rem;
       overflow-y: auto;
-      height: 100%;
       border-left: 2px solid var(--border);
     }
 
-    /* ═══════════════════════════════════════════════════════════════════════
-       ВЕРХНЯЯ ПАНЕЛЬ
-       ═══════════════════════════════════════════════════════════════════════ */
+    /* На узких экранах боковая панель скрывается, но чат занимает всё */
+    @media (max-width: 900px) {
+      .sidebar { 
+        display: none; 
+      }
+    }
+
+    /* =============== ВЕРХНЯЯ ПАНЕЛЬ =============== */
     .top-bar {
       padding: 1rem 1.5rem;
       border-bottom: 2px solid var(--border);
@@ -93,7 +79,7 @@
       align-items: center;
       flex-shrink: 0;
       background: var(--surface);
-      height: 60px; /* Фиксированная высота */
+      height: 60px;
     }
 
     .logo {
@@ -123,19 +109,15 @@
     .status-dot.error { background: var(--error); box-shadow: 0 0 8px var(--error); }
     .status-dot.warning { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
 
-    /* ═══════════════════════════════════════════════════════════════════════
-       ЧАТ - занимает всё свободное место
-       ═══════════════════════════════════════════════════════════════════════ */
+    /* =============== ЧАТ =============== */
     .chat-flow {
-      flex: 1 1 auto;
+      flex: 1;
       overflow-y: auto;
       padding: 1.5rem;
       display: flex;
       flex-direction: column;
       gap: 1.2rem;
       scroll-behavior: smooth;
-      min-height: 0; /* Критически важно */
-      height: calc(100% - 120px); /* 60px top-bar + 60px input-area */
     }
 
     .msg {
@@ -172,18 +154,15 @@
       border-radius: 12px 12px 12px 4px;
     }
 
-    /* ═══════════════════════════════════════════════════════════════════════
-       ПОЛЕ ВВОДА - ФИКСИРОВАННОЕ ВНИЗУ, ВСЕГДА ВИДИМО
-       ═══════════════════════════════════════════════════════════════════════ */
+    /* =============== ПОЛЕ ВВОДА - ВСЕГДА ВИДИМО =============== */
     .input-area {
       padding: 0.8rem 1.5rem;
       background: var(--surface);
-      border-top: 3px solid var(--accent); /* Яркая зелёная полоса */
+      border-top: 3px solid var(--accent);
       flex-shrink: 0;
-      height: 70px; /* Фиксированная высота */
-      min-height: 70px;
-      max-height: 70px;
-      position: relative;
+      height: 80px;
+      min-height: 80px;
+      max-height: 80px;
       z-index: 1000;
       box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
     }
@@ -254,9 +233,7 @@
       opacity: 0.5;
     }
 
-    /* ═══════════════════════════════════════════════════════════════════════
-       БОКОВАЯ ПАНЕЛЬ
-       ═══════════════════════════════════════════════════════════════════════ */
+    /* =============== БОКОВАЯ ПАНЕЛЬ =============== */
     .panel {
       background: var(--bg);
       border: 1px solid var(--border);
@@ -381,17 +358,21 @@
     .btn-danger { color: var(--error); }
     .btn-danger:hover { background: rgba(255, 85, 119, 0.12); }
 
-    /* Улучшенная прокрутка */
     ::-webkit-scrollbar { width: 7px; height: 7px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #2a2a3a; }
 
-    /* Класс для принудительного показа */
-    .force-show {
-      display: block !important;
-      visibility: visible !important;
-      opacity: 1 !important;
+    /* Предупреждение о большом файле */
+    .warning-message {
+      background: rgba(255, 170, 51, 0.1);
+      border: 1px solid var(--warning);
+      color: var(--warning);
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      margin-top: 0.5rem;
+      text-align: center;
     }
   </style>
 </head>
@@ -400,7 +381,7 @@
   <div class="layout">
     
     <!-- ЛЕВАЯ КОЛОНКА: ЧАТ -->
-    <div class="chat-col" id="chatCol">
+    <div class="chat-col">
       <div class="top-bar">
         <div class="logo">GRU CORE v4.3</div>
         <div class="status-row">
@@ -415,7 +396,7 @@
         </div>
       </div>
       
-      <!-- ПОЛЕ ВВОДА - ВСЕГДА ВНИЗУ -->
+      <!-- ПОЛЕ ВВОДА - ФИКСИРОВАННОЕ ВНИЗУ -->
       <div class="input-area" id="inputArea">
         <div class="input-wrap">
           <textarea id="input" rows="1" placeholder="Загрузите файл для начала..." disabled></textarea>
@@ -428,24 +409,26 @@
     <div class="sidebar">
       
       <div class="panel">
-        <span class="p-title">📁 Data Source</span>
-        <input type="file" id="file-in" accept=".txt,.md">
+        <span class="p-title">📁 ЗАГРУЗКА ФАЙЛА</span>
+        <input type="file" id="file-in" accept=".txt,.md,.json">
         <div class="drop-zone" id="drop">
-          <div>📄 Загрузить файл</div>
-          <small>.txt, .md • UTF-8</small>
+          <div>📄 Выберите файл</div>
+          <small>.txt, .md, .json • UTF-8</small>
+        </div>
+        <div id="fileWarning" class="warning-message" style="display: none;">
+          ⚠️ Большой файл, обрабатывается...
         </div>
       </div>
 
       <div class="panel">
-        <span class="p-title">📊 Model Metrics</span>
+        <span class="p-title">📊 МЕТРИКИ МОДЕЛИ</span>
         <div class="stats-grid">
-          <div><div class="s-val" id="s-vocab">0</div><div class="s-label">Vocabulary</div></div>
-          <div><div class="s-val" id="s-hidden">96</div><div class="s-label">Hidden Units</div></div>
-          <div><div class="s-val" id="s-steps">0</div><div class="s-label">Training Steps</div></div>
-          <div><div class="s-val" id="s-loss">0.000</div><div class="s-label">Avg Loss</div></div>
+          <div><div class="s-val" id="s-vocab">0</div><div class="s-label">Словарь</div></div>
+          <div><div class="s-val" id="s-hidden">96</div><div class="s-label">Нейронов</div></div>
+          <div><div class="s-val" id="s-steps">0</div><div class="s-label">Шагов</div></div>
+          <div><div class="s-val" id="s-loss">0.000</div><div class="s-label">Потеря</div></div>
         </div>
         
-        <!-- ПРОГРЕСС-БАР ОБУЧЕНИЯ -->
         <div class="progress-container">
           <div class="progress-bar" id="progress-bar"></div>
           <div class="progress-text" id="progress-text">0 / 0 последовательностей</div>
@@ -453,28 +436,28 @@
       </div>
 
       <div class="panel">
-        <span class="p-title">⚙️ Model Actions</span>
+        <span class="p-title">⚙️ ДЕЙСТВИЯ</span>
         <div class="actions">
-          <button class="btn-sm" id="save">💾 Export</button>
-          <button class="btn-sm" id="load">📂 Import</button>
-          <button class="btn-sm btn-danger" id="reset" style="grid-column: span 2;">🗑️ Reset All</button>
+          <button class="btn-sm" id="save">💾 Скачать</button>
+          <button class="btn-sm" id="load">📂 Загрузить</button>
+          <button class="btn-sm btn-danger" id="reset" style="grid-column: span 2;">🗑️ Сбросить</button>
         </div>
       </div>
 
       <div class="panel">
-        <span class="p-title">🎛️ Training Control</span>
+        <span class="p-title">🎛️ УПРАВЛЕНИЕ</span>
         <div class="actions">
-          <button class="btn-sm" id="toggle-train">⏸ Pause</button>
-          <button class="btn-sm" id="force-save">✨ Save Now</button>
+          <button class="btn-sm" id="toggle-train">⏸ Пауза</button>
+          <button class="btn-sm" id="force-save">✨ Сохранить</button>
         </div>
         <div style="margin-top:0.5rem; font-size:0.65rem; color:var(--muted); text-align:center;">
-          Auto-save: <span id="auto-save-status" style="color:var(--success)">ON</span>
+          Автосохранение: <span id="auto-save-status" style="color:var(--success)">ВЫКЛ</span>
         </div>
       </div>
 
       <div class="panel" style="flex:1; display:flex; flex-direction:column;">
-        <span class="p-title">📋 System Log</span>
-        <div class="log-box" id="log">[SYS] Engine initialized v4.3\n</div>
+        <span class="p-title">📋 ЛОГ</span>
+        <div class="log-box" id="log">[СИСТЕМА] Готов к работе\n</div>
       </div>
       
     </div>
@@ -483,9 +466,7 @@
   <script>
     'use strict';
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // КОНФИГУРАЦИЯ
-    // ═══════════════════════════════════════════════════════════════════════
+    // =============== КОНФИГУРАЦИЯ ===============
     const CONFIG = {
       VERSION: 1,
       HIDDEN_SIZE: 96,
@@ -499,12 +480,11 @@
       GEN_MAX_LENGTH: 60,
       GEN_TEMPERATURE: 0.85,
       GEN_TOP_K: 20,
-      STORAGE_KEY: 'gru-engine-v4'
+      STORAGE_KEY: 'gru-engine-v4',
+      MAX_STORAGE_SIZE: 4 * 1024 * 1024 // 4MB лимит для localStorage
     };
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // МАТЕМАТИКА
-    // ═══════════════════════════════════════════════════════════════════════
+    // =============== МАТЕМАТИКА ===============
     const MathUtils = {
       sigmoid: (x) => 1 / (1 + Math.exp(Math.max(-500, Math.min(500, x)))),
       dSigmoid: (y) => y * (1 - y),
@@ -563,9 +543,7 @@
       }
     };
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // ТОКЕНИЗАТОР
-    // ═══════════════════════════════════════════════════════════════════════
+    // =============== ТОКЕНИЗАТОР ===============
     class Tokenizer {
       constructor() {
         this.tokenToId = new Map();
@@ -652,9 +630,7 @@
       isValidToken(id) { return id >= 0 && id < this.size; }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // GRU НЕЙРОСЕТЬ
-    // ═══════════════════════════════════════════════════════════════════════
+    // =============== GRU НЕЙРОСЕТЬ ===============
     class GRUNetwork {
       constructor(vocabSize, hiddenSize = CONFIG.HIDDEN_SIZE) {
         if (vocabSize < 4) throw new Error('Vocab size must be >= 4');
@@ -914,9 +890,7 @@
       getMetrics() { return {...this._metrics}; }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // UI И ПРИЛОЖЕНИЕ
-    // ═══════════════════════════════════════════════════════════════════════
+    // =============== UI ЭЛЕМЕНТЫ ===============
     const UI = {
       chat: document.getElementById('chat'),
       input: document.getElementById('input'),
@@ -931,19 +905,27 @@
       progressBar: document.getElementById('progress-bar'),
       progressText: document.getElementById('progress-text'),
       inputArea: document.getElementById('inputArea'),
-      chatCol: document.getElementById('chatCol')
+      fileWarning: document.getElementById('fileWarning'),
+      autoSaveStatus: document.getElementById('auto-save-status')
     };
 
+    // =============== ЛОГГЕР ===============
     const Logger = {
       add: (msg, type = 'info') => {
         const time = new Date().toLocaleTimeString();
-        const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : '✅';
+        let prefix = '📌';
+        if (type === 'error') prefix = '❌';
+        else if (type === 'warn') prefix = '⚠️';
+        else if (type === 'ok') prefix = '✅';
+        else if (type === 'debug') prefix = '🔍';
+        
         UI.log.textContent += `[${time}] ${prefix} ${msg}\n`;
         UI.log.scrollTop = UI.log.scrollHeight;
-        console.log(`[${type}] ${msg}`); // Дублируем в консоль
+        console.log(`[${type}] ${msg}`);
       }
     };
 
+    // =============== СТАТУС ===============
     const Status = {
       set: (text, state = 'idle') => {
         UI.statusText.textContent = text;
@@ -954,9 +936,17 @@
       }
     };
 
-    let tokenizer = null, network = null, dataset = [], trainIndex = 0, totalSequences = 0;
-    let isTraining = false, trainingPaused = false, autoSaveEnabled = true;
+    // =============== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===============
+    let tokenizer = null;
+    let network = null;
+    let dataset = [];
+    let trainIndex = 0;
+    let totalSequences = 0;
+    let isTraining = false;
+    let trainingPaused = false;
+    let autoSaveEnabled = false; // ОТКЛЮЧАЕМ АВТОСОХРАНЕНИЕ
 
+    // =============== ФУНКЦИИ ===============
     function addMessage(text, isUser) {
       const msg = document.createElement('div');
       msg.className = `msg ${isUser ? 'user' : 'ai'}`;
@@ -971,41 +961,82 @@
       UI.progressText.textContent = `${current} / ${total} последовательностей (${percent}%)`;
     }
 
-    function saveToStorage() {
-      if (!autoSaveEnabled || !network || !tokenizer) return;
+    // СОХРАНЕНИЕ ТОЛЬКО В ФАЙЛ (не в localStorage)
+    function saveToFile() {
+      if (!network || !tokenizer) { 
+        Logger.add('Нет модели для сохранения', 'warn'); 
+        return; 
+      }
+      
       try {
-        const data = { version: CONFIG.VERSION, tokenizer: tokenizer.export(), network: network.export(), trainIndex, timestamp: Date.now() };
-        localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(data));
-        Logger.add('Модель автосохранена', 'ok');
-      } catch (e) { Logger.add(`Не удалось сохранить: ${e.message}`, 'error'); }
+        const data = { 
+          version: CONFIG.VERSION, 
+          tokenizer: tokenizer.export(), 
+          network: network.export(),
+          trainIndex,
+          date: new Date().toISOString()
+        };
+        
+        const json = JSON.stringify(data);
+        const sizeMB = (json.length / (1024 * 1024)).toFixed(2);
+        
+        Logger.add(`Размер модели: ${sizeMB} MB`, 'info');
+        
+        const blob = new Blob([json], {type:'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `gru-model-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        
+        Logger.add('✅ Модель сохранена в файл', 'ok');
+      } catch (e) { 
+        Logger.add(`Ошибка сохранения: ${e.message}`, 'error'); 
+      }
     }
 
-    function loadFromStorage() {
+    // ЗАГРУЗКА ИЗ ФАЙЛА
+    async function loadFromFile(file) {
       try {
-        const raw = localStorage.getItem(CONFIG.STORAGE_KEY);
-        if (!raw) return false;
-        const data = JSON.parse(raw);
+        Logger.add(`Загрузка файла: ${file.name}`, 'info');
+        
+        const text = await file.text();
+        const data = JSON.parse(text);
+        
         if (data.version !== CONFIG.VERSION) {
-          Logger.add(`Несовместимая версия (${data.version} ≠ ${CONFIG.VERSION}), сброс`, 'warn');
-          localStorage.removeItem(CONFIG.STORAGE_KEY);
-          return false;
+          Logger.add(`Версия ${data.version} отличается от текущей ${CONFIG.VERSION}`, 'warn');
         }
+        
         tokenizer = new Tokenizer();
-        if (!tokenizer.import(data.tokenizer)) return false;
+        if (!tokenizer.import(data.tokenizer)) {
+          throw new Error('Ошибка импорта токенизатора');
+        }
+        
         network = new GRUNetwork(data.network.V, data.network.H);
-        if (!network.import(data.network)) return false;
+        if (!network.import(data.network)) {
+          throw new Error('Ошибка импорта сети');
+        }
+        
         trainIndex = data.trainIndex || 0;
+        
         UI.vocab.textContent = tokenizer.size;
         UI.hidden.textContent = network.H;
         UI.steps.textContent = network.getMetrics().steps;
-        UI.loss.textContent = '0.000';
+        UI.loss.textContent = (network.getMetrics().totalLoss / Math.max(1, network.getMetrics().steps)).toFixed(4);
         UI.input.disabled = false;
         UI.input.placeholder = 'Напишите сообщение...';
         UI.send.disabled = false;
+        
         Status.set('Модель загружена', 'active');
-        Logger.add(`Восстановлено: ${tokenizer.size} токенов, шаг ${trainIndex}`, 'ok');
-        return true;
-      } catch (e) { Logger.add(`Ошибка загрузки: ${e.message}`, 'error'); return false; }
+        Logger.add(`✅ Загружено: словарь ${tokenizer.size}, шагов ${network.getMetrics().steps}`, 'ok');
+        
+        // Показываем приветственное сообщение
+        addMessage(`Модель загружена из файла. Размер словаря: ${tokenizer.size}`, false);
+        
+      } catch (err) { 
+        Logger.add(`❌ Ошибка загрузки: ${err.message}`, 'error'); 
+        throw err;
+      }
     }
 
     function updateMetrics() {
@@ -1013,6 +1044,8 @@
       if (network) {
         UI.hidden.textContent = network.H;
         UI.steps.textContent = network.getMetrics().steps;
+        const avgLoss = network.getMetrics().totalLoss / Math.max(1, network.getMetrics().steps);
+        UI.loss.textContent = avgLoss.toFixed(4);
       }
     }
 
@@ -1028,9 +1061,8 @@
       if (!network || !dataset || trainIndex >= dataset.length) {
         isTraining = false;
         Status.set('Готов к работе', 'active');
-        Logger.add('Обучение завершено', 'ok');
+        Logger.add('✅ Обучение завершено', 'ok');
         updateProgress(totalSequences, totalSequences);
-        if (autoSaveEnabled) saveToStorage();
         return;
       }
       
@@ -1049,29 +1081,51 @@
       
       if (network.getMetrics().steps % 100 === 0 && count > 0) {
         Logger.add(`Шаг ${network.getMetrics().steps}, Loss: ${(batchLoss/count).toFixed(4)}`, 'ok');
-        if (autoSaveEnabled) saveToStorage();
       }
+      
       setTimeout(() => trainBatch(batchSize), 0);
     }
 
+    // =============== ОБРАБОТЧИКИ СОБЫТИЙ ===============
+
+    // Загрузка файла (txt или json)
     document.getElementById('drop').onclick = () => document.getElementById('file-in').click();
 
     document.getElementById('file-in').onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       
-      Logger.add(`Загрузка: ${file.name}`);
+      Logger.add(`Файл: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`, 'info');
       Status.set('Обработка...', 'active');
       
+      // Показываем предупреждение для больших файлов
+      if (file.size > 1024 * 1024) { // > 1MB
+        UI.fileWarning.style.display = 'block';
+        UI.fileWarning.textContent = '⚠️ Большой файл, может обрабатываться долго...';
+      }
+      
       try {
+        // Если это JSON - загружаем модель
+        if (file.name.endsWith('.json')) {
+          await loadFromFile(file);
+          UI.fileWarning.style.display = 'none';
+          return;
+        }
+        
+        // Иначе обрабатываем как текстовый файл для обучения
         const text = await file.text();
         if (!text || text.trim().length === 0) throw new Error('Пустой файл');
+        
+        Logger.add(`Текст загружен, размер: ${text.length} символов`, 'info');
         
         tokenizer = new Tokenizer();
         const words = tokenizer.buildVocabulary(text, CONFIG.MIN_FREQ);
         
         if (tokenizer.size <= 4) throw new Error(`Словарь пуст (${tokenizer.size} токенов). Увеличьте файл или уменьшите minFreq`);
-        if (tokenizer.size > 100000) Logger.add(`⚠️ Большой словарь (${tokenizer.size}). Обучение может быть медленным`, 'warn');
+        
+        if (tokenizer.size > 2000) {
+          Logger.add(`⚠️ Большой словарь (${tokenizer.size}). Обучение может быть медленным`, 'warn');
+        }
         
         dataset = text.split('\n')
           .map(l => tokenizer._normalize(l))
@@ -1084,11 +1138,10 @@
         totalSequences = dataset.length;
         trainIndex = 0;
         
-        Logger.add(`Словарь: ${tokenizer.size} | Строки: ${dataset.length} | Слова: ${words}`, 'ok');
-        Logger.add(`Пример токенов: ${JSON.stringify(dataset[0].slice(0, 10))}`, 'debug');
+        Logger.add(`Словарь: ${tokenizer.size} | Строк: ${dataset.length} | Всего слов: ${words}`, 'ok');
         
         network = new GRUNetwork(tokenizer.size, CONFIG.HIDDEN_SIZE);
-        Logger.add(`Сеть: ${network.getParamCount().toLocaleString()} параметров`, 'ok');
+        Logger.add(`Сеть создана: ${(network.getParamCount() / 1000000).toFixed(2)}M параметров`, 'ok');
         
         UI.vocab.textContent = tokenizer.size;
         UI.hidden.textContent = network.H;
@@ -1099,40 +1152,53 @@
         isTraining = true;
         trainingPaused = false;
         Status.set('Обучение...', 'active');
-        Logger.add(`Старт: ${dataset.length} последовательностей, batch=${CONFIG.BATCH_SIZE}`);
+        Logger.add(`Старт обучения: ${dataset.length} последовательностей`);
+        
+        addMessage(`Файл загружен. Размер словаря: ${tokenizer.size}. Начинаю обучение...`, false);
+        
         trainBatch(CONFIG.BATCH_SIZE);
         
       } catch (err) {
-        Logger.add(`Ошибка: ${err.message}`, 'error');
+        Logger.add(`❌ Ошибка: ${err.message}`, 'error');
         Status.set('Ошибка', 'error');
         UI.input.disabled = true;
         UI.send.disabled = true;
+      } finally {
+        UI.fileWarning.style.display = 'none';
       }
     };
 
+    // Отправка сообщения
     UI.send.onclick = () => {
       const text = UI.input.value.trim();
-      if (!text || !network || !tokenizer) return;
+      if (!text || !network || !tokenizer) {
+        addMessage('Сначала загрузите модель или файл для обучения', 'ai');
+        return;
+      }
       
       addMessage(text, true);
       UI.input.value = '';
       
       const inputIds = tokenizer.encode(text);
       if (inputIds.length === 0) { 
-        addMessage('Не удалось обработать ввод', 'ai'); 
+        addMessage('Не удалось обработать ввод (пусто или неизвестные символы)', 'ai'); 
         return; 
       }
       
-      const sequence = [2, ...inputIds, 3];
-      network.train(sequence, CONFIG.LR_INFERENCE);
-      
-      const outputIds = network.generate([2, ...inputIds], CONFIG.GEN_MAX_LENGTH, CONFIG.GEN_TEMPERATURE, CONFIG.GEN_TOP_K);
-      const response = tokenizer.decode(outputIds).trim();
-      
-      setTimeout(() => { addMessage(response || '...', false); }, 80);
-      
-      updateMetrics();
-      if (autoSaveEnabled) saveToStorage();
+      try {
+        const sequence = [2, ...inputIds, 3];
+        network.train(sequence, CONFIG.LR_INFERENCE);
+        
+        const outputIds = network.generate([2, ...inputIds], CONFIG.GEN_MAX_LENGTH, CONFIG.GEN_TEMPERATURE, CONFIG.GEN_TOP_K);
+        const response = tokenizer.decode(outputIds).trim();
+        
+        setTimeout(() => { addMessage(response || '...', false); }, 80);
+        
+        updateMetrics();
+      } catch (err) {
+        Logger.add(`Ошибка генерации: ${err.message}`, 'error');
+        addMessage('Ошибка при генерации ответа', 'ai');
+      }
     };
 
     UI.input.onkeydown = (e) => { 
@@ -1147,119 +1213,92 @@
       this.style.height = Math.min(this.scrollHeight, 150) + 'px'; 
     });
 
-    document.getElementById('save').onclick = () => {
-      if (!network || !tokenizer) { Logger.add('Нет модели', 'warn'); return; }
-      const data = { version: CONFIG.VERSION, tokenizer: tokenizer.export(), network: network.export() };
-      const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `gru-model-${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      Logger.add('Экспорт выполнен', 'ok');
-    };
+    // Кнопки
+    document.getElementById('save').onclick = saveToFile;
 
     document.getElementById('load').onclick = () => {
       const inp = document.createElement('input');
-      inp.type = 'file'; inp.accept = '.json';
+      inp.type = 'file'; 
+      inp.accept = '.json';
       inp.onchange = async (e) => {
         try {
-          const data = JSON.parse(await e.target.files[0].text());
-          if (data.version !== CONFIG.VERSION) throw new Error(`Версия ${data.version} несовместима`);
-          tokenizer = new Tokenizer(); tokenizer.import(data.tokenizer);
-          network = new GRUNetwork(data.network.V, data.network.H); network.import(data.network);
-          UI.vocab.textContent = tokenizer.size;
-          UI.hidden.textContent = network.H;
-          UI.input.disabled = false; UI.send.disabled = false;
-          Status.set('Импорт успешен', 'active');
-          Logger.add('Модель загружена', 'ok');
-        } catch (err) { Logger.add(`Импорт: ${err.message}`, 'error'); }
+          await loadFromFile(e.target.files[0]);
+        } catch (err) {
+          Logger.add(`Ошибка загрузки: ${err.message}`, 'error');
+        }
       };
       inp.click();
     };
 
     document.getElementById('reset').onclick = () => {
       if (!confirm('Сбросить всё? Прогресс будет утерян.')) return;
-      tokenizer = null; network = null; dataset = []; trainIndex = 0; totalSequences = 0;
-      localStorage.removeItem(CONFIG.STORAGE_KEY);
-      UI.vocab.textContent = '0'; UI.steps.textContent = '0'; UI.loss.textContent = '0.000';
+      tokenizer = null; 
+      network = null; 
+      dataset = []; 
+      trainIndex = 0; 
+      totalSequences = 0;
+      
+      UI.vocab.textContent = '0'; 
+      UI.steps.textContent = '0'; 
+      UI.loss.textContent = '0.000';
       UI.progressBar.style.width = '0%';
       UI.progressText.textContent = '0 / 0 последовательностей';
-      UI.input.disabled = true; UI.input.placeholder = 'Загрузите файл...'; UI.send.disabled = true;
+      UI.input.disabled = true; 
+      UI.input.placeholder = 'Загрузите файл...'; 
+      UI.send.disabled = true;
+      
       Status.set('Сброшено', 'idle');
-      Logger.add('Полный сброс', 'warn');
+      Logger.add('🔄 Полный сброс выполнен', 'warn');
+      
+      // Очищаем чат
+      UI.chat.innerHTML = '';
+      addMessage('Система сброшена. Загрузите файл .txt для обучения.', false);
     };
 
     document.getElementById('toggle-train').onclick = () => {
-      if (!isTraining) return;
+      if (!isTraining) {
+        Logger.add('Нет активного обучения', 'warn');
+        return;
+      }
       trainingPaused = !trainingPaused;
       const btn = document.getElementById('toggle-train');
       if (trainingPaused) {
-        btn.textContent = '▶ Resume';
+        btn.textContent = '▶ Продолжить';
         Status.set('На паузе', 'warning');
         Logger.add('Обучение приостановлено');
       } else {
-        btn.textContent = '⏸ Pause';
+        btn.textContent = '⏸ Пауза';
         Status.set('Обучение...', 'active');
         Logger.add('Обучение продолжено');
       }
     };
 
-    document.getElementById('force-save').onclick = () => { saveToStorage(); Logger.add('Ручное сохранение', 'ok'); };
+    document.getElementById('force-save').onclick = saveToFile;
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // ФИКС ДЛЯ GITHUB PAGES - принудительно показываем поле ввода
-    // ═══════════════════════════════════════════════════════════════════════
+    // Обновляем статус автосохранения
+    if (UI.autoSaveStatus) {
+      UI.autoSaveStatus.textContent = 'ВЫКЛ';
+      UI.autoSaveStatus.style.color = 'var(--warning)';
+    }
+
+    // =============== ФИКС ДЛЯ ПОЛЯ ВВОДА ===============
     function fixInputVisibility() {
-      console.log('Проверка видимости элементов...');
-      
-      // Принудительно показываем поле ввода
       if (UI.inputArea) {
         UI.inputArea.style.display = 'block';
         UI.inputArea.style.visibility = 'visible';
         UI.inputArea.style.opacity = '1';
-        UI.inputArea.style.height = '70px';
-        console.log('✓ Поле ввода принудительно показано');
-      }
-      
-      // Проверяем textarea
-      if (UI.input) {
-        console.log('✓ Textarea найден, disabled:', UI.input.disabled);
-      }
-      
-      // Проверяем кнопку
-      if (UI.send) {
-        console.log('✓ Кнопка найдена, disabled:', UI.send.disabled);
-      }
-      
-      // Логируем размеры
-      const rect = UI.inputArea?.getBoundingClientRect();
-      if (rect) {
-        console.log('Размеры поля ввода:', rect.height, 'x', rect.width);
+        UI.inputArea.style.height = '80px';
       }
     }
 
-    // Запускаем фикс после загрузки страницы
-    window.addEventListener('load', function() {
-      fixInputVisibility();
-      
-      // И после каждой загрузки файла
-      const originalOnchange = document.getElementById('file-in').onchange;
-      document.getElementById('file-in').onchange = async function(e) {
-        await originalOnchange.call(this, e);
-        setTimeout(fixInputVisibility, 100); // Даём время на обновление DOM
-        setTimeout(fixInputVisibility, 1000); // И ещё через секунду
-      };
-    });
+    // Запускаем фикс при загрузке и изменении размера окна
+    window.addEventListener('load', fixInputVisibility);
+    window.addEventListener('resize', fixInputVisibility);
+    setInterval(fixInputVisibility, 1000);
 
-    // И каждые 2 секунды проверяем (на всякий случай)
-    setInterval(fixInputVisibility, 2000);
-
-    // Загружаем сохранение если есть
-    if (!loadFromStorage()) {
-      Logger.add('Ожидание файла .txt', 'info');
-      Status.set('Ожидание', 'idle');
-    }
+    // Стартовое сообщение
+    Logger.add('Система готова. Загрузите .txt для обучения или .json для загрузки модели', 'info');
+    Status.set('Ожидание', 'idle');
   </script>
 </body>
 </html>
