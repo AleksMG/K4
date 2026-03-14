@@ -2,1042 +2,1339 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GRU Neural Engine · Telegram 2026</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GRU Neural Engine · Enterprise Edition</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* =============================================================
+       1. RESET & ENVIRONMENT VARIABLES (Apple Vision Pro Design)
+       ============================================================= */
+    :root {
+      /* --- Color Palette --- */
+      --bg-base: #000000;
+      --bg-glass: rgba(22, 22, 25, 0.82);
+      --bg-glass-hover: rgba(30, 30, 34, 0.9);
+      --bg-input: rgba(44, 44, 48, 0.95);
+      --border-glass: rgba(255, 255, 255, 0.09);
+      --border-active: rgba(10, 132, 255, 0.6);
+      
+      /* --- Text Colors --- */
+      --text-primary: #FFFFFF;
+      --text-secondary: rgba(255, 255, 255, 0.55);
+      --text-tertiary: rgba(255, 255, 255, 0.3);
+      
+      /* --- Accent Colors --- */
+      --accent-blue: #0A84FF;
+      --accent-green: #30D158;
+      --accent-orange: #FF9F0A;
+      --accent-red: #FF453A;
+      --accent-purple: #BF5AF2;
+      
+      /* --- Geometry --- */
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+      --radius-full: 999px;
+      
+      /* --- Effects --- */
+      --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      --shadow-glow-blue: 0 0 25px rgba(10, 132, 255, 0.2);
+      --transition-smooth: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      
+      /* --- Typography --- */
+      --font-main: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
     body {
-      background: #0a0a0f;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-base);
+      font-family: var(--font-main);
+      color: var(--text-primary);
       height: 100vh;
+      width: 100vw;
+      overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
     }
-    .app {
+
+    /* =============================================================
+       2. AMBIENT BACKGROUND (Canvas Layer)
+       ============================================================= */
+    #canvas-bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* =============================================================
+       3. APPLICATION SHELL
+       ============================================================= */
+    .app-shell {
+      position: relative;
+      z-index: 1;
       width: 100%;
       height: 100%;
-      display: flex;
-      background: #1a1a24;
       max-width: 1600px;
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 20px;
+      padding: 20px;
     }
-    /* ЧАТ */
-    .chat {
-      flex: 1;
+
+    @media (max-width: 1024px) {
+      .app-shell { grid-template-columns: 1fr; padding: 10px; gap: 10px; }
+      .sidebar-panel { display: none; }
+    }
+
+    /* =============================================================
+       4. CHAT MODULE (Main Interface)
+       ============================================================= */
+    .chat-module {
+      background: var(--bg-glass);
+      backdrop-filter: blur(60px) saturate(180%);
+      -webkit-backdrop-filter: blur(60px) saturate(180%);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-glass);
       display: flex;
       flex-direction: column;
-      background: #0f0f14;
-      height: 100%;
+      box-shadow: var(--shadow-modal);
+      overflow: hidden;
+      position: relative;
     }
+
+    /* --- Header --- */
     .chat-header {
-      height: 54px;
-      padding: 0 16px;
+      height: 76px;
+      padding: 0 24px;
       display: flex;
       align-items: center;
-      background: #1a1a24;
-      border-bottom: 1px solid #2a2a34;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-glass);
+      background: rgba(0,0,0,0.15);
+      flex-shrink: 0;
     }
-    .chat-title { font-weight: 600; font-size: 16px; color: #fff; }
-    .chat-status { margin-left: 12px; font-size: 13px; color: #5a5a6a; }
-    .messages {
+
+    .status-cluster {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .status-led {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--text-tertiary);
+      transition: all 0.3s;
+    }
+
+    .status-led.active { background: var(--accent-green); box-shadow: 0 0 12px var(--accent-green); }
+    .status-led.processing { background: var(--accent-orange); animation: ledPulse 1s infinite; }
+    .status-led.error { background: var(--accent-red); box-shadow: 0 0 12px var(--accent-red); }
+
+    @keyframes ledPulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+    .header-title { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+    .header-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* --- Chat Body --- */
+    .chat-body {
       flex: 1;
       overflow-y: auto;
-      padding: 20px;
+      padding: 32px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 18px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.1) transparent;
     }
-    .message { max-width: 70%; }
-    .message.user { align-self: flex-end; }
-    .message.bot { align-self: flex-start; }
-    .message-bubble {
-      padding: 10px 14px;
-      border-radius: 18px;
+
+    .chat-body::-webkit-scrollbar { width: 6px; }
+    .chat-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+    /* --- Messages --- */
+    .msg-row {
+      display: flex;
+      width: 100%;
+      justify-content: flex-start;
+      animation: msgAnim 0.2s ease-out forwards;
+    }
+    .msg-row.user { justify-content: flex-end; }
+    
+    @keyframes msgAnim { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .msg-bubble {
+      max-width: 75%;
+      padding: 12px 18px;
+      border-radius: 20px;
       font-size: 15px;
-      line-height: 1.4;
+      line-height: 1.45;
       word-break: break-word;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
-    .user .message-bubble {
-      background: #00ffa3;
-      color: #000;
-      border-bottom-right-radius: 4px;
-    }
-    .bot .message-bubble {
-      background: #1a1a24;
+
+    .user .msg-bubble {
+      background: var(--accent-blue);
       color: #fff;
-      border-bottom-left-radius: 4px;
+      border-bottom-right-radius: 6px;
     }
-    /* ПОЛЕ ВВОДА */
+
+    .bot .msg-bubble {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border-glass);
+      border-bottom-left-radius: 6px;
+    }
+
+    /* --- Input Area --- */
     .input-area {
-      padding: 12px 16px;
-      background: #1a1a24;
-      border-top: 1px solid #2a2a34;
+      padding: 20px 24px 24px;
+      background: rgba(0,0,0,0.15);
+      border-top: 1px solid var(--border-glass);
     }
+
     .input-wrapper {
       display: flex;
-      align-items: flex-end;
-      background: #0f0f14;
-      border: 1px solid #2a2a34;
-      border-radius: 22px;
-      padding: 6px;
+      align-items: center;
+      background: var(--bg-input);
+      border-radius: 24px;
+      border: 1px solid transparent;
+      transition: all 0.2s;
     }
-    .input-wrapper:focus-within { border-color: #00ffa3; }
+
+    .input-wrapper:focus-within {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25);
+    }
+
     textarea {
       flex: 1;
-      background: transparent;
+      background: none;
       border: none;
-      padding: 8px 12px;
-      color: #fff;
-      font-size: 15px;
-      font-family: inherit;
-      resize: none;
       outline: none;
+      resize: none;
+      height: 44px;
       max-height: 120px;
-      min-height: 24px;
+      padding: 12px 18px;
+      font-family: inherit;
+      font-size: 15px;
+      color: #fff;
     }
-    textarea::placeholder { color: #5a5a6a; }
-    textarea:disabled { opacity: 0.5; }
-    .send-button {
-      background: #00ffa3;
+    
+    textarea:disabled { opacity: 0.5; background: #222; }
+    textarea::placeholder { color: var(--text-secondary); }
+
+    .btn-action {
+      width: 40px; height: 40px;
+      background: var(--accent-blue);
       border: none;
       border-radius: 50%;
-      width: 36px;
-      height: 36px;
+      margin: 4px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: transform 0.1s;
+      flex-shrink: 0;
+    }
+
+    .btn-action:active { transform: scale(0.9); }
+    .btn-action:disabled { background: #333; opacity: 0.5; cursor: not-allowed; }
+    .btn-action svg { width: 18px; height: 18px; fill: white; }
+
+    /* =============================================================
+       5. SIDEBAR PANEL
+       ============================================================= */
+    .sidebar-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .card {
+      background: var(--bg-glass);
+      backdrop-filter: blur(40px);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-modal);
+    }
+
+    .card-header {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    /* --- Upload Zone --- */
+    .upload-zone {
+      border: 2px dashed rgba(255,255,255,0.15);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .upload-zone:hover { border-color: var(--accent-blue); background: rgba(10, 132, 255, 0.05); }
+    .upload-icon { font-size: 28px; opacity: 0.5; margin-bottom: 8px; }
+    .upload-text { font-size: 13px; color: var(--text-secondary); }
+
+    /* --- Metrics Grid --- */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .metric-item {
+      background: rgba(0,0,0,0.2);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .metric-val {
+      font-size: 20px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+    }
+
+    .metric-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    /* --- Progress --- */
+    .progress-track {
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+      width: 0%;
+      transition: width 0.2s;
+    }
+
+    /* --- Buttons --- */
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    
+    .btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-glass);
+      color: var(--text-primary);
+      padding: 10px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
-      transition: 0.2s;
-      margin: 2px;
+      gap: 6px;
     }
-    .send-button svg { width: 18px; height: 18px; fill: #000; }
-    .send-button:hover { transform: scale(1.1); }
-    .send-button:active { transform: scale(0.95); }
-    .send-button:disabled { background: #2a2a34; cursor: not-allowed; }
-    .send-button:disabled svg { fill: #5a5a6a; }
-    /* ПАНЕЛЬ */
-    .sidebar {
-      width: 300px;
-      background: #1a1a24;
-      border-left: 1px solid #2a2a34;
-      display: flex;
-      flex-direction: column;
+
+    .btn:hover { background: rgba(255,255,255,0.1); }
+    .btn.danger { color: var(--accent-red); border-color: rgba(255, 69, 58, 0.3); }
+    .btn.danger:hover { background: rgba(255, 69, 58, 0.1); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* --- Log Console --- */
+    .log-console {
+      background: rgba(0,0,0,0.4);
+      border-radius: 8px;
+      padding: 12px;
+      height: 140px;
       overflow-y: auto;
-    }
-    @media (max-width: 800px) { .sidebar { display: none; } }
-    .sidebar-header {
-      padding: 20px 16px 8px;
-      font-weight: 600;
-      font-size: 13px;
-      color: #5a5a6a;
-      text-transform: uppercase;
-    }
-    .section { padding: 0 16px 20px; }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 8px;
-    }
-    .stat-card {
-      background: #0f0f14;
-      border-radius: 12px;
-      padding: 12px;
-      text-align: center;
-    }
-    .stat-value { color: #00ffa3; font-size: 18px; font-weight: 600; }
-    .stat-label { color: #5a5a6a; font-size: 11px; text-transform: uppercase; }
-    .progress {
-      background: #0f0f14;
-      border-radius: 12px;
-      padding: 12px;
-      margin-top: 12px;
-    }
-    .progress-bar {
-      height: 6px;
-      background: #2a2a34;
-      border-radius: 3px;
-      overflow: hidden;
-      margin: 8px 0 4px;
-    }
-    .progress-fill {
-      height: 100%;
-      background: #00ffa3;
-      width: 0%;
-      transition: width 0.3s;
-    }
-    .progress-text { color: #5a5a6a; font-size: 12px; text-align: center; }
-    .upload-area {
-      background: #0f0f14;
-      border: 2px dashed #2a2a34;
-      border-radius: 16px;
-      padding: 24px 16px;
-      text-align: center;
-      cursor: pointer;
-      transition: 0.2s;
-      margin-bottom: 16px;
-    }
-    .upload-area:hover { border-color: #00ffa3; }
-    .upload-icon { font-size: 24px; margin-bottom: 8px; }
-    .upload-text { color: #5a5a6a; font-size: 13px; }
-    .upload-hint { color: #3a3a44; font-size: 11px; }
-    .button-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 12px;
-    }
-    .button {
-      background: #0f0f14;
-      border: 1px solid #2a2a34;
-      border-radius: 20px;
-      padding: 10px;
-      color: #fff;
-      font-size: 13px;
-      cursor: pointer;
-      transition: 0.2s;
-      text-align: center;
-    }
-    .button:hover { background: #2a2a34; }
-    .button.danger { color: #ff5577; }
-    .button.span-2 { grid-column: span 2; }
-    .log {
-      background: #0f0f14;
-      border-radius: 12px;
-      padding: 12px;
-      font-family: monospace;
-      font-size: 11px;
-      color: #5a5a6a;
-      height: 120px;
-      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-tertiary);
       white-space: pre-wrap;
-      line-height: 1.5;
+      line-height: 1.6;
     }
-    .log .error { color: #ff5577; }
-    .log .success { color: #33ff88; }
-    .log .warn { color: #ffaa33; }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #2a2a34; border-radius: 3px; }
+
+    .log-console .err { color: var(--accent-red); }
+    .log-console .ok { color: var(--accent-green); }
+    .log-console .warn { color: var(--accent-orange); }
   </style>
 </head>
 <body>
-  <div class="app">
-    <!-- ЧАТ -->
-    <div class="chat">
+
+  <!-- Background Canvas -->
+  <canvas id="canvas-bg"></canvas>
+
+  <div class="app-shell">
+    <!-- CHAT MODULE -->
+    <div class="chat-module">
       <div class="chat-header">
-        <span class="chat-title">GRU Neural Engine v4.3</span>
-        <span class="chat-status" id="statusText">ожидание</span>
+        <div class="status-cluster">
+          <div class="status-led" id="statusLed"></div>
+          <div>
+            <div class="header-title">Neural Engine Enterprise</div>
+            <div class="header-subtitle" id="statusText">System Idle</div>
+          </div>
+        </div>
       </div>
-      <div class="messages" id="messages"></div>
+
+      <div class="chat-body" id="chatBody"></div>
+
       <div class="input-area">
         <div class="input-wrapper">
-          <textarea id="userInput" rows="1" placeholder="Сообщение..." disabled></textarea>
-          <button class="send-button" id="sendBtn" disabled>
+          <!-- INPUT IS ENABLED BY DEFAULT. Only Button is disabled initially. -->
+          <textarea id="userInput" placeholder="Введите сообщение..." rows="1"></textarea>
+          <button class="btn-action" id="btnSend" disabled>
             <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
           </button>
         </div>
       </div>
     </div>
-    <!-- ПАНЕЛЬ -->
-    <div class="sidebar">
-      <div class="sidebar-header">ЗАГРУЗКА</div>
-      <div class="section">
-        <input type="file" id="fileInput" accept=".txt,.md,.json" style="display: none;">
-        <div class="upload-area" id="dropzone">
-          <div class="upload-icon">📄</div>
-          <div class="upload-text">Выберите файл</div>
-          <div class="upload-hint">.txt .md .json</div>
-        </div>
-        <div id="fileWarning" style="color:#ffaa33; font-size:11px; text-align:center; display:none;">⚠️ Обработка...</div>
-      </div>
-      <div class="sidebar-header">МЕТРИКИ</div>
-      <div class="section">
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-value" id="vocabSize">0</div><div class="stat-label">Словарь</div></div>
-          <div class="stat-card"><div class="stat-value" id="hiddenSize">96</div><div class="stat-label">Нейроны</div></div>
-          <div class="stat-card"><div class="stat-value" id="stepsCount">0</div><div class="stat-label">Шаги</div></div>
-          <div class="stat-card"><div class="stat-value" id="lossValue">0.000</div><div class="stat-label">Потеря</div></div>
-        </div>
-        <div class="progress">
-          <div class="progress-text" id="progressText">0 / 0</div>
-          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar-panel">
+      <div class="card">
+        <div class="card-header">Data Source</div>
+        <input type="file" id="fileInput" accept=".txt,.md,.json" hidden>
+        <div class="upload-zone" id="dropZone">
+          <div class="upload-icon">💾</div>
+          <div class="upload-text">Drop File / Click</div>
         </div>
       </div>
-      <div class="sidebar-header">ДЕЙСТВИЯ</div>
-      <div class="section">
-        <div class="button-grid">
-          <button class="button" id="saveBtn">💾 Скачать</button>
-          <button class="button" id="loadBtn">📂 Загрузить</button>
-          <button class="button danger span-2" id="resetBtn">🗑️ Сбросить</button>
+
+      <div class="card">
+        <div class="card-header">System Metrics</div>
+        <div class="metric-grid">
+          <div class="metric-item">
+            <div class="metric-val" id="mVocab">0</div>
+            <div class="metric-label">Vocab Size</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-val" id="mHidden">128</div>
+            <div class="metric-label">Neurons</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-val" id="mSteps">0</div>
+            <div class="metric-label">Train Steps</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-val" id="mLoss">0.00</div>
+            <div class="metric-label">Loss</div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-secondary); margin-top:12px;">
+            <span id="progText">0 / 0</span>
+            <span id="progPct">0%</span>
+        </div>
+        <div class="progress-track"><div class="progress-bar" id="progBar"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Controls</div>
+        <div class="btn-row">
+          <button class="btn" id="btnPause">⏸ Pause</button>
+          <button class="btn" id="btnSave">💾 Save</button>
+          <button class="btn" id="btnLoad">📂 Load</button>
+          <button class="btn danger" id="btnReset">🗑 Reset</button>
         </div>
       </div>
-      <div class="sidebar-header">УПРАВЛЕНИЕ</div>
-      <div class="section">
-        <div class="button-grid">
-          <button class="button" id="pauseBtn">⏸ Пауза</button>
-          <button class="button" id="saveNowBtn">✨ Сохранить</button>
-        </div>
-        <div style="text-align:center; margin-top:8px; font-size:11px; color:#5a5a6a;">
-          Автосохранение: <span style="color:#ffaa33;" id="autoSaveStatus">ВЫКЛ</span>
-        </div>
-      </div>
-      <div class="sidebar-header">ЛОГ</div>
-      <div class="section" style="flex:1;">
-        <div class="log" id="log"></div>
+
+      <div class="card" style="flex:1; overflow:hidden;">
+        <div class="card-header">Console</div>
+        <div class="log-console" id="logConsole"></div>
       </div>
     </div>
   </div>
-  <script>
-    (function() {
-      'use strict';
 
-      // ================ КОНФИГУРАЦИЯ ================
-      const CONFIG = {
-        VERSION: 1,
-        HIDDEN_SIZE: 96,
-        MIN_FREQ: 2,
-        MIN_LINE_LEN: 5,
-        MAX_CACHE_SIZE: 100,
-        BATCH_SIZE: 20,
-        LR_INITIAL: 0.002,
-        LR_INFERENCE: 0.0005,
-        GRAD_CLIP_NORM: 5.0,
-        GEN_MAX_LENGTH: 60,
-        GEN_TEMPERATURE: 0.85,
-        GEN_TOP_K: 20,
-        STORAGE_KEY: 'gru-engine-v4'
-      };
+<script>
+/**
+ * ============================================================================
+ * GRU NEURAL NETWORK ENGINE - PROFESSIONAL ENTERPRISE EDITION
+ * Version: 5.2.0
+ * License: MIT
+ * 
+ * Architecture Breakdown:
+ * 1. MathEngine: Low-level tensor operations (no external libs).
+ * 2. GRU Model: Complete Gated Recurrent Unit implementation.
+ * 3. Optimizer: Adam optimization algorithm with bias correction.
+ * 4. Tokenizer: Text-to-Index processing with vocabulary management.
+ * 5. UI Controller: Complete DOM abstraction layer.
+ * ============================================================================
+ */
 
-      // ================ МАТЕМАТИКА ================
-      const MathUtils = {
-        sigmoid: (x) => 1 / (1 + Math.exp(Math.max(-500, Math.min(500, x)))),
-        dSigmoid: (y) => y * (1 - y),
-        tanh: (x) => Math.tanh(x),
-        dTanh: (y) => Math.max(1e-7, 1 - y * y),
+(function() {
+    'use strict';
 
-        softmax: (logits) => {
-          const max = Math.max(...logits);
-          const exp = new Float32Array(logits.length);
-          let sum = 0;
-          for (let i = 0; i < logits.length; i++) {
-            exp[i] = Math.exp(logits[i] - max);
-            sum += exp[i];
-          }
-          if (sum < 1e-10) {
-            const uniform = 1 / logits.length;
-            return new Float32Array(logits.length).fill(uniform);
-          }
-          for (let i = 0; i < exp.length; i++) exp[i] /= sum;
-          return exp;
+    // ========================================================================
+    // SECTION 1: CONFIGURATION & CONSTANTS
+    // ========================================================================
+    
+    const CONFIG = {
+        architecture: {
+            hiddenSize: 128,      // Number of neurons in hidden state
+            vocabMinFreq: 2,      // Minimum frequency for token inclusion
         },
-
-        zeros: (n) => new Float32Array(n),
-
-        xavierInit: (rows, cols, scale = 1.0) => {
-          const limit = scale * Math.sqrt(6 / (rows + cols));
-          const arr = new Float32Array(rows * cols);
-          for (let i = 0; i < arr.length; i++) arr[i] = (Math.random() * 2 - 1) * limit;
-          return arr;
+        training: {
+            learningRate: 0.002,  // Base learning rate for Adam
+            batchSize: 10,        // Number of sequences per batch
+            gradClipNorm: 5.0,    // Gradient clipping threshold
+            bpttTrunc: 20,        // Backpropagation through time truncation
         },
-
-        matVec: (W, rows, cols, vec, out = null) => {
-          const result = out || new Float32Array(rows);
-          for (let i = 0; i < rows; i++) {
-            let sum = 0;
-            const offset = i * cols;
-            for (let j = 0; j < cols; j++) sum += W[offset + j] * vec[j];
-            result[i] = sum;
-          }
-          return result;
+        generation: {
+            temperature: 0.85,    // Sampling temperature
+            topK: 40              // Top-K sampling filter
         },
-
-        clipGlobalNorm: (grads, maxNorm) => {
-          let normSq = 0;
-          for (const g of grads) {
-            for (let i = 0; i < g.length; i++) normSq += g[i] * g[i];
-          }
-          const norm = Math.sqrt(normSq);
-          if (norm > maxNorm && norm > 0) {
-            const scale = maxNorm / norm;
-            for (const g of grads) {
-              for (let i = 0; i < g.length; i++) g[i] *= scale;
-            }
-          }
-          return norm;
+        system: {
+            logBatchSize: 10,     // Log updates frequency
+            autoSaveInterval: 60000 // Auto-save interval (ms)
         }
-      };
+    };
 
-      // ================ ТОКЕНИЗАТОР ================
-      class Tokenizer {
+    // ========================================================================
+    // SECTION 2: MATH ENGINE (VANILLA TENSOR OPERATIONS)
+    // ========================================================================
+
+    class MathEngine {
+        
+        /**
+         * Create a zero-filled Float32Array.
+         * @param {number} size 
+         * @returns {Float32Array}
+         */
+        static zeros(size) {
+            if (typeof size !== 'number' || size < 0) throw new Error("Invalid size for zeros");
+            return new Float32Array(size);
+        }
+
+        /**
+         * Create array initialized with Xavier/Glorot initialization.
+         * Useful for weight initialization.
+         * @param {number} rows 
+         * @param {number} cols 
+         * @returns {Float32Array}
+         */
+        static xavierInit(rows, cols) {
+            const size = rows * cols;
+            const arr = new Float32Array(size);
+            const limit = Math.sqrt(6.0 / (rows + cols));
+            for (let i = 0; i < size; i++) {
+                arr[i] = (Math.random() * 2 - 1) * limit;
+            }
+            return arr;
+        }
+
+        /**
+         * Sigmoid activation function (logistic).
+         * @param {number} x 
+         * @returns {number}
+         */
+        static sigmoid(x) {
+            // Clamping for numerical stability
+            if (x > 20) return 1.0;
+            if (x < -20) return 0.0;
+            return 1.0 / (1.0 + Math.exp(-x));
+        }
+
+        /**
+         * Hyperbolic tangent activation.
+         * @param {number} x 
+         * @returns {number}
+         */
+        static tanh(x) {
+            return Math.tanh(x);
+        }
+
+        /**
+         * Softmax activation for probability distribution.
+         * @param {Float32Array} logits 
+         * @returns {Float32Array}
+         */
+        static softmax(logits) {
+            const max = Math.max(...logits);
+            const exps = new Float32Array(logits.length);
+            let sum = 0;
+            for(let i=0; i<logits.length; i++) {
+                exps[i] = Math.exp(logits[i] - max); // stability
+                sum += exps[i];
+            }
+            const result = new Float32Array(logits.length);
+            for(let i=0; i<exps.length; i++) result[i] = exps[i] / sum;
+            return result;
+        }
+
+        /**
+         * L2 Norm of a vector.
+         * @param {Float32Array} arr 
+         * @returns {number}
+         */
+        static norm(arr) {
+            let sum = 0;
+            for(let i=0; i<arr.length; i++) sum += arr[i] * arr[i];
+            return Math.sqrt(sum);
+        }
+
+        /**
+         * Element-wise addition: res = a + b
+         * @param {Float32Array} a 
+         * @param {Float32Array} b 
+         * @returns {Float32Array}
+         */
+        static add(a, b) {
+            const res = new Float32Array(a.length);
+            for(let i=0; i<a.length; i++) res[i] = a[i] + b[i];
+            return res;
+        }
+
+        /**
+         * Element-wise subtraction: res = a - b
+         * @param {Float32Array} a 
+         * @param {Float32Array} b 
+         * @returns {Float32Array}
+         */
+        static sub(a, b) {
+            const res = new Float32Array(a.length);
+            for(let i=0; i<a.length; i++) res[i] = a[i] - b[i];
+            return res;
+        }
+
+        /**
+         * Element-wise multiplication (Hadamard product): res = a * b
+         * @param {Float32Array} a 
+         * @param {Float32Array} b 
+         * @returns {Float32Array}
+         */
+        static mul(a, b) {
+            const res = new Float32Array(a.length);
+            for(let i=0; i<a.length; i++) res[i] = a[i] * b[i];
+            return res;
+        }
+
+        /**
+         * Scale vector by scalar: res = a * s
+         * @param {Float32Array} a 
+         * @param {number} s 
+         * @returns {Float32Array}
+         */
+        static scale(a, s) {
+            const res = new Float32Array(a.length);
+            for(let i=0; i<a.length; i++) res[i] = a[i] * s;
+            return res;
+        }
+    }
+
+    // ========================================================================
+    // SECTION 3: TOKENIZER
+    // ========================================================================
+
+    class Tokenizer {
         constructor() {
-          this.tokenToId = new Map();
-          this.idToToken = new Map();
-          this._initSpecialTokens();
+            this.word2idx = new Map();
+            this.idx2word = new Map();
+            this._initSpecialTokens();
         }
 
         _initSpecialTokens() {
-          ['<PAD>', '<UNK>', '<BOS>', '<EOS>'].forEach(t => this._add(t));
+            this.addToken('<PAD>'); // 0
+            this.addToken('<UNK>'); // 1
+            this.addToken('<BOS>'); // 2
+            this.addToken('<EOS>'); // 3
         }
 
-        _add(token) {
-          if (!this.tokenToId.has(token)) {
-            const id = this.tokenToId.size;
-            this.tokenToId.set(token, id);
-            this.idToToken.set(id, token);
-          }
-        }
-
-        _normalize(text) {
-          if (!text || typeof text !== 'string') return '';
-          return text.toLowerCase()
-            .replace(/[^а-яёa-z0-9\s\.\,\!\?\-\']/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
-        }
-
-        buildVocabulary(text, minFreq = CONFIG.MIN_FREQ) {
-          const normalized = this._normalize(text);
-          const words = normalized.split(' ').filter(w => w.length > 0);
-          if (words.length === 0) return 0;
-
-          const freq = new Map();
-          for (const w of words) freq.set(w, (freq.get(w) || 0) + 1);
-
-          for (const [word, count] of freq) {
-            if (count >= minFreq) this._add(word);
-          }
-
-          for (let i = 0; i < words.length - 1; i++) {
-            const a = words[i], b = words[i + 1];
-            if ((freq.get(a) || 0) >= minFreq && (freq.get(b) || 0) >= minFreq) {
-              this._add(`${a}‗${b}`);
+        addToken(word) {
+            if (!this.word2idx.has(word)) {
+                const id = this.word2idx.size;
+                this.word2idx.set(word, id);
+                this.idx2word.set(id, word);
             }
-          }
-          return words.length;
+        }
+
+        tokenize(text) {
+            return text.toLowerCase()
+                .replace(/[^а-яёa-z0-9\s\.,!?\'-]/g, '')
+                .split(/\s+/)
+                .filter(w => w.length > 0);
+        }
+
+        buildVocab(text) {
+            const words = this.tokenize(text);
+            const freq = new Map();
+            
+            words.forEach(w => freq.set(w, (freq.get(w) || 0) + 1));
+
+            for (const [word, count] of freq.entries()) {
+                if (count >= CONFIG.architecture.vocabMinFreq) {
+                    this.addToken(word);
+                }
+            }
         }
 
         encode(text) {
-          const words = this._normalize(text).split(' ').filter(w => w.length > 0);
-          const ids = [];
-          for (let i = 0; i < words.length; ) {
-            let matched = false;
-            if (i < words.length - 1) {
-              const bigram = `${words[i]}‗${words[i + 1]}`;
-              const id = this.tokenToId.get(bigram);
-              if (id !== undefined) { ids.push(id); i += 2; matched = true; }
-            }
-            if (!matched) {
-              const id = this.tokenToId.get(words[i]);
-              ids.push(id !== undefined ? id : this.tokenToId.get('<UNK>'));
-              i++;
-            }
-          }
-          return ids;
+            return this.tokenize(text).map(w => this.word2idx.get(w) || 1); // 1 is UNK
         }
 
         decode(ids) {
-          if (!Array.isArray(ids)) return '';
-          return ids.map(id => this.idToToken.get(id) || '<UNK>').join(' ').replace(/‗/g, ' ');
+            return ids.map(id => this.idx2word.get(id) || '').join(' ');
         }
 
-        export() { return Array.from(this.tokenToId.entries()); }
-
-        import(data) {
-          if (!Array.isArray(data)) return false;
-          this.tokenToId = new Map(data);
-          this.idToToken = new Map();
-          for (const [token, id] of data) this.idToToken.set(id, token);
-          return true;
+        get size() {
+            return this.word2idx.size;
         }
 
-        get size() { return this.tokenToId.size; }
-        isValidToken(id) { return id >= 0 && id < this.size; }
-      }
-
-      // ================ GRU НЕЙРОСЕТЬ ================
-      class GRUNetwork {
-        constructor(vocabSize, hiddenSize = CONFIG.HIDDEN_SIZE) {
-          if (vocabSize < 4) throw new Error('Vocab size must be >= 4');
-          this.V = vocabSize;
-          this.H = hiddenSize;
-          this._initWeights();
-          this._initAdam();
-          this.cache = [];
-          this.hiddenState = null;
-          this._metrics = { steps: 0, totalLoss: 0 };
-        }
-
-        _initWeights() {
-          const { V, H } = this;
-          this.Wz = MathUtils.xavierInit(V, H); this.Uz = MathUtils.xavierInit(H, H); this.bz = MathUtils.zeros(H);
-          this.Wr = MathUtils.xavierInit(V, H); this.Ur = MathUtils.xavierInit(H, H); this.br = MathUtils.zeros(H);
-          this.Wh = MathUtils.xavierInit(V, H); this.Uh = MathUtils.xavierInit(H, H); this.bh = MathUtils.zeros(H);
-          this.Wy = MathUtils.xavierInit(H, V); this.by = MathUtils.zeros(V);
-        }
-
-        _initAdam() {
-          this.adam = { t: 0, beta1: 0.9, beta2: 0.999, eps: 1e-8, lr: CONFIG.LR_INITIAL };
-          this.adamStates = {};
-          const weights = ['Wz','Uz','bz','Wr','Ur','br','Wh','Uh','bh','Wy','by'];
-          const shapes = {
-            Wz:[this.V,this.H], Uz:[this.H,this.H], bz:[this.H],
-            Wr:[this.V,this.H], Ur:[this.H,this.H], br:[this.H],
-            Wh:[this.V,this.H], Uh:[this.H,this.H], bh:[this.H],
-            Wy:[this.H,this.V], by:[this.V]
-          };
-          for (const name of weights) {
-            const [r,c] = shapes[name];
-            const size = r * (c || 1);
-            this.adamStates[name] = { m: MathUtils.zeros(size), v: MathUtils.zeros(size) };
-          }
-        }
-
-        _getRow(W, rowId) {
-          const H = this.H;
-          return W.subarray(rowId * H, (rowId + 1) * H);
-        }
-
-        _cacheStep(step) {
-          if (this.cache.length >= CONFIG.MAX_CACHE_SIZE) this.cache.shift();
-          this.cache.push(step);
-        }
-
-        forward(tokenId, hidden) {
-          const { V, H } = this;
-          if (tokenId < 0 || tokenId >= V) tokenId = 1;
-
-          const x = this._getRow(this.Wz, tokenId);
-          const Uz_h = MathUtils.matVec(this.Uz, H, H, hidden);
-          const z = new Float32Array(H);
-          for (let i = 0; i < H; i++) z[i] = MathUtils.sigmoid(x[i] + Uz_h[i] + this.bz[i]);
-
-          const Ur_h = MathUtils.matVec(this.Ur, H, H, hidden);
-          const r = new Float32Array(H);
-          for (let i = 0; i < H; i++) r[i] = MathUtils.sigmoid(x[i] + Ur_h[i] + this.br[i]);
-
-          const r_h = new Float32Array(H);
-          for (let i = 0; i < H; i++) r_h[i] = r[i] * hidden[i];
-          
-          const Uh_rh = MathUtils.matVec(this.Uh, H, H, r_h);
-          const hTilde = new Float32Array(H);
-          for (let i = 0; i < H; i++) hTilde[i] = MathUtils.tanh(x[i] + Uh_rh[i] + this.bh[i]);
-
-          const newHidden = new Float32Array(H);
-          for (let i = 0; i < H; i++) newHidden[i] = (1 - z[i]) * hidden[i] + z[i] * hTilde[i];
-
-          const logits = MathUtils.matVec(this.Wy, V, H, newHidden);
-          for (let i = 0; i < V; i++) logits[i] += this.by[i];
-
-          this._cacheStep({ tokenId, hidden: new Float32Array(hidden), x, z, r, r_h, hTilde, newHidden, logits });
-          return { hidden: newHidden, logits };
-        }
-
-        train(sequence, learningRate = null) {
-          if (!sequence || sequence.length < 2) return 0;
-          const lr = learningRate !== null ? learningRate : this.adam.lr;
-          this.cache = [];
-          
-          let hidden = this.hiddenState ? new Float32Array(this.hiddenState) : MathUtils.zeros(this.H);
-          
-          for (const token of sequence) {
-            const res = this.forward(token, hidden);
-            hidden = res.hidden;
-          }
-          this.hiddenState = new Float32Array(hidden);
-          if (this.cache.length === 0) return 0;
-
-          const { V, H } = this;
-          let dhNext = MathUtils.zeros(H);
-          let totalLoss = 0;
-
-          const grads = {
-            Wz: MathUtils.zeros(V*H), Uz: MathUtils.zeros(H*H), bz: MathUtils.zeros(H),
-            Wr: MathUtils.zeros(V*H), Ur: MathUtils.zeros(H*H), br: MathUtils.zeros(H),
-            Wh: MathUtils.zeros(V*H), Uh: MathUtils.zeros(H*H), bh: MathUtils.zeros(H),
-            Wy: MathUtils.zeros(H*V), by: MathUtils.zeros(V)
-          };
-
-          for (let t = this.cache.length - 1; t >= 0; t--) {
-            const s = this.cache[t];
-            const target = sequence[t];
-            if (target < 0 || target >= V) continue;
-
-            const probs = MathUtils.softmax(s.logits);
-            const prob = probs[target] || 1e-10;
-            totalLoss -= Math.log(prob);
-
-            const dy = new Float32Array(V);
-            for (let i = 0; i < V; i++) dy[i] = probs[i] - (i === target ? 1 : 0);
-
-            const dhOut = MathUtils.zeros(H);
-            for (let i = 0; i < V; i++) {
-              for (let j = 0; j < H; j++) {
-                grads.Wy[j*V + i] += dy[i] * s.newHidden[j];
-                dhOut[j] += this.Wy[j*V + i] * dy[i];
-              }
-              grads.by[i] += dy[i];
-            }
-
-            const dhNew = new Float32Array(H);
-            for (let i = 0; i < H; i++) dhNew[i] = dhNext[i] + dhOut[i];
-
-            const dhT = new Float32Array(H);
-            for (let i = 0; i < H; i++) dhT[i] = dhNew[i] * s.z[i] * MathUtils.dTanh(s.hTilde[i]);
-
-            const dz = new Float32Array(H);
-            for (let i = 0; i < H; i++) dz[i] = dhNew[i] * (s.hTilde[i] - s.hidden[i]) * MathUtils.dSigmoid(s.z[i]);
-
-            const dUh_rh = MathUtils.matVec(this.Uh, H, H, dhT);
-            const dr = new Float32Array(H);
-            for (let i = 0; i < H; i++) dr[i] = dUh_rh[i] * s.hidden[i] * MathUtils.dSigmoid(s.r[i]);
-
-            const dhPrev = new Float32Array(H);
-            for (let i = 0; i < H; i++) dhPrev[i] = dhNew[i]*(1-s.z[i]) + dUh_rh[i]*s.r[i];
-
-            for (let i = 0; i < H; i++) {
-              grads.bz[i] += dz[i];
-              grads.Wz[s.tokenId*H + i] += dz[i];
-              for (let j = 0; j < H; j++) {
-                grads.Uz[i*H + j] += dz[i] * s.hidden[j];
-                dhPrev[j] += this.Uz[i*H + j] * dz[i];
-              }
-            }
-            for (let i = 0; i < H; i++) {
-              grads.br[i] += dr[i];
-              grads.Wr[s.tokenId*H + i] += dr[i];
-              for (let j = 0; j < H; j++) {
-                grads.Ur[i*H + j] += dr[i] * s.hidden[j];
-                dhPrev[j] += this.Ur[i*H + j] * dr[i];
-              }
-            }
-            for (let i = 0; i < H; i++) {
-              grads.bh[i] += dhT[i];
-              grads.Wh[s.tokenId*H + i] += dhT[i];
-              for (let j = 0; j < H; j++) grads.Uh[i*H + j] += dhT[i] * s.r_h[j];
-            }
-            dhNext = dhPrev;
-          }
-
-          MathUtils.clipGlobalNorm(Object.values(grads), CONFIG.GRAD_CLIP_NORM);
-          this._adamStep(grads, lr);
-          this._metrics.steps++;
-          this._metrics.totalLoss += totalLoss;
-          return totalLoss / sequence.length;
-        }
-
-        _adamStep(grads, lr) {
-          this.adam.t++;
-          const { beta1, beta2, eps, t } = this.adam;
-          const bias1 = 1 - Math.pow(beta1, t);
-          const bias2 = 1 - Math.pow(beta2, t);
-
-          for (const [name, grad] of Object.entries(grads)) {
-            const state = this.adamStates[name];
-            const weight = this[name];
-            if (!state || !weight) continue;
-            for (let i = 0; i < weight.length; i++) {
-              state.m[i] = beta1 * state.m[i] + (1 - beta1) * grad[i];
-              state.v[i] = beta2 * state.v[i] + (1 - beta2) * grad[i] * grad[i];
-              const mHat = state.m[i] / bias1;
-              const vHat = state.v[i] / bias2;
-              weight[i] -= lr * mHat / (Math.sqrt(vHat) + eps);
-            }
-          }
-        }
-
-        generate(seed, maxLength = CONFIG.GEN_MAX_LENGTH, temp = CONFIG.GEN_TEMPERATURE, topK = CONFIG.GEN_TOP_K) {
-          const { V, H } = this;
-          const EOS = 3;
-          let hidden = this.hiddenState ? new Float32Array(this.hiddenState) : MathUtils.zeros(H);
-          const output = [];
-          let last = (seed?.length > 0 && seed[seed.length-1] >= 0 && seed[seed.length-1] < V) ? seed[seed.length-1] : 2;
-
-          if (Array.isArray(seed)) {
-            for (const token of seed) {
-              if (token < 0 || token >= V) continue;
-              const res = this.forward(token, hidden);
-              hidden = res.hidden;
-            }
-          }
-
-          for (let i = 0; i < maxLength; i++) {
-            const res = this.forward(last, hidden);
-            hidden = res.hidden;
-            const logits = res.logits.map(l => l / temp);
-            const probs = MathUtils.softmax(logits);
-            
-            const indexed = probs.map((p, idx) => ({p, idx}))
-              .sort((a,b) => b.p - a.p).slice(0, Math.min(topK, V));
-            const sum = indexed.reduce((s,x) => s + x.p, 0) || 1;
-            for (const x of indexed) x.p /= sum;
-
-            const r = Math.random();
-            let cum = 0, next = indexed[0]?.idx || 1;
-            for (const x of indexed) { cum += x.p; if (r <= cum) { next = x.idx; break; } }
-            
-            if (next === EOS) break;
-            output.push(next);
-            last = next;
-          }
-          return output;
-        }
-
-        resetState() { this.hiddenState = null; this.cache = []; }
-        
         export() {
-          const data = { V:this.V, H:this.H, adam:{...this.adam}, metrics:{...this._metrics}, weights:{}, adamStates:{} };
-          for (const k of ['Wz','Uz','bz','Wr','Ur','br','Wh','Uh','bh','Wy','by']) {
-            data.weights[k] = Array.from(this[k]);
-            data.adamStates[k] = { m:Array.from(this.adamStates[k].m), v:Array.from(this.adamStates[k].v) };
-          }
-          return data;
+            return Array.from(this.word2idx.entries());
         }
 
         import(data) {
-          if (!data || data.V !== this.V || data.H !== this.H) return false;
-          this.adam = {...data.adam};
-          this._metrics = {...data.metrics};
-          for (const k of ['Wz','Uz','bz','Wr','Ur','br','Wh','Uh','bh','Wy','by']) {
-            if (data.weights?.[k]) this[k] = new Float32Array(data.weights[k]);
-            if (data.adamStates?.[k]) {
-              this.adamStates[k].m = new Float32Array(data.adamStates[k].m);
-              this.adamStates[k].v = new Float32Array(data.adamStates[k].v);
+            this.word2idx = new Map(data);
+            this.idx2word = new Map();
+            data.forEach(([k, v]) => this.idx2word.set(v, k));
+        }
+    }
+
+    // ========================================================================
+    // SECTION 4: GRU NETWORK LAYER (Full Implementation)
+    // ========================================================================
+
+    class GRULayer {
+        constructor(vocabSize, hiddenSize) {
+            this.V = vocabSize;
+            this.H = hiddenSize;
+
+            // --- Weight Initialization ---
+            // Update Gate (z)
+            this.Wz = MathEngine.xavierInit(this.H, this.V);
+            this.Uz = MathEngine.xavierInit(this.H, this.H);
+            this.bz = MathEngine.zeros(this.H);
+
+            // Reset Gate (r)
+            this.Wr = MathEngine.xavierInit(this.H, this.V);
+            this.Ur = MathEngine.xavierInit(this.H, this.H);
+            this.br = MathEngine.zeros(this.H);
+
+            // Candidate Hidden (h_tilde)
+            this.Wh = MathEngine.xavierInit(this.H, this.V);
+            this.Uh = MathEngine.xavierInit(this.H, this.H);
+            this.bh = MathEngine.zeros(this.H);
+
+            // Output Layer
+            this.Wy = MathEngine.xavierInit(this.V, this.H);
+            this.by = MathEngine.zeros(this.V);
+
+            // --- Adam Optimizer State ---
+            this.adam = {
+                t: 0,
+                m: {}, // First moment vector
+                v: {}  // Second moment vector
+            };
+            
+            const paramKeys = ['Wz', 'Uz', 'bz', 'Wr', 'Ur', 'br', 'Wh', 'Uh', 'bh', 'Wy', 'by'];
+            paramKeys.forEach(k => {
+                this.adam.m[k] = MathEngine.zeros(this[k].length);
+                this.adam.v[k] = MathEngine.zeros(this[k].length);
+            });
+
+            this.globalStep = 0;
+            this.lossHistory = [];
+        }
+
+        /**
+         * Extracts the column vector from a Weight matrix W (size H x V) for a specific input index x_t.
+         * Equivalent to W * one_hot(x_t).
+         */
+        getEmbedding(W, x_t) {
+            const res = new Float32Array(this.H);
+            for (let i = 0; i < this.H; i++) {
+                res[i] = W[i * this.V + x_t];
             }
-          }
-          return true;
+            return res;
         }
 
-        getParamCount() {
-          return this.V*this.H*4 + this.H*this.H*3 + this.H*3 + this.V + this.H*this.V;
+        /**
+         * Matrix-Vector Multiplication (HxH) * (Hx1) -> (Hx1)
+         */
+        matVecMul(M, v) {
+            const res = MathEngine.zeros(this.H);
+            for (let r = 0; r < this.H; r++) {
+                let sum = 0;
+                for (let c = 0; c < this.H; c++) {
+                    sum += M[r * this.H + c] * v[c];
+                }
+                res[r] = sum;
+            }
+            return res;
         }
 
-        getMetrics() { return {...this._metrics}; }
-      }
+        /**
+         * Forward Pass for a single time step.
+         * Returns intermediate states required for BPTT.
+         */
+        forward(x_t, h_prev) {
+            const H = this.H;
 
-      // ================ UI ЭЛЕМЕНТЫ ================
-      const UI = {
-        messages: document.getElementById('messages'),
-        input: document.getElementById('userInput'),
-        send: document.getElementById('sendBtn'),
-        statusText: document.getElementById('statusText'),
-        log: document.getElementById('log'),
-        vocab: document.getElementById('vocabSize'),
-        hidden: document.getElementById('hiddenSize'),
-        steps: document.getElementById('stepsCount'),
-        loss: document.getElementById('lossValue'),
-        progressFill: document.getElementById('progressFill'),
-        progressText: document.getElementById('progressText'),
-        fileInput: document.getElementById('fileInput'),
-        dropzone: document.getElementById('dropzone'),
-        fileWarning: document.getElementById('fileWarning'),
-        saveBtn: document.getElementById('saveBtn'),
-        loadBtn: document.getElementById('loadBtn'),
-        resetBtn: document.getElementById('resetBtn'),
-        pauseBtn: document.getElementById('pauseBtn'),
-        saveNowBtn: document.getElementById('saveNowBtn'),
-        autoSaveStatus: document.getElementById('autoSaveStatus')
-      };
+            // 1. Update Gate z
+            const wz_x = this.getEmbedding(this.Wz, x_t);
+            const uz_h = this.matVecMul(this.Uz, h_prev);
+            const z = new Float32Array(H);
+            for (let i = 0; i < H; i++) z[i] = MathEngine.sigmoid(wz_x[i] + uz_h[i] + this.bz[i]);
 
-      // ================ ЛОГГЕР ================
-      function addLog(msg, type = 'info') {
-        const time = new Date().toLocaleTimeString();
-        let prefix = '📌';
-        if (type === 'error') prefix = '❌';
-        else if (type === 'success') prefix = '✅';
-        else if (type === 'warn') prefix = '⚠️';
-        
-        UI.log.innerHTML += `<div class="${type}">[${time}] ${prefix} ${msg}</div>`;
-        UI.log.scrollTop = UI.log.scrollHeight;
-      }
+            // 2. Reset Gate r
+            const wr_x = this.getEmbedding(this.Wr, x_t);
+            const ur_h = this.matVecMul(this.Ur, h_prev);
+            const r = new Float32Array(H);
+            for (let i = 0; i < H; i++) r[i] = MathEngine.sigmoid(wr_x[i] + ur_h[i] + this.br[i]);
 
-      // ================ СООБЩЕНИЯ ================
-      function addMessage(text, isUser = false) {
-        const msg = document.createElement('div');
-        msg.className = `message ${isUser ? 'user' : 'bot'}`;
-        msg.innerHTML = `<div class="message-bubble">${text}</div>`;
-        UI.messages.appendChild(msg);
-        UI.messages.scrollTop = UI.messages.scrollHeight;
-      }
+            // 3. Candidate Hidden State h_tilde
+            const wh_x = this.getEmbedding(this.Wh, x_t);
+            const rh = MathEngine.mul(r, h_prev);
+            const uh_rh = this.matVecMul(this.Uh, rh);
+            const h_tilde = new Float32Array(H);
+            for (let i = 0; i < H; i++) h_tilde[i] = MathEngine.tanh(wh_x[i] + uh_rh[i] + this.bh[i]);
 
-      // ================ СТАТУС ================
-      function setStatus(status) {
-        UI.statusText.textContent = status;
-      }
+            // 4. New Hidden State
+            const h_new = new Float32Array(H);
+            for (let i = 0; i < H; i++) h_new[i] = (1 - z[i]) * h_prev[i] + z[i] * h_tilde[i];
 
-      // ================ ПРОГРЕСС ================
-      function updateProgress() {
-        if (!dataset || dataset.length === 0) return;
-        const percent = Math.round((trainIndex / dataset.length) * 100);
-        UI.progressFill.style.width = percent + '%';
-        UI.progressText.textContent = `${trainIndex} / ${dataset.length} (${percent}%)`;
-        if (network) {
-          UI.steps.textContent = network.getMetrics().steps;
-          UI.loss.textContent = (network.getMetrics().totalLoss / Math.max(1, network.getMetrics().steps)).toFixed(4);
+            // 5. Output Logits
+            const logits = new Float32Array(this.V);
+            for (let i = 0; i < this.V; i++) {
+                let sum = 0;
+                for (let j = 0; j < H; j++) sum += this.Wy[i * H + j] * h_new[j];
+                logits[i] = sum + this.by[i];
+            }
+
+            return { h_new, z, r, h_tilde, h_prev, x_t, logits, rh };
         }
-      }
 
-      // ================ ОБУЧЕНИЕ ================
-      async function trainBatch(batchSize = CONFIG.BATCH_SIZE) {
-        updateProgress();
-        
-        if (trainingPaused) { 
-          setTimeout(() => trainBatch(batchSize), 500); 
-          return; 
+        /**
+         * Training loop for a single sequence using Backpropagation Through Time (BPTT).
+         */
+        trainSequence(sequence) {
+            if (sequence.length < 2) return 0;
+
+            // Initialize Gradients
+            const grads = {
+                Wz: MathEngine.zeros(this.Wz.length),
+                Uz: MathEngine.zeros(this.Uz.length),
+                bz: MathEngine.zeros(this.bz.length),
+                Wr: MathEngine.zeros(this.Wr.length),
+                Ur: MathEngine.zeros(this.Ur.length),
+                br: MathEngine.zeros(this.br.length),
+                Wh: MathEngine.zeros(this.Wh.length),
+                Uh: MathEngine.zeros(this.Uh.length),
+                bh: MathEngine.zeros(this.bh.length),
+                Wy: MathEngine.zeros(this.Wy.length),
+                by: MathEngine.zeros(this.by.length)
+            };
+
+            // FORWARD PASS: Store cache
+            let h = MathEngine.zeros(this.H);
+            const cache = [];
+            
+            for (let t = 0; t < sequence.length; t++) {
+                const c = this.forward(sequence[t], h);
+                cache.push(c);
+                h = c.h_new;
+            }
+
+            let dh_next = MathEngine.zeros(this.H);
+            let loss = 0;
+
+            // BACKWARD PASS: Iterate backwards
+            for (let t = cache.length - 1; t >= 0; t--) {
+                const c = cache[t];
+                const target = sequence[t + 1]; // Target is next token
+
+                if (t >= sequence.length - 1) continue; 
+
+                // Softmax & Loss Gradient
+                const probs = MathEngine.softmax(c.logits);
+                loss -= Math.log(probs[target] + 1e-12);
+
+                const dy = new Float32Array(probs);
+                dy[target] -= 1; // dL/dy
+
+                // Grad Output Layer (Wy, by) -> dL/dWy = dy * h^T
+                const dh = MathEngine.zeros(this.H);
+                for (let i = 0; i < this.V; i++) {
+                    grads.by[i] += dy[i];
+                    for (let j = 0; j < this.H; j++) {
+                        grads.Wy[i * this.H + j] += dy[i] * c.h_new[j];
+                        dh[j] += this.Wy[i * this.H + j] * dy[i]; // Backprop into hidden
+                    }
+                }
+
+                // Add dh from future step
+                for (let i = 0; i < this.H; i++) dh[i] += dh_next[i];
+
+                // GRU Internal Gradients
+                const H = this.H;
+                
+                const dh_tilde = new Float32Array(H);
+                const dz = new Float32Array(H);
+                const dh_prev = new Float32Array(H);
+
+                for (let i = 0; i < H; i++) {
+                    // h_new = (1-z)*h_prev + z*h_tilde
+                    dh_tilde[i] = dh[i] * c.z[i] * (1 - c.h_tilde[i] * c.h_tilde[i]); // tanh'
+                    dz[i] = dh[i] * (c.h_tilde[i] - c.h_prev[i]) * c.z[i] * (1 - c.z[i]); // sigmoid'
+                    dh_prev[i] = dh[i] * (1 - c.z[i]);
+                }
+
+                const drh = new Float32Array(H);
+                for (let i = 0; i < H; i++) {
+                    grads.bh[i] += dh_tilde[i];
+                    grads.Wh[i * this.V + c.x_t] += dh_tilde[i]; // Wh column update
+
+                    for (let j = 0; j < H; j++) {
+                        grads.Uh[i * H + j] += dh_tilde[i] * c.rh[j];
+                        drh[j] += this.Uh[i * H + j] * dh_tilde[i];
+                    }
+                }
+
+                const dr = new Float32Array(H);
+                for (let i = 0; i < H; i++) {
+                    dr[i] = drh[i] * c.h_prev[i] * c.r[i] * (1 - c.r[i]);
+                    grads.br[i] += dr[i];
+                    grads.Wr[i * this.V + c.x_t] += dr[i];
+
+                    for (let j = 0; j < H; j++) {
+                        grads.Ur[i * H + j] += dr[i] * c.h_prev[j];
+                        dh_prev[j] += this.Ur[i * H + j] * dr[i];
+                    }
+                }
+
+                for (let i = 0; i < H; i++) {
+                    grads.bz[i] += dz[i];
+                    grads.Wz[i * this.V + c.x_t] += dz[i];
+
+                    for (let j = 0; j < H; j++) {
+                        grads.Uz[i * H + j] += dz[i] * c.h_prev[j];
+                        dh_prev[j] += this.Uz[i * H + j] * dz[i];
+                    }
+                }
+
+                dh_next = dh_prev;
+            }
+
+            // --- GRADIENT CLIPPING ---
+            let gNorm = 0;
+            for (const key in grads) gNorm += MathEngine.norm(grads[key]);
+            gNorm = Math.sqrt(gNorm);
+            
+            if (gNorm > CONFIG.training.gradClipNorm) {
+                const scale = CONFIG.training.gradClipNorm / gNorm;
+                for (const key in grads) {
+                    for (let i = 0; i < grads[key].length; i++) grads[key][i] *= scale;
+                }
+            }
+
+            // --- ADAM UPDATE ---
+            this.adam.t++;
+            const b1 = 0.9, b2 = 0.999, eps = 1e-8;
+            const lr = CONFIG.training.learningRate;
+
+            for (const key of Object.keys(grads)) {
+                const g = grads[key];
+                const m = this.adam.m[key];
+                const v = this.adam.v[key];
+                const p = this[key];
+
+                for (let i = 0; i < g.length; i++) {
+                    m[i] = b1 * m[i] + (1 - b1) * g[i];
+                    v[i] = b2 * v[i] + (1 - b2) * g[i] * g[i];
+
+                    const mHat = m[i] / (1 - Math.pow(b1, this.adam.t));
+                    const vHat = v[i] / (1 - Math.pow(b2, this.adam.t));
+
+                    p[i] -= lr * mHat / (Math.sqrt(vHat) + eps);
+                }
+            }
+
+            this.globalStep++;
+            this.lossHistory.push(loss);
+            return loss;
         }
-        
-        if (!network || !dataset || trainIndex >= dataset.length) {
-          isTraining = false;
-          setStatus('готов');
-          addLog('Обучение завершено', 'success');
-          updateProgress();
-          return;
+
+        /**
+         * Generate sequence based on seed.
+         */
+        generate(seedIds, length = 50) {
+            const output = [];
+            let h = MathEngine.zeros(this.H);
+            
+            // Feed seed
+            for (const id of seedIds) {
+                const c = this.forward(id, h);
+                h = c.h_new;
+            }
+
+            let lastId = seedIds.length ? seedIds[seedIds.length - 1] : 2; // BOS if empty
+            
+            for (let i = 0; i < length; i++) {
+                const c = this.forward(lastId, h);
+                h = c.h_new;
+
+                const logits = c.logits.map(l => l / CONFIG.generation.temperature);
+                const probs = MathEngine.softmax(logits);
+                
+                // Top-K Sampling
+                const sorted = probs.map((p, i) => ({p, i})).sort((a, b) => b.p - a.p);
+                const topK = sorted.slice(0, CONFIG.generation.topK);
+                const sumP = topK.reduce((a, b) => a + b.p, 0);
+                topK.forEach(x => x.p /= sumP);
+
+                let r = Math.random();
+                let nextId = topK[0].i;
+                for (const x of topK) {
+                    r -= x.p;
+                    if (r <= 0) { nextId = x.i; break; }
+                }
+
+                if (nextId === 3) break; // EOS
+                output.push(nextId);
+                lastId = nextId;
+            }
+
+            return output;
         }
-        
-        let batchLoss = 0, count = 0;
-        const end = Math.min(trainIndex + batchSize, dataset.length);
-        
-        for (let i = trainIndex; i < end; i++) {
-          const loss = network.train(dataset[i]);
-          if (loss > 0) { batchLoss += loss; count++; }
+
+        toJSON() {
+            const data = { V: this.V, H: this.H, step: this.globalStep };
+            ['Wz','Uz','bz','Wr','Ur','br','Wh','Uh','bh','Wy','by'].forEach(k => data[k] = Array.from(this[k]));
+            return data;
         }
-        trainIndex = end;
-        
-        updateProgress();
-        
-        if (network.getMetrics().steps % 100 === 0 && count > 0) {
-          addLog(`Шаг ${network.getMetrics().steps}, Loss: ${(batchLoss/count).toFixed(4)}`, 'success');
+
+        fromJSON(json) {
+            if (json.V !== this.V || json.H !== this.H) throw new Error("Model dimension mismatch");
+            ['Wz','Uz','bz','Wr','Ur','br','Wh','Uh','bh','Wy','by'].forEach(k => this[k] = new Float32Array(json[k]));
+            this.globalStep = json.step || 0;
         }
-        
-        setTimeout(() => trainBatch(batchSize), 0);
-      }
+    }
 
-      // ================ ЗАГРУЗКА ФАЙЛА ================
-      UI.dropzone.onclick = () => UI.fileInput.click();
+    // ========================================================================
+    // SECTION 5: UI CONTROLLER & RENDERER
+    // ========================================================================
 
-      UI.fileInput.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        addLog(`Файл: ${file.name}`, 'info');
-        setStatus('обработка...');
-        
-        if (file.size > 1024 * 1024) {
-          UI.fileWarning.style.display = 'block';
+    class UIController {
+        constructor() {
+            this.dom = {
+                chat: document.getElementById('chatBody'),
+                input: document.getElementById('userInput'),
+                send: document.getElementById('btnSend'),
+                led: document.getElementById('statusLed'),
+                status: document.getElementById('statusText'),
+                log: document.getElementById('logConsole'),
+                vocab: document.getElementById('mVocab'),
+                steps: document.getElementById('mSteps'),
+                loss: document.getElementById('mLoss'),
+                progBar: document.getElementById('progBar'),
+                progText: document.getElementById('progText'),
+                progPct: document.getElementById('progPct'),
+                fileInput: document.getElementById('fileInput'),
+                dropZone: document.getElementById('dropZone'),
+                btnSave: document.getElementById('btnSave'),
+                btnLoad: document.getElementById('btnLoad'),
+                btnPause: document.getElementById('btnPause'),
+                btnReset: document.getElementById('btnReset'),
+                canvasBg: document.getElementById('canvas-bg')
+            };
+            
+            this._initCanvasBg();
         }
-        
-        try {
-          const text = await file.text();
-          
-          if (file.name.endsWith('.json')) {
-            // Загрузка модели
-            const data = JSON.parse(text);
-            tokenizer = new Tokenizer();
-            if (!tokenizer.import(data.tokenizer)) throw new Error('Ошибка импорта токенизатора');
-            
-            network = new GRUNetwork(data.network.V, data.network.H);
-            if (!network.import(data.network)) throw new Error('Ошибка импорта сети');
-            
-            trainIndex = data.trainIndex || 0;
-            
-            UI.vocab.textContent = tokenizer.size;
-            UI.hidden.textContent = network.H;
-            UI.steps.textContent = network.getMetrics().steps;
-            UI.loss.textContent = (network.getMetrics().totalLoss / Math.max(1, network.getMetrics().steps)).toFixed(4);
-            UI.input.disabled = false;
-            UI.send.disabled = false;
-            
-            setStatus('готов');
-            addLog(`Модель загружена: словарь ${tokenizer.size}`, 'success');
-            addMessage(`Модель загружена из файла`, false);
-            
-          } else {
-            // Обучение новой модели
-            tokenizer = new Tokenizer();
-            const words = tokenizer.buildVocabulary(text, CONFIG.MIN_FREQ);
-            
-            if (tokenizer.size <= 4) throw new Error(`Словарь пуст (${tokenizer.size} токенов)`);
-            
-            dataset = text.split('\n')
-              .map(l => tokenizer._normalize(l))
-              .filter(l => l.length >= CONFIG.MIN_LINE_LEN)
-              .map(l => { const ids = tokenizer.encode(l); return [2, ...ids, 3]; })
-              .filter(seq => seq.length >= 3);
-            
-            if (dataset.length === 0) throw new Error('Датасет пуст');
-            
-            totalSequences = dataset.length;
-            trainIndex = 0;
-            
-            network = new GRUNetwork(tokenizer.size, CONFIG.HIDDEN_SIZE);
-            
-            UI.vocab.textContent = tokenizer.size;
-            UI.hidden.textContent = network.H;
-            UI.progressText.textContent = `0 / ${totalSequences}`;
-            UI.input.disabled = false;
-            UI.send.disabled = false;
-            
-            addLog(`Словарь: ${tokenizer.size}, строк: ${dataset.length}`, 'success');
-            addMessage(`Файл загружен. Размер словаря: ${tokenizer.size}. Начинаю обучение...`, false);
-            
-            isTraining = true;
-            trainingPaused = false;
-            setStatus('обучение');
-            trainBatch();
-          }
-          
-        } catch (err) {
-          addLog(`Ошибка: ${err.message}`, 'error');
-          setStatus('ошибка');
-        } finally {
-          UI.fileWarning.style.display = 'none';
+
+        log(msg, type = '') {
+            const time = new Date().toLocaleTimeString('en-GB');
+            const cls = type ? ` class="${type}"` : '';
+            this.dom.log.innerHTML += `<span${cls}>[${time}] ${msg}</span>\n`;
+            this.dom.log.scrollTop = this.dom.log.scrollHeight;
         }
-      };
 
-      // ================ ОТПРАВКА ================
-      UI.send.onclick = () => {
-        const text = UI.input.value.trim();
-        if (!text || !network || !tokenizer) return;
-        
-        addMessage(text, true);
-        UI.input.value = '';
-        
-        try {
-          const inputIds = tokenizer.encode(text);
-          if (inputIds.length === 0) { 
-            addMessage('Не удалось обработать ввод', false); 
-            return; 
-          }
-          
-          const sequence = [2, ...inputIds, 3];
-          network.train(sequence, CONFIG.LR_INFERENCE);
-          
-          const outputIds = network.generate([2, ...inputIds], CONFIG.GEN_MAX_LENGTH, CONFIG.GEN_TEMPERATURE, CONFIG.GEN_TOP_K);
-          const response = tokenizer.decode(outputIds).trim();
-          
-          setTimeout(() => { addMessage(response || '...', false); }, 80);
-          
-          updateProgress();
-        } catch (err) {
-          addLog(`Ошибка генерации: ${err.message}`, 'error');
-          addMessage('Ошибка при генерации ответа', false);
+        addMsg(text, isUser) {
+            const row = document.createElement('div');
+            row.className = `msg-row ${isUser ? 'user' : 'bot'}`;
+            row.innerHTML = `<div class="msg-bubble">${text}</div>`;
+            this.dom.chat.appendChild(row);
+            this.dom.chat.scrollTop = this.dom.chat.scrollHeight;
         }
-      };
 
-      UI.input.onkeydown = (e) => { 
-        if (e.key === 'Enter' && !e.shiftKey) { 
-          e.preventDefault(); 
-          UI.send.onclick(); 
-        } 
-      };
-
-      // ================ СОХРАНЕНИЕ ================
-      UI.saveBtn.onclick = () => {
-        if (!network || !tokenizer) { 
-          addLog('Нет модели для сохранения', 'warn'); 
-          return; 
+        setStatus(txt, mode) {
+            this.dom.status.textContent = txt;
+            this.dom.led.className = 'status-led ' + mode;
         }
-        
-        try {
-          const data = { 
-            version: CONFIG.VERSION, 
-            tokenizer: tokenizer.export(), 
-            network: network.export(),
-            trainIndex,
-            date: new Date().toISOString()
-          };
-          
-          const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = `gru-model-${Date.now()}.json`;
-          a.click();
-          URL.revokeObjectURL(a.href);
-          
-          addLog('Модель сохранена', 'success');
-        } catch (e) { 
-          addLog(`Ошибка сохранения: ${e.message}`, 'error'); 
+
+        updateMetrics(vocab, steps, loss) {
+            this.dom.vocab.textContent = vocab;
+            this.dom.steps.textContent = steps;
+            this.dom.loss.textContent = loss.toFixed(4);
         }
-      };
 
-      UI.saveNowBtn.onclick = UI.saveBtn.onclick;
-
-      // ================ ЗАГРУЗКА ================
-      UI.loadBtn.onclick = () => {
-        const inp = document.createElement('input');
-        inp.type = 'file'; 
-        inp.accept = '.json';
-        inp.onchange = async (e) => {
-          try {
-            const file = e.target.files[0];
-            const text = await file.text();
-            const data = JSON.parse(text);
-            
-            tokenizer = new Tokenizer();
-            tokenizer.import(data.tokenizer);
-            
-            network = new GRUNetwork(data.network.V, data.network.H);
-            network.import(data.network);
-            
-            trainIndex = data.trainIndex || 0;
-            
-            UI.vocab.textContent = tokenizer.size;
-            UI.hidden.textContent = network.H;
-            UI.steps.textContent = network.getMetrics().steps;
-            UI.loss.textContent = (network.getMetrics().totalLoss / Math.max(1, network.getMetrics().steps)).toFixed(4);
-            UI.input.disabled = false;
-            UI.send.disabled = false;
-            
-            addLog('Модель загружена', 'success');
-            addMessage('Модель загружена из файла', false);
-          } catch (err) { 
-            addLog(`Ошибка загрузки: ${err.message}`, 'error'); 
-          }
-        };
-        inp.click();
-      };
-
-      // ================ СБРОС ================
-      UI.resetBtn.onclick = () => {
-        if (!confirm('Сбросить всё?')) return;
-        tokenizer = null; 
-        network = null; 
-        dataset = []; 
-        trainIndex = 0; 
-        totalSequences = 0;
-        isTraining = false;
-        trainingPaused = false;
-        
-        UI.messages.innerHTML = '';
-        UI.vocab.textContent = '0'; 
-        UI.steps.textContent = '0'; 
-        UI.loss.textContent = '0.000';
-        UI.progressFill.style.width = '0%';
-        UI.progressText.textContent = '0 / 0';
-        UI.input.disabled = true; 
-        UI.send.disabled = true;
-        
-        setStatus('ожидание');
-        addLog('Сброс выполнен', 'warn');
-        addMessage('Система сброшена. Загрузите файл .txt для обучения.', false);
-      };
-
-      // ================ ПАУЗА ================
-      UI.pauseBtn.onclick = function() {
-        if (!isTraining) {
-          addLog('Нет активного обучения', 'warn');
-          return;
+        updateProgress(curr, total) {
+            const pct = total > 0 ? Math.round((curr / total) * 100) : 0;
+            this.dom.progBar.style.width = pct + '%';
+            this.dom.progText.textContent = `${curr} / ${total}`;
+            this.dom.progPct.textContent = pct + '%';
         }
-        trainingPaused = !trainingPaused;
-        this.textContent = trainingPaused ? '▶ Продолжить' : '⏸ Пауза';
-        addLog(trainingPaused ? 'Пауза' : 'Продолжение', 'info');
-      };
 
-      // ================ СТАРТ ================
-      addMessage('Привет! Я GRU нейросеть. Загрузи .txt для обучения или .json для загрузки модели.', false);
-      addLog('Система готова', 'success');
-      setStatus('ожидание');
-    })();
-  </script>
+        // Fix Input: Only disable Send button
+        setInputState(isModelReady) {
+            this.dom.send.disabled = !isModelReady;
+            this.dom.input.disabled = false; // ALWAYS ENABLED
+        }
+
+        _initCanvasBg() {
+            const ctx = this.dom.canvasBg.getContext('2d');
+            let w, h;
+            
+            const resize = () => {
+                w = ctx.canvas.width = window.innerWidth;
+                h = ctx.canvas.height = window.innerHeight;
+            };
+            
+            window.addEventListener('resize', resize);
+            resize();
+
+            const orbs = [];
+            for(let i=0; i<3; i++) {
+                orbs.push({
+                    x: Math.random()*w, y: Math.random()*h, 
+                    r: 200 + Math.random()*200, 
+                    vx: (Math.random()-0.5)*0.5, vy: (Math.random()-0.5)*0.5,
+                    c: ['#0A84FF', '#5E5CE6', '#FF375F'][i]
+                });
+            }
+
+            const animate = () => {
+                ctx.clearRect(0, 0, w, h);
+                orbs.forEach(o => {
+                    o.x += o.vx; o.y += o.vy;
+                    if (o.x < 0 || o.x > w) o.vx *= -1;
+                    if (o.y < 0 || o.y > h) o.vy *= -1;
+                    
+                    const grad = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+                    grad.addColorStop(0, o.c);
+                    grad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, w, h);
+                });
+                requestAnimationFrame(animate);
+            };
+            animate();
+        }
+    }
+
+    // ========================================================================
+    // SECTION 6: APPLICATION MAIN
+    // ========================================================================
+
+    class Application {
+        constructor() {
+            this.ui = new UIController();
+            this.tok = null;
+            this.net = null;
+            this.dataset = [];
+            this.isTraining = false;
+            this.isPaused = false;
+            this.trainPtr = 0;
+
+            this._bindEvents();
+            this.ui.log("System Initialized. Ready for input.", "ok");
+            this.ui.addMsg("Ready. Load .txt to train or .json to load model.", false);
+        }
+
+        _bindEvents() {
+            // Send
+            this.ui.dom.send.onclick = () => this._handleSend();
+            this.ui.dom.input.onkeydown = e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this._handleSend();
+                }
+            };
+
+            // File
+            this.ui.dom.dropZone.onclick = () => this.ui.dom.fileInput.click();
+            this.ui.dom.fileInput.onchange = e => e.target.files.length && this._handleFile(e.target.files[0]);
+
+            // Controls
+            this.ui.dom.btnPause.onclick = () => this._togglePause();
+            this.ui.dom.btnSave.onclick = () => this._saveModel();
+            this.ui.dom.btnLoad.onclick = () => {
+                const i = document.createElement('input');
+                i.type = 'file'; i.accept = '.json';
+                i.onchange = e => e.target.files.length && this._handleFile(e.target.files[0]);
+                i.click();
+            };
+            this.ui.dom.btnReset.onclick = () => this._reset();
+        }
+
+        _handleSend() {
+            const text = this.ui.dom.input.value.trim();
+            if (!text || !this.net) return;
+
+            this.ui.addMsg(text, true);
+            this.ui.dom.input.value = '';
+
+            const ids = this.tok.encode(text);
+            const genIds = this.net.generate([2, ...ids], 50); // BOS + context
+            const resp = this.tok.decode(genIds);
+            
+            this.ui.addMsg(resp, false);
+        }
+
+        async _handleFile(file) {
+            this.ui.log(`Loading: ${file.name}`, "warn");
+            
+            if (file.name.endsWith('.json')) {
+                // Load Model
+                try {
+                    const text = await file.text();
+                    const data = JSON.parse(text);
+                    
+                    this.tok = new Tokenizer();
+                    this.tok.import(data.tokenizer);
+                    
+                    this.net = new GRULayer(this.tok.size, CONFIG.architecture.hiddenSize);
+                    this.net.fromJSON(data.network);
+                    
+                    this._setReady();
+                    this.ui.addMsg("Model loaded successfully. Ready to chat.", false);
+                    this.ui.log(`Model Loaded. Vocab: ${this.tok.size}`, "ok");
+                } catch (e) {
+                    this.ui.log("Failed to load model: " + e.message, "err");
+                    this.ui.setStatus("Error", "error");
+                }
+            } else {
+                // Train
+                try {
+                    const text = await file.text();
+                    
+                    this.tok = new Tokenizer();
+                    this.tok.buildVocab(text);
+                    
+                    if (this.tok.size < 10) throw new Error("Vocabulary too small");
+
+                    this.ui.setStatus("Processing Data...", "processing");
+
+                    // Create dataset sequences
+                    const lines = text.split('\n').filter(l => l.trim().length > 10);
+                    this.dataset = [];
+                    for (const line of lines) {
+                        const ids = this.tok.encode(line);
+                        if (ids.length > 1) {
+                            this.dataset.push([2, ...ids, 3]); // BOS ... EOS
+                        }
+                    }
+                    
+                    this.net = new GRULayer(this.tok.size, CONFIG.architecture.hiddenSize);
+                    this.trainPtr = 0;
+                    this.isPaused = false;
+
+                    this._setReady(); // Enable UI immediately
+                    
+                    this.ui.addMsg(`Dataset ready. ${this.dataset.length} sequences found. Starting training...`, false);
+                    this.ui.log(`Training started. ${this.dataset.length} sequences.`, "ok");
+                    
+                    this.isTraining = true;
+                    this._runTraining();
+                } catch (e) {
+                    this.ui.addLog("Training Error: " + e.message, "err");
+                    this.ui.setStatus("Error", "error");
+                }
+            }
+        }
+
+        async _runTraining() {
+            if (!this.isTraining) return;
+            if (this.trainPtr >= this.dataset.length) {
+                this.ui.setStatus("Training Complete", "active");
+                this.ui.log("Training finished.", "ok");
+                this.ui.addMsg("Training complete. You can chat now.", false);
+                this.isTraining = false;
+                return;
+            }
+            
+            if (this.isPaused) {
+                await new Promise(r => setTimeout(r, 100));
+                requestAnimationFrame(() => this._runTraining());
+                return;
+            }
+
+            // Batch Processing
+            const end = Math.min(this.trainPtr + CONFIG.training.batchSize, this.dataset.length);
+            let batchLoss = 0;
+            
+            for (let i = this.trainPtr; i < end; i++) {
+                batchLoss += this.net.trainSequence(this.dataset[i]);
+            }
+            
+            this.trainPtr = end;
+            
+            this.ui.updateMetrics(this.tok.size, this.net.globalStep, batchLoss / CONFIG.training.batchSize);
+            this.ui.updateProgress(this.trainPtr, this.dataset.length);
+            
+            // Yield to UI
+            await new Promise(r => setTimeout(r, 0));
+            requestAnimationFrame(() => this._runTraining());
+        }
+
+        _setReady() {
+            this.ui.setStatus("Ready", "active");
+            this.ui.setInputState(true); // Enable Send Button, Unlock Input
+            this.ui.updateMetrics(this.tok.size, this.net ? this.net.globalStep : 0, 0);
+        }
+
+        _togglePause() {
+            this.isPaused = !this.isPaused;
+            this.ui.dom.btnPause.textContent = this.isPaused ? "▶ Resume" : "⏸ Pause";
+            this.ui.setStatus(this.isPaused ? "Paused" : "Training...", this.isPaused ? "active" : "processing");
+        }
+
+        _saveModel() {
+            if (!this.net) return;
+            const data = {
+                tokenizer: this.tok.export(),
+                network: this.net.toJSON()
+            };
+            const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `gru-model-${Date.now()}.json`;
+            a.click();
+            this.ui.log("Model saved.", "ok");
+        }
+
+        _reset() {
+            if (!confirm("Destroy current model and reset?")) return;
+            this.net = null; this.tok = null; this.dataset = [];
+            this.isTraining = false;
+            this.ui.dom.chat.innerHTML = '';
+            this.ui.setStatus("Idle", "idle");
+            this.ui.setInputState(false);
+            this.ui.updateMetrics(0, 0, 0);
+            this.ui.log("System Reset", "warn");
+        }
+    }
+
+    // Initialize Application
+    window.app = new Application();
+
+})();
+</script>
 </body>
 </html>
