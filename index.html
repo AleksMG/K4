@@ -24,73 +24,54 @@
       padding: 0; 
     }
 
-    body {
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
-      height: 100vh;
-      width: 100vw;
-      overflow: hidden;
-      margin: 0;
-      padding: 0;
     }
 
-    /* =============== МАКЕТ С АДАПТАЦИЕЙ =============== */
-    .layout {
+    /* ГЛАВНЫЙ КОНТЕЙНЕР */
+    .app {
       display: flex;
-      height: 100%;
       width: 100%;
+      height: 100vh;
       background: var(--border);
     }
 
-    .chat-col {
+    /* ЧАТ */
+    .chat-section {
       flex: 1;
+      display: flex;
+      flex-direction: column;
       background: var(--bg);
-      display: flex;
-      flex-direction: column;
-      height: 100%;
       min-width: 300px;
+      height: 100vh;
+      overflow: hidden;
     }
 
-    .sidebar {
-      width: 320px;
-      background: var(--surface);
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      overflow-y: auto;
-      border-left: 2px solid var(--border);
-    }
-
-    /* На узких экранах боковая панель скрывается, но чат занимает всё */
-    @media (max-width: 900px) {
-      .sidebar { 
-        display: none; 
-      }
-    }
-
-    /* =============== ВЕРХНЯЯ ПАНЕЛЬ =============== */
-    .top-bar {
-      padding: 1rem 1.5rem;
+    /* ШАПКА */
+    .chat-header {
+      height: 60px;
+      padding: 0 1.5rem;
       border-bottom: 2px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-shrink: 0;
       background: var(--surface);
-      height: 60px;
+      flex-shrink: 0;
     }
 
     .logo {
-      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      font-family: 'JetBrains Mono', monospace;
       font-weight: 700;
       color: var(--accent);
-      letter-spacing: -0.5px;
       font-size: 1.1rem;
     }
 
-    .status-row {
+    .status {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -102,32 +83,24 @@
       height: 8px;
       border-radius: 50%;
       background: var(--muted);
-      transition: background 0.2s, box-shadow 0.2s;
     }
 
     .status-dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
     .status-dot.error { background: var(--error); box-shadow: 0 0 8px var(--error); }
-    .status-dot.warning { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
 
-    /* =============== ЧАТ =============== */
-    .chat-flow {
-      flex: 1;
+    /* СООБЩЕНИЯ */
+    .chat-messages {
+      flex: 1 1 auto;
       overflow-y: auto;
       padding: 1.5rem;
       display: flex;
       flex-direction: column;
       gap: 1.2rem;
-      scroll-behavior: smooth;
+      min-height: 0;
     }
 
     .msg {
       max-width: 85%;
-      animation: fadeIn 0.2s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
     }
 
     .msg.user { align-self: flex-end; }
@@ -138,7 +111,6 @@
       border-radius: 12px;
       font-size: 0.95rem;
       line-height: 1.5;
-      white-space: pre-wrap;
       word-break: break-word;
     }
 
@@ -154,33 +126,26 @@
       border-radius: 12px 12px 12px 4px;
     }
 
-    /* =============== ПОЛЕ ВВОДА - ВСЕГДА ВИДИМО =============== */
-    .input-area {
+    /* ПОЛЕ ВВОДА */
+    .chat-input-container {
+      height: 80px;
       padding: 0.8rem 1.5rem;
       background: var(--surface);
-      border-top: 3px solid var(--accent);
+      border-top: 4px solid var(--accent);
       flex-shrink: 0;
-      height: 80px;
-      min-height: 80px;
-      max-height: 80px;
-      z-index: 1000;
-      box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
     }
 
-    .input-wrap {
+    .input-wrapper {
       display: flex;
       background: var(--bg);
       border: 2px solid var(--border);
       border-radius: 8px;
-      padding: 0.2rem;
-      gap: 0.5rem;
-      transition: all 0.2s;
       height: 100%;
+      width: 100%;
     }
 
-    .input-wrap:focus-within { 
+    .input-wrapper:focus-within { 
       border-color: var(--accent);
-      box-shadow: 0 0 15px var(--accent);
     }
 
     textarea {
@@ -188,7 +153,7 @@
       background: none;
       border: none;
       color: var(--text);
-      padding: 0.5rem 1rem;
+      padding: 0.7rem 1rem;
       font-family: inherit;
       font-size: 1rem;
       resize: none;
@@ -202,55 +167,57 @@
       cursor: not-allowed;
     }
 
-    .btn {
+    .send-btn {
       background: var(--accent);
       border: none;
       border-radius: 6px;
-      padding: 0 1.4rem;
+      padding: 0 1.5rem;
+      margin: 4px;
       color: #000;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.15s;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.9rem;
-      white-space: nowrap;
-      height: 100%;
+      height: calc(100% - 8px);
     }
 
-    .btn:hover { 
-      filter: brightness(1.2);
-      transform: scale(1.02);
-    }
-    
-    .btn:active { transform: scale(0.98); }
-    
-    .btn:disabled {
+    .send-btn:disabled {
       background: var(--border);
       color: var(--muted);
       cursor: not-allowed;
-      filter: none;
-      transform: none;
       opacity: 0.5;
     }
 
-    /* =============== БОКОВАЯ ПАНЕЛЬ =============== */
+    /* ПАНЕЛЬ */
+    .panel-section {
+      width: 320px;
+      background: var(--surface);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+      border-left: 2px solid var(--border);
+      height: 100vh;
+    }
+
+    @media (max-width: 900px) {
+      .panel-section { 
+        display: none; 
+      }
+    }
+
     .panel {
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 1rem;
-      font-family: 'JetBrains Mono', monospace;
       font-size: 0.75rem;
     }
 
-    .p-title {
+    .panel-title {
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 0.9rem;
-      display: block;
       font-size: 0.68rem;
-      font-weight: 600;
+      margin-bottom: 0.9rem;
     }
 
     .stats-grid {
@@ -259,32 +226,32 @@
       gap: 0.9rem;
     }
 
-    .s-val { font-size: 1.2rem; color: var(--accent); font-weight: 600; }
-    .s-label { font-size: 0.65rem; color: var(--muted); }
+    .stat-value { 
+      font-size: 1.2rem; 
+      color: var(--accent); 
+      font-weight: 600; 
+    }
+    
+    .stat-label { 
+      font-size: 0.65rem; 
+      color: var(--muted); 
+    }
 
     .progress-container {
       margin: 1rem 0;
       background: var(--bg);
       border-radius: 6px;
-      overflow: hidden;
       height: 28px;
       position: relative;
       border: 1px solid var(--border);
+      overflow: hidden;
     }
 
     .progress-bar {
       height: 100%;
-      background: linear-gradient(90deg, var(--accent) 0%, #00cc88 100%);
-      transition: width 0.3s ease;
+      background: var(--accent);
       width: 0%;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding-right: 0.5rem;
-      font-size: 0.65rem;
-      font-weight: 600;
-      color: #000;
-      white-space: nowrap;
+      transition: width 0.3s;
     }
 
     .progress-text {
@@ -293,12 +260,7 @@
       left: 50%;
       transform: translate(-50%, -50%);
       font-size: 0.65rem;
-      color: var(--text);
-      font-weight: 600;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-      z-index: 1;
-      width: 100%;
-      text-align: center;
+      color: #fff;
     }
 
     .drop-zone {
@@ -307,8 +269,8 @@
       padding: 1.3rem 1rem;
       text-align: center;
       cursor: pointer;
-      transition: all 0.2s;
       color: var(--muted);
+      transition: 0.2s;
     }
 
     .drop-zone:hover {
@@ -317,9 +279,15 @@
       background: var(--accent-dim);
     }
 
-    .drop-zone small { display: block; margin-top: 0.4rem; font-size: 0.65rem; opacity: 0.8; }
+    .drop-zone small { 
+      display: block; 
+      margin-top: 0.4rem; 
+      font-size: 0.65rem; 
+    }
 
-    input[type="file"] { display: none; }
+    input[type="file"] { 
+      display: none; 
+    }
 
     .log-box {
       height: 140px;
@@ -328,18 +296,17 @@
       padding: 0.6rem;
       color: var(--muted);
       border-radius: 4px;
+      font-size: 0.62rem;
+      font-family: monospace;
       white-space: pre-wrap;
       line-height: 1.4;
-      font-size: 0.62rem;
-      font-family: 'JetBrains Mono', monospace;
     }
 
-    .log-box .error { color: var(--error); }
-    .log-box .warn { color: var(--warning); }
-    .log-box .ok { color: var(--success); }
-    .log-box .debug { color: #8888ff; }
-
-    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+    .actions-grid { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 0.6rem; 
+    }
 
     .btn-sm {
       background: var(--border);
@@ -348,22 +315,14 @@
       padding: 0.55rem 0.7rem;
       border-radius: 5px;
       cursor: pointer;
-      font-family: inherit;
       font-size: 0.72rem;
-      transition: background 0.15s;
-      text-align: center;
+      transition: 0.2s;
     }
 
     .btn-sm:hover { background: #1a1b25; }
     .btn-danger { color: var(--error); }
-    .btn-danger:hover { background: rgba(255, 85, 119, 0.12); }
+    .btn-danger:hover { background: rgba(255, 85, 119, 0.1); }
 
-    ::-webkit-scrollbar { width: 7px; height: 7px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #2a2a3a; }
-
-    /* Предупреждение о большом файле */
     .warning-message {
       background: rgba(255, 170, 51, 0.1);
       border: 1px solid var(--warning);
@@ -374,42 +333,44 @@
       margin-top: 0.5rem;
       text-align: center;
     }
+
+    ::-webkit-scrollbar { width: 7px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   </style>
 </head>
-
 <body>
-  <div class="layout">
+  <div class="app">
     
-    <!-- ЛЕВАЯ КОЛОНКА: ЧАТ -->
-    <div class="chat-col">
-      <div class="top-bar">
+    <!-- ЧАТ -->
+    <div class="chat-section">
+      <div class="chat-header">
         <div class="logo">GRU CORE v4.3</div>
-        <div class="status-row">
+        <div class="status">
           <div class="status-dot" id="status-dot"></div>
           <span id="status-text">Ожидание...</span>
         </div>
       </div>
       
-      <div class="chat-flow" id="chat">
+      <div class="chat-messages" id="chat">
         <div class="msg ai">
           <div class="bubble">Система готова. Загрузите файл .txt для обучения модели.</div>
         </div>
       </div>
       
-      <!-- ПОЛЕ ВВОДА - ФИКСИРОВАННОЕ ВНИЗУ -->
-      <div class="input-area" id="inputArea">
-        <div class="input-wrap">
+      <!-- ПОЛЕ ВВОДА -->
+      <div class="chat-input-container">
+        <div class="input-wrapper">
           <textarea id="input" rows="1" placeholder="Загрузите файл для начала..." disabled></textarea>
-          <button class="btn" id="send" disabled>SEND</button>
+          <button class="send-btn" id="send" disabled>SEND</button>
         </div>
       </div>
     </div>
 
-    <!-- ПРАВАЯ КОЛОНКА: ПАНЕЛЬ -->
-    <div class="sidebar">
-      
+    <!-- ПАНЕЛЬ -->
+    <div class="panel-section">
       <div class="panel">
-        <span class="p-title">📁 ЗАГРУЗКА ФАЙЛА</span>
+        <span class="panel-title">📁 ЗАГРУЗКА ФАЙЛА</span>
         <input type="file" id="file-in" accept=".txt,.md,.json">
         <div class="drop-zone" id="drop">
           <div>📄 Выберите файл</div>
@@ -421,12 +382,12 @@
       </div>
 
       <div class="panel">
-        <span class="p-title">📊 МЕТРИКИ МОДЕЛИ</span>
+        <span class="panel-title">📊 МЕТРИКИ МОДЕЛИ</span>
         <div class="stats-grid">
-          <div><div class="s-val" id="s-vocab">0</div><div class="s-label">Словарь</div></div>
-          <div><div class="s-val" id="s-hidden">96</div><div class="s-label">Нейронов</div></div>
-          <div><div class="s-val" id="s-steps">0</div><div class="s-label">Шагов</div></div>
-          <div><div class="s-val" id="s-loss">0.000</div><div class="s-label">Потеря</div></div>
+          <div><div class="stat-value" id="s-vocab">0</div><div class="stat-label">Словарь</div></div>
+          <div><div class="stat-value" id="s-hidden">96</div><div class="stat-label">Нейронов</div></div>
+          <div><div class="stat-value" id="s-steps">0</div><div class="stat-label">Шагов</div></div>
+          <div><div class="stat-value" id="s-loss">0.000</div><div class="stat-label">Потеря</div></div>
         </div>
         
         <div class="progress-container">
@@ -436,8 +397,8 @@
       </div>
 
       <div class="panel">
-        <span class="p-title">⚙️ ДЕЙСТВИЯ</span>
-        <div class="actions">
+        <span class="panel-title">⚙️ ДЕЙСТВИЯ</span>
+        <div class="actions-grid">
           <button class="btn-sm" id="save">💾 Скачать</button>
           <button class="btn-sm" id="load">📂 Загрузить</button>
           <button class="btn-sm btn-danger" id="reset" style="grid-column: span 2;">🗑️ Сбросить</button>
@@ -445,25 +406,28 @@
       </div>
 
       <div class="panel">
-        <span class="p-title">🎛️ УПРАВЛЕНИЕ</span>
-        <div class="actions">
+        <span class="panel-title">🎛️ УПРАВЛЕНИЕ</span>
+        <div class="actions-grid">
           <button class="btn-sm" id="toggle-train">⏸ Пауза</button>
           <button class="btn-sm" id="force-save">✨ Сохранить</button>
         </div>
         <div style="margin-top:0.5rem; font-size:0.65rem; color:var(--muted); text-align:center;">
-          Автосохранение: <span id="auto-save-status" style="color:var(--success)">ВЫКЛ</span>
+          Автосохранение: <span id="auto-save-status" style="color:var(--warning)">ВЫКЛ</span>
         </div>
       </div>
 
       <div class="panel" style="flex:1; display:flex; flex-direction:column;">
-        <span class="p-title">📋 ЛОГ</span>
+        <span class="panel-title">📋 ЛОГ</span>
         <div class="log-box" id="log">[СИСТЕМА] Готов к работе\n</div>
       </div>
-      
     </div>
   </div>
 
   <script>
+    // =============== ТВОЙ ПОЛНЫЙ JS КОД ===============
+    // Вставь сюда весь свой JavaScript код из твоего исходного файла
+    // От "use strict"; до самого конца
+    
     'use strict';
 
     // =============== КОНФИГУРАЦИЯ ===============
@@ -480,8 +444,7 @@
       GEN_MAX_LENGTH: 60,
       GEN_TEMPERATURE: 0.85,
       GEN_TOP_K: 20,
-      STORAGE_KEY: 'gru-engine-v4',
-      MAX_STORAGE_SIZE: 4 * 1024 * 1024 // 4MB лимит для localStorage
+      STORAGE_KEY: 'gru-engine-v4'
     };
 
     // =============== МАТЕМАТИКА ===============
@@ -904,7 +867,6 @@
       loss: document.getElementById('s-loss'),
       progressBar: document.getElementById('progress-bar'),
       progressText: document.getElementById('progress-text'),
-      inputArea: document.getElementById('inputArea'),
       fileWarning: document.getElementById('fileWarning'),
       autoSaveStatus: document.getElementById('auto-save-status')
     };
@@ -917,7 +879,6 @@
         if (type === 'error') prefix = '❌';
         else if (type === 'warn') prefix = '⚠️';
         else if (type === 'ok') prefix = '✅';
-        else if (type === 'debug') prefix = '🔍';
         
         UI.log.textContent += `[${time}] ${prefix} ${msg}\n`;
         UI.log.scrollTop = UI.log.scrollHeight;
@@ -944,7 +905,6 @@
     let totalSequences = 0;
     let isTraining = false;
     let trainingPaused = false;
-    let autoSaveEnabled = false; // ОТКЛЮЧАЕМ АВТОСОХРАНЕНИЕ
 
     // =============== ФУНКЦИИ ===============
     function addMessage(text, isUser) {
@@ -961,7 +921,7 @@
       UI.progressText.textContent = `${current} / ${total} последовательностей (${percent}%)`;
     }
 
-    // СОХРАНЕНИЕ ТОЛЬКО В ФАЙЛ (не в localStorage)
+    // Сохранение в файл
     function saveToFile() {
       if (!network || !tokenizer) { 
         Logger.add('Нет модели для сохранения', 'warn'); 
@@ -995,7 +955,7 @@
       }
     }
 
-    // ЗАГРУЗКА ИЗ ФАЙЛА
+    // Загрузка из файла
     async function loadFromFile(file) {
       try {
         Logger.add(`Загрузка файла: ${file.name}`, 'info');
@@ -1030,7 +990,6 @@
         Status.set('Модель загружена', 'active');
         Logger.add(`✅ Загружено: словарь ${tokenizer.size}, шагов ${network.getMetrics().steps}`, 'ok');
         
-        // Показываем приветственное сообщение
         addMessage(`Модель загружена из файла. Размер словаря: ${tokenizer.size}`, false);
         
       } catch (err) { 
@@ -1086,9 +1045,9 @@
       setTimeout(() => trainBatch(batchSize), 0);
     }
 
-    // =============== ОБРАБОТЧИКИ СОБЫТИЙ ===============
+    // =============== ОБРАБОТЧИКИ ===============
 
-    // Загрузка файла (txt или json)
+    // Загрузка файла
     document.getElementById('drop').onclick = () => document.getElementById('file-in').click();
 
     document.getElementById('file-in').onchange = async (e) => {
@@ -1098,21 +1057,18 @@
       Logger.add(`Файл: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`, 'info');
       Status.set('Обработка...', 'active');
       
-      // Показываем предупреждение для больших файлов
-      if (file.size > 1024 * 1024) { // > 1MB
+      if (file.size > 1024 * 1024) {
         UI.fileWarning.style.display = 'block';
         UI.fileWarning.textContent = '⚠️ Большой файл, может обрабатываться долго...';
       }
       
       try {
-        // Если это JSON - загружаем модель
         if (file.name.endsWith('.json')) {
           await loadFromFile(file);
           UI.fileWarning.style.display = 'none';
           return;
         }
         
-        // Иначе обрабатываем как текстовый файл для обучения
         const text = await file.text();
         if (!text || text.trim().length === 0) throw new Error('Пустой файл');
         
@@ -1121,11 +1077,7 @@
         tokenizer = new Tokenizer();
         const words = tokenizer.buildVocabulary(text, CONFIG.MIN_FREQ);
         
-        if (tokenizer.size <= 4) throw new Error(`Словарь пуст (${tokenizer.size} токенов). Увеличьте файл или уменьшите minFreq`);
-        
-        if (tokenizer.size > 2000) {
-          Logger.add(`⚠️ Большой словарь (${tokenizer.size}). Обучение может быть медленным`, 'warn');
-        }
+        if (tokenizer.size <= 4) throw new Error(`Словарь пуст (${tokenizer.size} токенов)`);
         
         dataset = text.split('\n')
           .map(l => tokenizer._normalize(l))
@@ -1133,12 +1085,12 @@
           .map(l => { const ids = tokenizer.encode(l); return [2, ...ids, 3]; })
           .filter(seq => seq.length >= 3);
         
-        if (dataset.length === 0) throw new Error(`Датасет пуст. Проверьте: строки >= ${CONFIG.MIN_LINE_LEN} символов`);
+        if (dataset.length === 0) throw new Error(`Датасет пуст`);
         
         totalSequences = dataset.length;
         trainIndex = 0;
         
-        Logger.add(`Словарь: ${tokenizer.size} | Строк: ${dataset.length} | Всего слов: ${words}`, 'ok');
+        Logger.add(`Словарь: ${tokenizer.size} | Строк: ${dataset.length}`, 'ok');
         
         network = new GRUNetwork(tokenizer.size, CONFIG.HIDDEN_SIZE);
         Logger.add(`Сеть создана: ${(network.getParamCount() / 1000000).toFixed(2)}M параметров`, 'ok');
@@ -1161,8 +1113,6 @@
       } catch (err) {
         Logger.add(`❌ Ошибка: ${err.message}`, 'error');
         Status.set('Ошибка', 'error');
-        UI.input.disabled = true;
-        UI.send.disabled = true;
       } finally {
         UI.fileWarning.style.display = 'none';
       }
@@ -1181,7 +1131,7 @@
       
       const inputIds = tokenizer.encode(text);
       if (inputIds.length === 0) { 
-        addMessage('Не удалось обработать ввод (пусто или неизвестные символы)', 'ai'); 
+        addMessage('Не удалось обработать ввод', 'ai'); 
         return; 
       }
       
@@ -1207,11 +1157,6 @@
         UI.send.onclick(); 
       } 
     };
-    
-    UI.input.addEventListener('input', function() { 
-      this.style.height = 'auto'; 
-      this.style.height = Math.min(this.scrollHeight, 150) + 'px'; 
-    });
 
     // Кнопки
     document.getElementById('save').onclick = saveToFile;
@@ -1250,7 +1195,6 @@
       Status.set('Сброшено', 'idle');
       Logger.add('🔄 Полный сброс выполнен', 'warn');
       
-      // Очищаем чат
       UI.chat.innerHTML = '';
       addMessage('Система сброшена. Загрузите файл .txt для обучения.', false);
     };
@@ -1275,30 +1219,9 @@
 
     document.getElementById('force-save').onclick = saveToFile;
 
-    // Обновляем статус автосохранения
-    if (UI.autoSaveStatus) {
-      UI.autoSaveStatus.textContent = 'ВЫКЛ';
-      UI.autoSaveStatus.style.color = 'var(--warning)';
-    }
-
-    // =============== ФИКС ДЛЯ ПОЛЯ ВВОДА ===============
-    function fixInputVisibility() {
-      if (UI.inputArea) {
-        UI.inputArea.style.display = 'block';
-        UI.inputArea.style.visibility = 'visible';
-        UI.inputArea.style.opacity = '1';
-        UI.inputArea.style.height = '80px';
-      }
-    }
-
-    // Запускаем фикс при загрузке и изменении размера окна
-    window.addEventListener('load', fixInputVisibility);
-    window.addEventListener('resize', fixInputVisibility);
-    setInterval(fixInputVisibility, 1000);
-
     // Стартовое сообщение
     Logger.add('Система готова. Загрузите .txt для обучения или .json для загрузки модели', 'info');
     Status.set('Ожидание', 'idle');
   </script>
 </body>
-</html>
+  </html>
