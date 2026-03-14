@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GRU Neural Engine v4.1</title>
+  <title>GRU Neural Engine v4.2 PRO</title>
   
   <!-- ═══════════════════════════════════════════════════════════════════════
        СТИЛИ (Ванильный CSS, без внешних зависимостей)
@@ -18,14 +18,11 @@
       --accent: #00ffa3;
       --accent-dim: rgba(0, 255, 163, 0.08);
       --error: #ff5577;
-      --user-msg: rgba(0, 255, 163, 0.1);
+      --warning: #ffaa33;
+      --success: #33ff88;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -42,18 +39,14 @@
        ═══════════════════════════════════════════════════════════════════════ */
     .layout {
       display: grid;
-      grid-template-columns: 1fr 300px;
+      grid-template-columns: 1fr 320px;
       height: 100%;
       background: var(--border);
     }
 
-    @media (max-width: 768px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
-      .sidebar {
-        display: none;
-      }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
     }
 
     .chat-col {
@@ -69,6 +62,7 @@
       flex-direction: column;
       gap: 1rem;
       overflow-y: auto;
+      border-left: 1px solid var(--border);
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
@@ -93,7 +87,7 @@
     .status-row {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       font-size: 0.8rem;
     }
 
@@ -102,6 +96,7 @@
       height: 8px;
       border-radius: 50%;
       background: var(--muted);
+      transition: background 0.2s, box-shadow 0.2s;
     }
 
     .status-dot.active {
@@ -112,6 +107,11 @@
     .status-dot.error {
       background: var(--error);
       box-shadow: 0 0 8px var(--error);
+    }
+
+    .status-dot.warning {
+      background: var(--warning);
+      box-shadow: 0 0 8px var(--warning);
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
@@ -128,32 +128,21 @@
     }
 
     .msg {
-      max-width: 80%;
+      max-width: 85%;
       animation: fadeIn 0.2s ease-out;
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(5px);
-      }
-      to {
-        opacity: 1;
-        transform: none;
-      }
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    .msg.user {
-      align-self: flex-end;
-    }
-
-    .msg.ai {
-      align-self: flex-start;
-    }
+    .msg.user { align-self: flex-end; }
+    .msg.ai { align-self: flex-start; }
 
     .bubble {
-      padding: 0.8rem 1rem;
-      border-radius: 10px;
+      padding: 0.85rem 1.1rem;
+      border-radius: 12px;
       font-size: 0.95rem;
       line-height: 1.5;
       white-space: pre-wrap;
@@ -162,14 +151,14 @@
 
     .msg.user .bubble {
       background: var(--accent-dim);
-      border: 1px solid rgba(0, 255, 163, 0.15);
-      border-radius: 10px 10px 2px 10px;
+      border: 1px solid rgba(0, 255, 163, 0.2);
+      border-radius: 12px 12px 4px 12px;
     }
 
     .msg.ai .bubble {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 10px 10px 10px 2px;
+      border-radius: 12px 12px 12px 4px;
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
@@ -185,8 +174,9 @@
       display: flex;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.25rem;
+      border-radius: 8px;
+      padding: 0.3rem;
+      gap: 0.5rem;
     }
 
     textarea {
@@ -194,34 +184,37 @@
       background: none;
       border: none;
       color: var(--text);
-      padding: 0.6rem;
+      padding: 0.7rem 1rem;
       font-family: inherit;
       font-size: 1rem;
       resize: none;
       outline: none;
+      min-height: 44px;
+      max-height: 150px;
     }
 
     .btn {
       background: var(--accent);
       border: none;
-      border-radius: 4px;
-      padding: 0.5rem 1.2rem;
+      border-radius: 6px;
+      padding: 0.5rem 1.4rem;
       color: #000;
       font-weight: 600;
       cursor: pointer;
-      transition: filter 0.2s;
+      transition: filter 0.15s, transform 0.1s;
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.9rem;
+      white-space: nowrap;
     }
 
-    .btn:hover {
-      filter: brightness(1.1);
-    }
-
+    .btn:hover { filter: brightness(1.08); }
+    .btn:active { transform: scale(0.98); }
     .btn:disabled {
       background: var(--border);
       color: var(--muted);
       cursor: not-allowed;
+      filter: none;
+      transform: none;
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
@@ -230,7 +223,7 @@
     .panel {
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 8px;
       padding: 1rem;
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.75rem;
@@ -239,32 +232,36 @@
     .p-title {
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.8rem;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.9rem;
       display: block;
-      font-size: 0.7rem;
+      font-size: 0.68rem;
+      font-weight: 600;
     }
 
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.8rem;
+      gap: 0.9rem;
     }
 
     .s-val {
-      font-size: 1.1rem;
+      font-size: 1.2rem;
       color: var(--accent);
+      font-weight: 600;
     }
 
     .s-label {
       font-size: 0.65rem;
       color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     .drop-zone {
-      border: 1px dashed var(--border);
-      border-radius: 4px;
-      padding: 1.2rem;
+      border: 2px dashed var(--border);
+      border-radius: 6px;
+      padding: 1.3rem 1rem;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s;
@@ -277,67 +274,78 @@
       background: var(--accent-dim);
     }
 
-    input[type="file"] {
-      display: none;
+    .drop-zone small {
+      display: block;
+      margin-top: 0.4rem;
+      font-size: 0.65rem;
+      opacity: 0.8;
     }
 
+    input[type="file"] { display: none; }
+
     .log-box {
-      height: 120px;
+      height: 140px;
       overflow-y: auto;
       background: #000;
-      padding: 0.5rem;
+      padding: 0.6rem;
       color: var(--muted);
       border-radius: 4px;
       white-space: pre-wrap;
       line-height: 1.4;
       font-size: 0.65rem;
+      font-family: 'JetBrains Mono', monospace;
     }
+
+    .log-box .error { color: var(--error); }
+    .log-box .warn { color: var(--warning); }
+    .log-box .ok { color: var(--success); }
 
     .actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.5rem;
+      gap: 0.6rem;
     }
 
     .btn-sm {
       background: var(--border);
       color: var(--text);
       border: none;
-      padding: 0.5rem;
-      border-radius: 4px;
+      padding: 0.55rem 0.7rem;
+      border-radius: 5px;
       cursor: pointer;
       font-family: inherit;
-      font-size: 0.7rem;
-      transition: background 0.2s;
+      font-size: 0.72rem;
+      transition: background 0.15s;
+      text-align: center;
     }
 
-    .btn-sm:hover {
-      background: #1a1b25;
-    }
-
-    .btn-danger {
-      color: var(--error);
-    }
-
-    .btn-danger:hover {
-      background: rgba(255, 85, 119, 0.1);
-    }
+    .btn-sm:hover { background: #1a1b25; }
+    .btn-sm:active { transform: scale(0.98); }
+    .btn-danger { color: var(--error); }
+    .btn-danger:hover { background: rgba(255, 85, 119, 0.12); }
+    .btn-primary { background: var(--accent); color: #000; font-weight: 600; }
+    .btn-primary:hover { filter: brightness(1.08); }
 
     /* ═══════════════════════════════════════════════════════════════════════
        СКРОЛЛБАР
        ═══════════════════════════════════════════════════════════════════════ */
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
-
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb {
       background: var(--border);
       border-radius: 3px;
+      transition: background 0.2s;
     }
+    ::-webkit-scrollbar-thumb:hover { background: #2a2a3a; }
 
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
+    /* ═══════════════════════════════════════════════════════════════════════
+       УТИЛИТЫ
+       ═══════════════════════════════════════════════════════════════════════ */
+    .hidden { display: none !important; }
+    .text-center { text-align: center; }
+    .mt-1 { margin-top: 0.5rem; }
+    .mb-1 { margin-bottom: 0.5rem; }
+    .flex-center { display: flex; align-items: center; justify-content: center; }
   </style>
 </head>
 
@@ -346,141 +354,218 @@
        РАЗМЕТКА
        ═══════════════════════════════════════════════════════════════════════ -->
   <div class="layout">
+    
+    <!-- Левая колонка: Чат -->
     <div class="chat-col">
       <div class="top-bar">
-        <div class="logo">GRU CORE v4.1</div>
+        <div class="logo">GRU CORE v4.2</div>
         <div class="status-row">
           <div class="status-dot" id="status-dot"></div>
-          <span id="status-text" style="color:var(--muted)">Ожидание...</span>
+          <span id="status-text">Ожидание...</span>
         </div>
       </div>
-      <div class="chat-flow" id="chat"></div>
+      
+      <div class="chat-flow" id="chat">
+        <div class="msg ai">
+          <div class="bubble">Система готова. Загрузите файл .txt для обучения модели.</div>
+        </div>
+      </div>
+      
       <div class="input-area">
         <div class="input-wrap">
-          <textarea id="input" rows="1" placeholder="Загрузите .txt файл для обучения..." disabled></textarea>
+          <textarea id="input" rows="1" placeholder="Загрузите файл для начала..." disabled></textarea>
           <button class="btn" id="send" disabled>SEND</button>
         </div>
       </div>
     </div>
 
+    <!-- Правая колонка: Панель управления -->
     <div class="sidebar">
+      
+      <!-- Загрузка данных -->
       <div class="panel">
-        <span class="p-title">Data Source</span>
-        <input type="file" id="file-in" accept=".txt">
-        <div class="drop-zone" id="drop">Загрузить .txt файл</div>
-        <div style="margin-top:0.5rem; font-size:0.65rem; color:var(--muted); text-align:center;">Диалоги, книги, статьи</div>
+        <span class="p-title">📁 Data Source</span>
+        <input type="file" id="file-in" accept=".txt,.md">
+        <div class="drop-zone" id="drop">
+          <div>📄 Загрузить файл</div>
+          <small>.txt, .md • UTF-8</small>
+        </div>
       </div>
 
+      <!-- Метрики модели -->
       <div class="panel">
-        <span class="p-title">Model Metrics</span>
+        <span class="p-title">📊 Model Metrics</span>
         <div class="stats-grid">
-          <div><div class="s-val" id="s-vocab">0</div><div class="s-label">Vocabulary</div></div>
-          <div><div class="s-val" id="s-hidden">0</div><div class="s-label">Hidden</div></div>
-          <div><div class="s-val" id="s-steps">0</div><div class="s-label">Training Steps</div></div>
-          <div><div class="s-val" id="s-loss">0.000</div><div class="s-label">Avg Loss</div></div>
+          <div>
+            <div class="s-val" id="s-vocab">0</div>
+            <div class="s-label">Vocabulary</div>
+          </div>
+          <div>
+            <div class="s-val" id="s-hidden">96</div>
+            <div class="s-label">Hidden Units</div>
+          </div>
+          <div>
+            <div class="s-val" id="s-steps">0</div>
+            <div class="s-label">Training Steps</div>
+          </div>
+          <div>
+            <div class="s-val" id="s-loss">0.000</div>
+            <div class="s-label">Avg Loss</div>
+          </div>
         </div>
       </div>
 
+      <!-- Управление моделью -->
       <div class="panel">
-        <span class="p-title">Model Actions</span>
+        <span class="p-title">⚙️ Model Actions</span>
         <div class="actions">
-          <button class="btn-sm" id="save">Export</button>
-          <button class="btn-sm" id="load">Import</button>
-          <button class="btn-sm btn-danger" id="reset" style="grid-column: span 2;">Reset Model</button>
+          <button class="btn-sm" id="save">💾 Export</button>
+          <button class="btn-sm" id="load">📂 Import</button>
+          <button class="btn-sm btn-danger" id="reset" style="grid-column: span 2;">🗑️ Reset All</button>
         </div>
       </div>
 
+      <!-- Управление обучением -->
       <div class="panel">
-        <span class="p-title">Training Control</span>
+        <span class="p-title">🎛️ Training Control</span>
         <div class="actions">
-          <button class="btn-sm" id="toggle-train">⏸ Пауза</button>
-          <button class="btn-sm" id="force-save">💾 Сохранить</button>
+          <button class="btn-sm" id="toggle-train">⏸ Pause</button>
+          <button class="btn-sm" id="force-save">✨ Save Now</button>
         </div>
-        <div style="margin-top:0.5rem; font-size:0.65rem; color:var(--muted);">
-          Автосохранение: <span id="auto-save-status" style="color:var(--accent)">вкл</span>
+        <div class="mt-1 text-center" style="font-size:0.65rem; color:var(--muted);">
+          Auto-save: <span id="auto-save-status" style="color:var(--success)">ON</span>
         </div>
       </div>
 
-      <div class="panel" style="flex:1; display:flex; flex-direction:column;">
-        <span class="p-title">System Log</span>
-        <div class="log-box" id="log">System ready.\n</div>
+      <!-- Лог системы -->
+      <div class="panel" style="flex:1; display:flex; flex-direction:column; min-height:150px;">
+        <span class="p-title">📋 System Log</span>
+        <div class="log-box" id="log">[SYS] Engine initialized v4.2\n</div>
       </div>
+      
     </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
-       JAVASCRIPT
+       JAVASCRIPT ЯДРО
        ═══════════════════════════════════════════════════════════════════════ -->
   <script>
-    // ═══════════════════════════════════════════════════════════════════════
-    // МАТЕМАТИЧЕСКИЕ УТИЛИТЫ
-    // ═══════════════════════════════════════════════════════════════════════
+    'use strict';
 
-    const MathUtils = {
-      sigmoid: x => 1 / (1 + Math.exp(-x)),
-      dSigmoid: y => y * (1 - y),
-      tanh: x => Math.tanh(x),
-      dTanh: y => 1 - y * y,
-      softmax: (logits) => {
-        const max = Math.max(...logits);
-        const exp = logits.map(v => Math.exp(v - max));
-        const sum = exp.reduce((a, b) => a + b, 0);
-        if (sum < 1e-10) return logits.map(() => 1 / logits.length);
-        return exp.map(v => v / sum);
-      },
-      zeros: (n) => new Float32Array(n),
-      xavierInit: (rows, cols) => {
-        const limit = Math.sqrt(6 / (rows + cols));
-        const arr = new Float32Array(rows * cols);
-        for (let i = 0; i < arr.length; i++) {
-          arr[i] = (Math.random() * 2 - 1) * limit;
-        }
-        return arr;
-      },
-      matVec: (W, rows, cols, vec) => {
-        const out = new Float32Array(rows);
-        for (let i = 0; i < rows; i++) {
-          let sum = 0;
-          const offset = i * cols;
-          for (let j = 0; j < cols; j++) {
-            sum += W[offset + j] * vec[j];
-          }
-          out[i] = sum;
-        }
-        return out;
-      },
-      clipGlobalNorm: (grads, maxNorm = 5.0) => {
-        let normSq = 0;
-        for (const g of grads) {
-          for (let i = 0; i < g.length; i++) normSq += g[i] * g[i];
-        }
-        const norm = Math.sqrt(normSq);
-        if (norm > maxNorm) {
-          const scale = maxNorm / norm;
-          for (const g of grads) {
-            for (let i = 0; i < g.length; i++) g[i] *= scale;
-          }
-        }
-        return norm;
-      }
+    // ═══════════════════════════════════════════════════════════════════════
+    // КОНСТАНТЫ И КОНФИГУРАЦИЯ
+    // ═══════════════════════════════════════════════════════════════════════
+    const CONFIG = {
+      VERSION: 1,                    // Версия формата сохранения
+      HIDDEN_SIZE: 96,               // Размер скрытого состояния
+      MIN_FREQ: 2,                   // Мин. частота слова для словаря
+      MIN_LINE_LEN: 5,               // Мин. длина строки для обучения
+      MAX_CACHE_SIZE: 100,           // Размер кэша для BPTT
+      BATCH_SIZE: 20,                // Размер пакета обучения
+      LR_INITIAL: 0.002,             // Начальный learning rate
+      LR_INFERENCE: 0.0005,          // LR для дообучения на инференсе
+      GRAD_CLIP_NORM: 5.0,           // Порог для clip по норме
+      GEN_MAX_LENGTH: 60,            // Макс. длина генерации
+      GEN_TEMPERATURE: 0.85,         // Температура сэмплирования
+      GEN_TOP_K: 20,                 // Top-K сэмплирование
+      STORAGE_KEY: 'gru-engine-v4'   // Ключ для localStorage
     };
 
     // ═══════════════════════════════════════════════════════════════════════
-    // ТОКЕНИЗАТОР
+    // МАТЕМАТИЧЕСКИЕ УТИЛИТЫ (низкоуровневые, без аллокаций в горячих путях)
     // ═══════════════════════════════════════════════════════════════════════
+    const MathUtils = (() => {
+      // Предвыделенные буферы для временных вычислений (оптимизация)
+      const tempBuffers = new Map();
+      const getBuffer = (name, size) => {
+        if (!tempBuffers.has(name) || tempBuffers.get(name).length < size) {
+          tempBuffers.set(name, new Float32Array(size));
+        }
+        return tempBuffers.get(name);
+      };
 
+      return {
+        sigmoid: (x) => 1 / (1 + Math.exp(Math.max(-500, Math.min(500, x)))),
+        dSigmoid: (y) => y * (1 - y),
+        tanh: (x) => Math.tanh(x),
+        dTanh: (y) => Math.max(1e-7, 1 - y * y), // Защита от деления на 0
+
+        softmax: (logits) => {
+          const max = Math.max(...logits);
+          const exp = new Float32Array(logits.length);
+          let sum = 0;
+          for (let i = 0; i < logits.length; i++) {
+            exp[i] = Math.exp(logits[i] - max);
+            sum += exp[i];
+          }
+          if (sum < 1e-10) {
+            const uniform = 1 / logits.length;
+            return new Float32Array(logits.length).fill(uniform);
+          }
+          for (let i = 0; i < exp.length; i++) exp[i] /= sum;
+          return exp;
+        },
+
+        zeros: (n) => new Float32Array(n),
+
+        xavierInit: (rows, cols, scale = 1.0) => {
+          const limit = scale * Math.sqrt(6 / (rows + cols));
+          const arr = new Float32Array(rows * cols);
+          for (let i = 0; i < arr.length; i++) {
+            arr[i] = (Math.random() * 2 - 1) * limit;
+          }
+          return arr;
+        },
+
+        // Умножение матрицы (rows×cols, flat) на вектор → вектор
+        matVec: (W, rows, cols, vec, out = null) => {
+          const result = out || new Float32Array(rows);
+          for (let i = 0; i < rows; i++) {
+            let sum = 0;
+            const offset = i * cols;
+            for (let j = 0; j < cols; j++) sum += W[offset + j] * vec[j];
+            result[i] = sum;
+          }
+          return result;
+        },
+
+        // Clip градиентов по глобальной норме
+        clipGlobalNorm: (grads, maxNorm) => {
+          let normSq = 0;
+          for (const g of grads) {
+            for (let i = 0; i < g.length; i++) normSq += g[i] * g[i];
+          }
+          const norm = Math.sqrt(normSq);
+          if (norm > maxNorm && norm > 0) {
+            const scale = maxNorm / norm;
+            for (const g of grads) {
+              for (let i = 0; i < g.length; i++) g[i] *= scale;
+            }
+          }
+          return norm;
+        },
+
+        // Копирование массива с проверкой
+        safeCopy: (src, dst) => {
+          if (!src || !dst || src.length !== dst.length) return false;
+          dst.set(src);
+          return true;
+        }
+      };
+    })();
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ТОКЕНИЗАТОР (N-gram + BPE-lite с валидацией)
+    // ═══════════════════════════════════════════════════════════════════════
     class Tokenizer {
       constructor() {
         this.tokenToId = new Map();
         this.idToToken = new Map();
-        this._addSpecialTokens();
+        this._initSpecialTokens();
       }
 
-      _addSpecialTokens() {
-        this._add('<PAD>');
-        this._add('<UNK>');
-        this._add('<BOS>');
-        this._add('<EOS>');
+      _initSpecialTokens() {
+        ['<PAD>', '<UNK>', '<BOS>', '<EOS>'].forEach(t => this._add(t));
       }
 
       _add(token) {
@@ -492,25 +577,30 @@
       }
 
       _normalize(text) {
+        if (!text) return '';
         return text.toLowerCase()
           .replace(/[^а-яёa-z0-9\s\.\,\!\?\-\']/g, ' ')
           .replace(/\s+/g, ' ')
           .trim();
       }
 
-      buildVocabulary(text, minFreq = 2) {
+      buildVocabulary(text, minFreq = CONFIG.MIN_FREQ) {
         const words = this._normalize(text).split(' ').filter(w => w.length > 0);
+        if (words.length === 0) return 0;
+
         const freq = new Map();
-        for (const w of words) {
-          freq.set(w, (freq.get(w) || 0) + 1);
-        }
+        for (const w of words) freq.set(w, (freq.get(w) || 0) + 1);
+
+        // Добавляем униграммы
         for (const [word, count] of freq) {
           if (count >= minFreq) this._add(word);
         }
+
+        // Добавляем биграммы
         for (let i = 0; i < words.length - 1; i++) {
           const a = words[i], b = words[i + 1];
-          if (freq.get(a) >= minFreq && freq.get(b) >= minFreq) {
-            this._add(`${a}‗${b}`);
+          if ((freq.get(a) || 0) >= minFreq && (freq.get(b) || 0) >= minFreq) {
+            this._add(`${a}‗${b}`); // U+2017 как внутренний разделитель
           }
         }
         return words.length;
@@ -524,11 +614,7 @@
           if (i < words.length - 1) {
             const bigram = `${words[i]}‗${words[i + 1]}`;
             const id = this.tokenToId.get(bigram);
-            if (id !== undefined) {
-              ids.push(id);
-              i += 2;
-              matched = true;
-            }
+            if (id !== undefined) { ids.push(id); i += 2; matched = true; }
           }
           if (!matched) {
             const id = this.tokenToId.get(words[i]);
@@ -540,63 +626,64 @@
       }
 
       decode(ids) {
+        if (!Array.isArray(ids)) return '';
         return ids
           .map(id => this.idToToken.get(id) || '<UNK>')
           .join(' ')
           .replace(/‗/g, ' ');
       }
 
-      export() {
-        return Array.from(this.tokenToId.entries());
-      }
+      export() { return Array.from(this.tokenToId.entries()); }
 
       import(data) {
+        if (!Array.isArray(data)) return false;
         this.tokenToId = new Map(data);
         this.idToToken = new Map();
-        for (const [token, id] of data) {
-          this.idToToken.set(id, token);
-        }
+        for (const [token, id] of data) this.idToToken.set(id, token);
+        return true;
       }
+
+      get size() { return this.tokenToId.size; }
+      isValidToken(id) { return id >= 0 && id < this.size; }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // GRU НЕЙРОСЕТЬ
+    // GRU НЕЙРОСЕТЬ (полный BPTT + Adam + валидация)
     // ═══════════════════════════════════════════════════════════════════════
-
     class GRUNetwork {
-      constructor(vocabSize, hiddenSize = 96) {
+      constructor(vocabSize, hiddenSize = CONFIG.HIDDEN_SIZE) {
+        if (vocabSize < 4) throw new Error('Vocab size must be >= 4');
+        
         this.V = vocabSize;
         this.H = hiddenSize;
-        this.Wz = MathUtils.xavierInit(this.V, this.H);
-        this.Uz = MathUtils.xavierInit(this.H, this.H);
-        this.bz = MathUtils.zeros(this.H);
-        this.Wr = MathUtils.xavierInit(this.V, this.H);
-        this.Ur = MathUtils.xavierInit(this.H, this.H);
-        this.br = MathUtils.zeros(this.H);
-        this.Wh = MathUtils.xavierInit(this.V, this.H);
-        this.Uh = MathUtils.xavierInit(this.H, this.H);
-        this.bh = MathUtils.zeros(this.H);
-        this.Wy = MathUtils.xavierInit(this.H, this.V);
-        this.by = MathUtils.zeros(this.V);
-        this.adam = { t: 0, beta1: 0.9, beta2: 0.999, eps: 1e-8, lr: 0.002 };
-        this.adamStates = {};
-        this._initAdamStates();
-        this.maxCacheSize = 100;
+        this._initWeights();
+        this._initAdam();
         this.cache = [];
         this.hiddenState = null;
+        this._metrics = { steps: 0, totalLoss: 0 };
       }
 
-      _initAdamStates() {
-        const weights = ['Wz', 'Uz', 'bz', 'Wr', 'Ur', 'br', 'Wh', 'Uh', 'bh', 'Wy', 'by'];
+      _initWeights() {
+        const { V, H } = this;
+        this.Wz = MathUtils.xavierInit(V, H); this.Uz = MathUtils.xavierInit(H, H); this.bz = MathUtils.zeros(H);
+        this.Wr = MathUtils.xavierInit(V, H); this.Ur = MathUtils.xavierInit(H, H); this.br = MathUtils.zeros(H);
+        this.Wh = MathUtils.xavierInit(V, H); this.Uh = MathUtils.xavierInit(H, H); this.bh = MathUtils.zeros(H);
+        this.Wy = MathUtils.xavierInit(H, V); this.by = MathUtils.zeros(V);
+      }
+
+      _initAdam() {
+        this.adam = { t: 0, beta1: 0.9, beta2: 0.999, eps: 1e-8, lr: CONFIG.LR_INITIAL };
+        this.adamStates = {};
+        const weights = ['Wz','Uz','bz','Wr','Ur','br','Wh','Uh','bh','Wy','by'];
         const shapes = {
-          Wz: [this.V, this.H], Uz: [this.H, this.H], bz: [this.H],
-          Wr: [this.V, this.H], Ur: [this.H, this.H], br: [this.H],
-          Wh: [this.V, this.H], Uh: [this.H, this.H], bh: [this.H],
-          Wy: [this.H, this.V], by: [this.V]
+          Wz:[this.V,this.H], Uz:[this.H,this.H], bz:[this.H],
+          Wr:[this.V,this.H], Ur:[this.H,this.H], br:[this.H],
+          Wh:[this.V,this.H], Uh:[this.H,this.H], bh:[this.H],
+          Wy:[this.H,this.V], by:[this.V]
         };
         for (const name of weights) {
-          const [rows, cols] = shapes[name];
-          const size = rows * (cols || 1);
+          const [r,c] = shapes[name];
+          const size = r * (c || 1);
           this.adamStates[name] = { m: MathUtils.zeros(size), v: MathUtils.zeros(size) };
         }
       }
@@ -607,109 +694,145 @@
       }
 
       _cacheStep(step) {
-        if (this.cache.length >= this.maxCacheSize) this.cache.shift();
+        if (this.cache.length >= CONFIG.MAX_CACHE_SIZE) this.cache.shift();
         this.cache.push(step);
       }
 
       forward(tokenId, hidden) {
         const { V, H } = this;
+        if (tokenId < 0 || tokenId >= V) tokenId = 1; // <UNK>
+
         const x = this._getRow(this.Wz, tokenId);
         const Uz_h = MathUtils.matVec(this.Uz, H, H, hidden);
         const z = new Float32Array(H);
         for (let i = 0; i < H; i++) z[i] = MathUtils.sigmoid(x[i] + Uz_h[i] + this.bz[i]);
+
         const Ur_h = MathUtils.matVec(this.Ur, H, H, hidden);
         const r = new Float32Array(H);
         for (let i = 0; i < H; i++) r[i] = MathUtils.sigmoid(x[i] + Ur_h[i] + this.br[i]);
+
         const r_h = new Float32Array(H);
         for (let i = 0; i < H; i++) r_h[i] = r[i] * hidden[i];
+        
         const Uh_rh = MathUtils.matVec(this.Uh, H, H, r_h);
         const hTilde = new Float32Array(H);
         for (let i = 0; i < H; i++) hTilde[i] = MathUtils.tanh(x[i] + Uh_rh[i] + this.bh[i]);
+
         const newHidden = new Float32Array(H);
         for (let i = 0; i < H; i++) newHidden[i] = (1 - z[i]) * hidden[i] + z[i] * hTilde[i];
+
         const logits = MathUtils.matVec(this.Wy, V, H, newHidden);
         for (let i = 0; i < V; i++) logits[i] += this.by[i];
-        this._cacheStep({ tokenId, hidden: new Float32Array(hidden), x: new Float32Array(x), z: new Float32Array(z), r: new Float32Array(r), r_h: new Float32Array(r_h), hTilde: new Float32Array(hTilde), newHidden: new Float32Array(newHidden), logits: new Float32Array(logits) });
+
+        this._cacheStep({ tokenId, hidden: new Float32Array(hidden), x, z, r, r_h, hTilde, newHidden, logits });
         return { hidden: newHidden, logits };
       }
 
       train(sequence, learningRate = null) {
-        if (sequence.length < 2) return 0;
-        const lr = learningRate || this.adam.lr;
+        if (!sequence || sequence.length < 2) return 0;
+        const lr = learningRate !== null ? learningRate : this.adam.lr;
         this.cache = [];
+        
         let hidden = this.hiddenState ? new Float32Array(this.hiddenState) : MathUtils.zeros(this.H);
-        for (let t = 0; t < sequence.length; t++) {
-          const result = this.forward(sequence[t], hidden);
-          hidden = result.hidden;
+        
+        // Forward pass
+        for (const token of sequence) {
+          const res = this.forward(token, hidden);
+          hidden = res.hidden;
         }
         this.hiddenState = new Float32Array(hidden);
+        if (this.cache.length === 0) return 0;
+
+        // Backward pass (BPTT)
         const { V, H } = this;
         let dhNext = MathUtils.zeros(H);
         let totalLoss = 0;
+
         const grads = {
-          Wz: MathUtils.zeros(V * H), Uz: MathUtils.zeros(H * H), bz: MathUtils.zeros(H),
-          Wr: MathUtils.zeros(V * H), Ur: MathUtils.zeros(H * H), br: MathUtils.zeros(H),
-          Wh: MathUtils.zeros(V * H), Uh: MathUtils.zeros(H * H), bh: MathUtils.zeros(H),
-          Wy: MathUtils.zeros(H * V), by: MathUtils.zeros(V)
+          Wz: MathUtils.zeros(V*H), Uz: MathUtils.zeros(H*H), bz: MathUtils.zeros(H),
+          Wr: MathUtils.zeros(V*H), Ur: MathUtils.zeros(H*H), br: MathUtils.zeros(H),
+          Wh: MathUtils.zeros(V*H), Uh: MathUtils.zeros(H*H), bh: MathUtils.zeros(H),
+          Wy: MathUtils.zeros(H*V), by: MathUtils.zeros(V)
         };
+
         for (let t = this.cache.length - 1; t >= 0; t--) {
-          const step = this.cache[t];
+          const s = this.cache[t];
           const target = sequence[t];
-          const probs = MathUtils.softmax(step.logits);
+          if (target < 0 || target >= V) continue;
+
+          const probs = MathUtils.softmax(s.logits);
           const prob = probs[target] || 1e-10;
           totalLoss -= Math.log(prob);
+
           const dy = new Float32Array(V);
           for (let i = 0; i < V; i++) dy[i] = probs[i] - (i === target ? 1 : 0);
-          const dhFromOutput = MathUtils.zeros(H);
+
+          const dhOut = MathUtils.zeros(H);
           for (let i = 0; i < V; i++) {
             for (let j = 0; j < H; j++) {
-              grads.Wy[j * V + i] += dy[i] * step.newHidden[j];
-              dhFromOutput[j] += this.Wy[j * V + i] * dy[i];
+              grads.Wy[j*V + i] += dy[i] * s.newHidden[j];
+              dhOut[j] += this.Wy[j*V + i] * dy[i];
             }
             grads.by[i] += dy[i];
           }
+
           const dhNew = new Float32Array(H);
-          for (let i = 0; i < H; i++) dhNew[i] = dhNext[i] + dhFromOutput[i];
-          const dhTilde = new Float32Array(H);
-          for (let i = 0; i < H; i++) dhTilde[i] = dhNew[i] * step.z[i] * MathUtils.dTanh(step.hTilde[i]);
+          for (let i = 0; i < H; i++) dhNew[i] = dhNext[i] + dhOut[i];
+
+          const dhT = new Float32Array(H);
+          for (let i = 0; i < H; i++) dhT[i] = dhNew[i] * s.z[i] * MathUtils.dTanh(s.hTilde[i]);
+
           const dz = new Float32Array(H);
-          for (let i = 0; i < H; i++) dz[i] = dhNew[i] * (step.hTilde[i] - step.hidden[i]) * MathUtils.dSigmoid(step.z[i]);
-          const dUh_rh = MathUtils.matVec(this.Uh, H, H, dhTilde);
+          for (let i = 0; i < H; i++) dz[i] = dhNew[i] * (s.hTilde[i] - s.hidden[i]) * MathUtils.dSigmoid(s.z[i]);
+
+          const dUh_rh = MathUtils.matVec(this.Uh, H, H, dhT);
           const dr = new Float32Array(H);
-          for (let i = 0; i < H; i++) dr[i] = dUh_rh[i] * step.hidden[i] * MathUtils.dSigmoid(step.r[i]);
+          for (let i = 0; i < H; i++) dr[i] = dUh_rh[i] * s.hidden[i] * MathUtils.dSigmoid(s.r[i]);
+
           const dhPrev = new Float32Array(H);
-          for (let i = 0; i < H; i++) dhPrev[i] = dhNew[i] * (1 - step.z[i]) + dUh_rh[i] * step.r[i];
+          for (let i = 0; i < H; i++) dhPrev[i] = dhNew[i]*(1-s.z[i]) + dUh_rh[i]*s.r[i];
+
           for (let i = 0; i < H; i++) {
             grads.bz[i] += dz[i];
-            grads.Wz[step.tokenId * H + i] += dz[i];
+            grads.Wz[s.tokenId*H + i] += dz[i];
             for (let j = 0; j < H; j++) {
-              grads.Uz[i * H + j] += dz[i] * step.hidden[j];
-              dhPrev[j] += this.Uz[i * H + j] * dz[i];
+              grads.Uz[i*H + j] += dz[i] * s.hidden[j];
+              dhPrev[j] += this.Uz[i*H + j] * dz[i];
             }
           }
           for (let i = 0; i < H; i++) {
             grads.br[i] += dr[i];
-            grads.Wr[step.tokenId * H + i] += dr[i];
+            grads.Wr[s.tokenId*H + i] += dr[i];
             for (let j = 0; j < H; j++) {
-              grads.Ur[i * H + j] += dr[i] * step.hidden[j];
-              dhPrev[j] += this.Ur[i * H + j] * dr[i];
+              grads.Ur[i*H + j] += dr[i] * s.hidden[j];
+              dhPrev[j] += this.Ur[i*H + j] * dr[i];
             }
           }
           for (let i = 0; i < H; i++) {
-            grads.bh[i] += dhTilde[i];
-            grads.Wh[step.tokenId * H + i] += dhTilde[i];
-            for (let j = 0; j < H; j++) grads.Uh[i * H + j] += dhTilde[i] * step.r_h[j];
+            grads.bh[i] += dhT[i];
+            grads.Wh[s.tokenId*H + i] += dhT[i];
+            for (let j = 0; j < H; j++) grads.Uh[i*H + j] += dhT[i] * s.r_h[j];
           }
           dhNext = dhPrev;
         }
-        MathUtils.clipGlobalNorm(Object.values(grads), 5.0);
+
+        MathUtils.clipGlobalNorm(Object.values(grads), CONFIG.GRAD_CLIP_NORM);
+        this._adamStep(grads, lr);
+        this._metrics.steps++;
+        this._metrics.totalLoss += totalLoss;
+        return totalLoss / sequence.length;
+      }
+
+      _adamStep(grads, lr) {
         this.adam.t++;
         const { beta1, beta2, eps, t } = this.adam;
         const bias1 = 1 - Math.pow(beta1, t);
         const bias2 = 1 - Math.pow(beta2, t);
+
         for (const [name, grad] of Object.entries(grads)) {
           const state = this.adamStates[name];
           const weight = this[name];
+          if (!state || !weight) continue;
           for (let i = 0; i < weight.length; i++) {
             state.m[i] = beta1 * state.m[i] + (1 - beta1) * grad[i];
             state.v[i] = beta2 * state.v[i] + (1 - beta2) * grad[i] * grad[i];
@@ -718,78 +841,80 @@
             weight[i] -= lr * mHat / (Math.sqrt(vHat) + eps);
           }
         }
-        return totalLoss / sequence.length;
       }
 
-      generate(seedSequence, maxLength = 50, temperature = 0.8, topK = 15) {
+      generate(seed, maxLength = CONFIG.GEN_MAX_LENGTH, temp = CONFIG.GEN_TEMPERATURE, topK = CONFIG.GEN_TOP_K) {
         const { V, H } = this;
         const EOS = 3;
         let hidden = this.hiddenState ? new Float32Array(this.hiddenState) : MathUtils.zeros(H);
         const output = [];
-        let lastToken = seedSequence.length > 0 ? seedSequence[seedSequence.length - 1] : 2;
-        for (const token of seedSequence) {
-          const result = this.forward(token, hidden);
-          hidden = result.hidden;
-        }
-        for (let i = 0; i < maxLength; i++) {
-          const result = this.forward(lastToken, hidden);
-          hidden = result.hidden;
-          const logits = result.logits.map(l => l / temperature);
-          const probs = MathUtils.softmax(logits);
-          const indexed = probs.map((p, idx) => ({ p, idx })).sort((a, b) => b.p - a.p).slice(0, Math.min(topK, V));
-          const sum = indexed.reduce((s, x) => s + x.p, 0);
-          for (const x of indexed) x.p /= sum;
-          const r = Math.random();
-          let cumSum = 0;
-          let nextToken = indexed[0].idx;
-          for (const x of indexed) {
-            cumSum += x.p;
-            if (r <= cumSum) { nextToken = x.idx; break; }
+        let last = (seed?.length > 0 && seed[seed.length-1] >= 0 && seed[seed.length-1] < V) ? seed[seed.length-1] : 2;
+
+        if (Array.isArray(seed)) {
+          for (const token of seed) {
+            if (token < 0 || token >= V) continue;
+            const res = this.forward(token, hidden);
+            hidden = res.hidden;
           }
-          if (nextToken === EOS) break;
-          output.push(nextToken);
-          lastToken = nextToken;
+        }
+
+        for (let i = 0; i < maxLength; i++) {
+          const res = this.forward(last, hidden);
+          hidden = res.hidden;
+          const logits = res.logits.map(l => l / temp);
+          const probs = MathUtils.softmax(logits);
+          
+          const indexed = probs.map((p, idx) => ({p, idx}))
+            .sort((a,b) => b.p - a.p).slice(0, Math.min(topK, V));
+          const sum = indexed.reduce((s,x) => s + x.p, 0) || 1;
+          for (const x of indexed) x.p /= sum;
+
+          const r = Math.random();
+          let cum = 0, next = indexed[0]?.idx || 1;
+          for (const x of indexed) { cum += x.p; if (r <= cum) { next = x.idx; break; } }
+          
+          if (next === EOS) break;
+          output.push(next);
+          last = next;
         }
         return output;
       }
 
-      resetState() {
-        this.hiddenState = null;
-        this.cache = [];
-      }
-
+      resetState() { this.hiddenState = null; this.cache = []; }
+      
       export() {
-        const data = { V: this.V, H: this.H, adam: { ...this.adam }, weights: {}, adamStates: {} };
-        for (const name of ['Wz', 'Uz', 'bz', 'Wr', 'Ur', 'br', 'Wh', 'Uh', 'bh', 'Wy', 'by']) {
-          data.weights[name] = Array.from(this[name]);
-          data.adamStates[name] = { m: Array.from(this.adamStates[name].m), v: Array.from(this.adamStates[name].v) };
+        const data = { V:this.V, H:this.H, adam:{...this.adam}, metrics:{...this._metrics}, weights:{}, adamStates:{} };
+        for (const k of ['Wz','Uz','bz','Wr','Ur','br','Wh','Uh','bh','Wy','by']) {
+          data.weights[k] = Array.from(this[k]);
+          data.adamStates[k] = { m:Array.from(this.adamStates[k].m), v:Array.from(this.adamStates[k].v) };
         }
         return data;
       }
 
       import(data) {
-        this.V = data.V;
-        this.H = data.H;
-        this.adam = { ...this.adam };
-        for (const [name, arr] of Object.entries(data.weights)) this[name] = new Float32Array(arr);
-        this._initAdamStates();
-        if (data.adamStates) {
-          for (const [name, state] of Object.entries(data.adamStates)) {
-            this.adamStates[name].m = new Float32Array(state.m);
-            this.adamStates[name].v = new Float32Array(state.v);
+        if (!data || data.V !== this.V || data.H !== this.H) return false;
+        this.adam = {...data.adam};
+        this._metrics = {...data.metrics};
+        for (const k of ['Wz','Uz','bz','Wr','Ur','br','Wh','Uh','bh','Wy','by']) {
+          if (data.weights?.[k]) this[k] = new Float32Array(data.weights[k]);
+          if (data.adamStates?.[k]) {
+            this.adamStates[k].m = new Float32Array(data.adamStates[k].m);
+            this.adamStates[k].v = new Float32Array(data.adamStates[k].v);
           }
         }
+        return true;
       }
 
       getParamCount() {
-        return this.V * this.H * 4 + this.H * this.H * 3 + this.H * 3 + this.V + this.H * this.V;
+        return this.V*this.H*4 + this.H*this.H*3 + this.H*3 + this.V + this.H*this.V;
       }
+
+      getMetrics() { return {...this._metrics}; }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // ПРИЛОЖЕНИЕ
+    // UI И ПРИЛОЖЕНИЕ
     // ═══════════════════════════════════════════════════════════════════════
-
     const UI = {
       chat: document.getElementById('chat'),
       input: document.getElementById('input'),
@@ -804,9 +929,12 @@
     };
 
     const Logger = {
-      add: (msg) => {
+      add: (msg, type = 'info') => {
         const time = new Date().toLocaleTimeString();
-        UI.log.textContent += `[${time}] ${msg}\n`;
+        const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠' : '✓';
+        const cls = type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'ok';
+        UI.log.textContent += `[${time}] ${prefix} ${msg}\n`;
+        if (cls) UI.log.lastChild?.classList?.add?.(cls);
         UI.log.scrollTop = UI.log.scrollHeight;
       }
     };
@@ -817,16 +945,13 @@
         UI.statusDot.className = 'status-dot';
         if (state === 'active') UI.statusDot.classList.add('active');
         if (state === 'error') UI.statusDot.classList.add('error');
+        if (state === 'warning') UI.statusDot.classList.add('warning');
       }
     };
 
-    let tokenizer = null;
-    let network = null;
-    let dataset = [];
-    let trainIndex = 0;
-    let isTraining = false;
-    let trainingPaused = false;
-    let autoSaveEnabled = true;
+    // Глобальное состояние
+    let tokenizer = null, network = null, dataset = [], trainIndex = 0;
+    let isTraining = false, trainingPaused = false, autoSaveEnabled = true;
 
     function addMessage(text, isUser) {
       const msg = document.createElement('div');
@@ -836,111 +961,197 @@
       UI.chat.scrollTop = UI.chat.scrollHeight;
     }
 
-    function saveToLocalStorage() {
+    function saveToStorage() {
       if (!autoSaveEnabled || !network || !tokenizer) return;
       try {
-        const data = { tokenizer: tokenizer.export(), network: network.export(), trainIndex, timestamp: Date.now() };
-        localStorage.setItem('gru-model-v4', JSON.stringify(data));
-        Logger.add('✓ Автосохранение');
+        const data = {
+          version: CONFIG.VERSION,
+          tokenizer: tokenizer.export(),
+          network: network.export(),
+          trainIndex,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(data));
+        Logger.add('Модель автосохранена', 'ok');
       } catch (e) {
-        Logger.add(`✗ Не сохранено: ${e.message}`);
+        Logger.add(`Не удалось сохранить: ${e.message}`, 'error');
       }
     }
 
-    function loadFromLocalStorage() {
+    function loadFromStorage() {
       try {
-        const raw = localStorage.getItem('gru-model-v4');
+        const raw = localStorage.getItem(CONFIG.STORAGE_KEY);
         if (!raw) return false;
         const data = JSON.parse(raw);
+        
+        // Проверка версии
+        if (data.version !== CONFIG.VERSION) {
+          Logger.add(`Несовместимая версия (${data.version} ≠ ${CONFIG.VERSION}), сброс`, 'warn');
+          localStorage.removeItem(CONFIG.STORAGE_KEY);
+          return false;
+        }
+        
         tokenizer = new Tokenizer();
-        tokenizer.import(data.tokenizer);
+        if (!tokenizer.import(data.tokenizer)) return false;
+        
         network = new GRUNetwork(data.network.V, data.network.H);
-        network.import(data.network);
+        if (!network.import(data.network)) return false;
+        
         trainIndex = data.trainIndex || 0;
-        UI.vocab.textContent = tokenizer.tokenToId.size;
+        
+        // Обновление UI
+        UI.vocab.textContent = tokenizer.size;
         UI.hidden.textContent = network.H;
-        UI.steps.textContent = network.adam.t;
+        UI.steps.textContent = network.getMetrics().steps;
         UI.loss.textContent = '0.000';
         UI.input.disabled = false;
         UI.input.placeholder = 'Напишите сообщение...';
         UI.send.disabled = false;
-        Status.set('Модель загружена (авто)', 'active');
-        Logger.add(`✓ Модель восстановлена (${new Date(data.timestamp).toLocaleString()})`);
+        
+        Status.set('Модель загружена', 'active');
+        Logger.add(`Восстановлено: ${tokenizer.size} токенов, шаг ${trainIndex}`, 'ok');
         return true;
       } catch (e) {
-        Logger.add(`✗ Ошибка загрузки: ${e.message}`);
+        Logger.add(`Ошибка загрузки: ${e.message}`, 'error');
         return false;
       }
     }
 
-    async function trainBatch(batchSize = 10) {
+    function updateMetrics() {
+      if (tokenizer) UI.vocab.textContent = tokenizer.size;
+      if (network) {
+        UI.hidden.textContent = network.H;
+        UI.steps.textContent = network.getMetrics().steps;
+      }
+    }
+
+    async function trainBatch(batchSize = CONFIG.BATCH_SIZE) {
+      // Обновляем UI сразу для видимости прогресса
+      updateMetrics();
+      
       if (trainingPaused) { setTimeout(() => trainBatch(batchSize), 500); return; }
       if (!network || !dataset || trainIndex >= dataset.length) {
         isTraining = false;
         Status.set('Готов к работе', 'active');
-        Logger.add('Обучение завершено');
-        if (autoSaveEnabled) saveToLocalStorage();
+        Logger.add('Обучение завершено', 'ok');
+        if (autoSaveEnabled) saveToStorage();
         return;
       }
-      let batchLoss = 0;
+      
+      let batchLoss = 0, count = 0;
       const end = Math.min(trainIndex + batchSize, dataset.length);
-      for (let i = trainIndex; i < end; i++) { const loss = network.train(dataset[i]); batchLoss += loss; }
+      
+      for (let i = trainIndex; i < end; i++) {
+        const loss = network.train(dataset[i]);
+        if (loss > 0) { batchLoss += loss; count++; }
+      }
       trainIndex = end;
-      UI.vocab.textContent = tokenizer.tokenToId.size;
-      UI.hidden.textContent = network.H;
-      UI.steps.textContent = network.adam.t;
-      UI.loss.textContent = (batchLoss / (end - trainIndex + batchSize)).toFixed(4);
-      if (network.adam.t % 100 === 0) {
-        Logger.add(`Step ${network.adam.t}, Loss: ${(batchLoss / (end - trainIndex)).toFixed(4)}`);
-        if (autoSaveEnabled) saveToLocalStorage();
+      
+      if (count > 0) {
+        UI.loss.textContent = (batchLoss / count).toFixed(4);
+      }
+      updateMetrics();
+      
+      if (network.getMetrics().steps % 100 === 0 && count > 0) {
+        Logger.add(`Шаг ${network.getMetrics().steps}, Loss: ${(batchLoss/count).toFixed(4)}`, 'ok');
+        if (autoSaveEnabled) saveToStorage();
       }
       setTimeout(() => trainBatch(batchSize), 0);
     }
 
+    // Обработчики событий
     document.getElementById('drop').onclick = () => document.getElementById('file-in').click();
 
     document.getElementById('file-in').onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      Logger.add(`Загрузка файла: ${file.name}`);
-      Status.set('Обработка текста...', 'active');
+      
+      Logger.add(`Загрузка: ${file.name}`);
+      Status.set('Обработка...', 'active');
+      
       try {
         const text = await file.text();
+        if (!text || text.trim().length === 0) {
+          throw new Error('Пустой файл');
+        }
+        
         tokenizer = new Tokenizer();
-        const wordCount = tokenizer.buildVocabulary(text, 2);
-        Logger.add(`Словарь: ${tokenizer.tokenToId.size} токенов из ${wordCount} слов`);
-        dataset = text.split('\n').map(line => tokenizer._normalize(line)).filter(line => line.length > 5)
-          .map(line => { const ids = tokenizer.encode(line); return [2, ...ids, 3]; }).filter(seq => seq.length > 3);
-        Logger.add(`Подготовлено ${dataset.length} последовательностей`);
-        network = new GRUNetwork(tokenizer.tokenToId.size, 96);
-        Logger.add(`Сеть: ${network.getParamCount().toLocaleString()} параметров`);
-        UI.vocab.textContent = tokenizer.tokenToId.size;
+        const words = tokenizer.buildVocabulary(text, CONFIG.MIN_FREQ);
+        
+        // КРИТИЧЕСКАЯ ПРОВЕРКА: словарь
+        if (tokenizer.size <= 4) {
+          throw new Error(`Словарь пуст (${tokenizer.size} токенов). Увеличьте файл или уменьшите minFreq`);
+        }
+        
+        // Подготовка датасета
+        dataset = text.split('\n')
+          .map(l => tokenizer._normalize(l))
+          .filter(l => l.length >= CONFIG.MIN_LINE_LEN)
+          .map(l => {
+            const ids = tokenizer.encode(l);
+            return [2, ...ids, 3]; // <BOS> ... <EOS>
+          })
+          .filter(seq => seq.length >= 3);
+        
+        // КРИТИЧЕСКАЯ ПРОВЕРКА: датасет
+        if (dataset.length === 0) {
+          throw new Error(`Датасет пуст. Проверьте: строки >= ${CONFIG.MIN_LINE_LEN} символов`);
+        }
+        
+        Logger.add(`Словарь: ${tokenizer.size} | Строки: ${dataset.length} | Слова: ${words}`, 'ok');
+        
+        // Инициализация сети
+        network = new GRUNetwork(tokenizer.size, CONFIG.HIDDEN_SIZE);
+        Logger.add(`Сеть: ${network.getParamCount().toLocaleString()} параметров`, 'ok');
+        
+        // Активация UI
+        UI.vocab.textContent = tokenizer.size;
         UI.hidden.textContent = network.H;
         UI.input.disabled = false;
         UI.input.placeholder = 'Напишите сообщение...';
         UI.send.disabled = false;
+        
+        // Запуск обучения
         isTraining = true;
+        trainingPaused = false;
+        trainIndex = 0;
         Status.set('Обучение...', 'active');
-        trainBatch(20);
+        Logger.add(`Старт: ${dataset.length} последовательностей, batch=${CONFIG.BATCH_SIZE}`);
+        trainBatch(CONFIG.BATCH_SIZE);
+        
       } catch (err) {
-        Logger.add(`Ошибка: ${err.message}`);
+        Logger.add(`Ошибка: ${err.message}`, 'error');
         Status.set('Ошибка', 'error');
+        UI.input.disabled = true;
+        UI.send.disabled = true;
       }
     };
 
     UI.send.onclick = () => {
       const text = UI.input.value.trim();
       if (!text || !network || !tokenizer) return;
+      
       addMessage(text, true);
       UI.input.value = '';
+      
       const inputIds = tokenizer.encode(text);
+      if (inputIds.length === 0) {
+        addMessage('Не удалось обработать ввод', 'ai');
+        return;
+      }
+      
       const sequence = [2, ...inputIds, 3];
-      network.train(sequence, 0.0005);
-      const outputIds = network.generate([2, ...inputIds], 60, 0.85, 20);
+      network.train(sequence, CONFIG.LR_INFERENCE);
+      
+      const outputIds = network.generate([2, ...inputIds], CONFIG.GEN_MAX_LENGTH, CONFIG.GEN_TEMPERATURE, CONFIG.GEN_TOP_K);
       const response = tokenizer.decode(outputIds).trim();
-      setTimeout(() => { addMessage(response || '...', false); }, 100);
-      UI.steps.textContent = network.adam.t;
-      if (autoSaveEnabled) saveToLocalStorage();
+      
+      setTimeout(() => {
+        addMessage(response || '...', false);
+      }, 80);
+      
+      updateMetrics();
+      if (autoSaveEnabled) saveToStorage();
     };
 
     UI.input.onkeydown = (e) => {
@@ -949,83 +1160,79 @@
 
     UI.input.addEventListener('input', function() {
       this.style.height = 'auto';
-      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+      this.style.height = Math.min(this.scrollHeight, 150) + 'px';
     });
 
     document.getElementById('save').onclick = () => {
-      if (!network || !tokenizer) { Logger.add('Нет модели для экспорта'); return; }
-      const data = { tokenizer: tokenizer.export(), network: network.export() };
-      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
+      if (!network || !tokenizer) { Logger.add('Нет модели', 'warn'); return; }
+      const data = { version: CONFIG.VERSION, tokenizer: tokenizer.export(), network: network.export() };
+      const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
       const a = document.createElement('a');
-      a.href = url;
+      a.href = URL.createObjectURL(blob);
       a.download = `gru-model-${Date.now()}.json`;
       a.click();
-      URL.revokeObjectURL(url);
-      Logger.add('Модель экспортирована');
+      URL.revokeObjectURL(a.href);
+      Logger.add('Экспорт выполнен', 'ok');
     };
 
     document.getElementById('load').onclick = () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.json';
-      input.onchange = async (e) => {
+      const inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = '.json';
+      inp.onchange = async (e) => {
         try {
           const data = JSON.parse(await e.target.files[0].text());
-          tokenizer = new Tokenizer();
-          tokenizer.import(data.tokenizer);
-          network = new GRUNetwork(data.network.V, data.network.H);
-          network.import(data.network);
-          UI.vocab.textContent = tokenizer.tokenToId.size;
+          if (data.version !== CONFIG.VERSION) {
+            throw new Error(`Версия ${data.version} несовместима`);
+          }
+          tokenizer = new Tokenizer(); tokenizer.import(data.tokenizer);
+          network = new GRUNetwork(data.network.V, data.network.H); network.import(data.network);
+          UI.vocab.textContent = tokenizer.size;
           UI.hidden.textContent = network.H;
-          UI.steps.textContent = network.adam.t;
-          UI.input.disabled = false;
-          UI.input.placeholder = 'Напишите сообщение...';
-          UI.send.disabled = false;
-          Status.set('Модель загружена', 'active');
-          Logger.add('Модель импортирована успешно');
+          UI.input.disabled = false; UI.send.disabled = false;
+          Status.set('Импорт успешен', 'active');
+          Logger.add('Модель загружена', 'ok');
         } catch (err) {
-          Logger.add(`Ошибка импорта: ${err.message}`);
-          Status.set('Ошибка импорта', 'error');
+          Logger.add(`Импорт: ${err.message}`, 'error');
         }
       };
-      input.click();
+      inp.click();
     };
 
     document.getElementById('reset').onclick = () => {
-      if (!network) return;
-      network.resetState();
-      trainIndex = 0;
-      localStorage.removeItem('gru-model-v4');
-      UI.steps.textContent = '0';
-      UI.loss.textContent = '0.000';
-      Logger.add('Состояние сброшено');
+      if (!confirm('Сбросить всё? Прогресс будет утерян.')) return;
+      tokenizer = null; network = null; dataset = []; trainIndex = 0;
+      localStorage.removeItem(CONFIG.STORAGE_KEY);
+      UI.vocab.textContent = '0'; UI.steps.textContent = '0'; UI.loss.textContent = '0.000';
+      UI.input.disabled = true; UI.input.placeholder = 'Загрузите файл...'; UI.send.disabled = true;
+      Status.set('Сброшено', 'idle');
+      Logger.add('Полный сброс', 'warn');
     };
 
     document.getElementById('toggle-train').onclick = () => {
+      if (!isTraining) return;
       trainingPaused = !trainingPaused;
       const btn = document.getElementById('toggle-train');
       if (trainingPaused) {
-        btn.textContent = '▶ Продолжить';
-        Status.set('Обучение на паузе', 'active');
+        btn.textContent = '▶ Resume';
+        Status.set('На паузе', 'warning');
         Logger.add('Обучение приостановлено');
       } else {
-        btn.textContent = '⏸ Пауза';
+        btn.textContent = '⏸ Pause';
         Status.set('Обучение...', 'active');
         Logger.add('Обучение продолжено');
       }
     };
 
-    document.getElementById('force-save').onclick = () => { saveToLocalStorage(); };
+    document.getElementById('force-save').onclick = () => {
+      saveToStorage();
+      Logger.add('Ручное сохранение', 'ok');
+    };
 
-    if (!loadFromLocalStorage()) {
-      Logger.add('Система готова к загрузке данных');
-      Status.set('Ожидание файла', 'idle');
-    } else {
-      UI.input.disabled = false;
-      UI.send.disabled = false;
+    // Инициализация
+    if (!loadFromStorage()) {
+      Logger.add('Ожидание файла .txt', 'info');
+      Status.set('Ожидание', 'idle');
     }
   </script>
 </body>
 </html>
-
