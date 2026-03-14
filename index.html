@@ -504,9 +504,70 @@
         }
 
         .modal-buttons .btn { flex: 1; }
+
+        /* ERROR BANNER */
+        .error-banner {
+            display: none;
+            background: rgba(255, 51, 51, 0.2);
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .error-banner.visible {
+            display: block;
+        }
+
+        /* LOADING STATE */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .loading-overlay.hidden {            display: none;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--text-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
     </style>
 </head>
 <body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Инициализация нейросети...</div>
+    </div>
+
     <div class="main-container">
         <!-- Visualization Panel -->
         <div class="visualization-panel">
@@ -525,8 +586,7 @@
                     <span>Тормозные:</span>
                     <span class="stat-value" id="overlayInh">0</span>
                 </div>
-                <div class="stat-row">
-                    <span>Частота спайков:</span>
+                <div class="stat-row">                    <span>Частота спайков:</span>
                     <span class="stat-value" id="overlayRate">0 Hz</span>
                 </div>
             </div>
@@ -536,9 +596,13 @@
         <div class="controls-panel">
             <div class="panel-header">
                 <h1>SNN Neural Entity</h1>
-                <div class="version">Russian Edition v4.0</div>
+                <div class="version">Russian Edition v4.1</div>
             </div>
+
             <div class="panel-content">
+                <!-- Error Banner -->
+                <div class="error-banner" id="errorBanner"></div>
+
                 <!-- Network Stats -->
                 <div class="section">
                     <div class="section-title">Статус сети</div>
@@ -571,8 +635,7 @@
                     <div class="progress-container">
                         <div class="progress-label">
                             <span>Прогресс обучения</span>
-                            <span id="progressText">0%</span>
-                        </div>
+                            <span id="progressText">0%</span>                        </div>
                         <div class="progress-bar">
                             <div class="progress-fill" id="progressBar"></div>
                         </div>
@@ -587,6 +650,7 @@
                         </button>
                     </div>
                 </div>
+
                 <!-- Vocabulary Section -->
                 <div class="section">
                     <div class="section-title">📖 Словарь токенов</div>
@@ -620,8 +684,7 @@
                         </button>
                         <button class="btn" onclick="document.getElementById('vocabInput').click()">
                             📂 Загрузить словарь
-                        </button>
-                        <input type="file" id="vocabInput" class="file-input" accept=".json">
+                        </button>                        <input type="file" id="vocabInput" class="file-input" accept=".json">
                     </div>
 
                     <div class="vocab-preview" id="vocabPreview"></div>
@@ -635,7 +698,8 @@
                         <button class="btn" onclick="app.saveWeights()">
                             💾 Сохранить веса
                         </button>
-                        <button class="btn" onclick="document.getElementById('weightsInput').click()">                            📂 Загрузить веса
+                        <button class="btn" onclick="document.getElementById('weightsInput').click()">
+                            📂 Загрузить веса
                         </button>
                         <input type="file" id="weightsInput" class="file-input" accept=".json">
                     </div>
@@ -669,8 +733,7 @@
                     </button>
                 </div>
 
-                <!-- Chat Section -->
-                <div class="section">
+                <!-- Chat Section -->                <div class="section">
                     <div class="section-title">💬 Чат с нейросетью</div>
                     <div class="chat-container" id="chatHistory">
                         <div class="chat-message snn">
@@ -684,7 +747,8 @@
                 <!-- Log Output -->
                 <div class="section">
                     <div class="section-title">📋 Системный лог</div>
-                    <div class="log-container" id="logOutput"></div>                </div>
+                    <div class="log-container" id="logOutput"></div>
+                </div>
             </div>
 
             <div class="panel-footer">
@@ -710,62 +774,68 @@
 
 <script>
 /**
- * SNN NEURAL ENTITY — RUSSIAN EDITION v4.0
+ * SNN NEURAL ENTITY — RUSSIAN EDITION v4.1
  * 
- * Реальная архитектура:
- * 1. Токенизатор: символы + слова (2-15) + биграммы + триграммы
- * 2. Словарь: 1000-2000 токенов с ID
- * 3. SNN: 400 LIF нейронов + STDP обучение
- * 4. Readout: обучаемый слой для генерации ответов
- * 5. Чат: полноценный интерфейс с историей
+ * ИСПРАВЛЕНИЯ ДЛЯ GITHUB PAGES:
+ * 1. Явная инициализация после DOMContentLoaded
+ * 2. Обработка ошибок с видимым баннером
+ * 3. Loading overlay до полной инициализации
+ * 4. Глобальный обработчик ошибок
+ * 5. Проверка доступности элементов перед использованием
  */
-
 // ==================== КОНФИГУРАЦИЯ ====================
 const CONFIG = {
-    // Сеть
     NEURON_COUNT: 400,
     EXC_RATIO: 0.8,
     CONNECTION_DENSITY: 0.1,
-    
-    // Нейрон
     THRESHOLD: 1.0,
     DECAY_TAU: 20.0,
     REFRACTORY_PERIOD: 5,
     RESTING_POTENTIAL: 0.0,
-    
-    // STDP    STDP_LEARNING_RATE: 0.01,
+    STDP_LEARNING_RATE: 0.01,
     STDP_WINDOW: 20,
     STDP_TAU_PLUS: 10.0,
     STDP_TAU_MINUS: 12.0,
     STDP_A_PLUS: 1.0,
     STDP_A_MINUS: 1.05,
-    
-    // Вход/Выход
     INPUT_SCALE: 2.0,
     INPUT_NEURONS_PER_TOKEN: 15,
-    
-    // Readout
     READOUT_HISTORY_WINDOW: 30,
     READOUT_REGULARIZATION: 0.001,
-    
-    // Обучение
     TRAINING_BATCH_SIZE: 20,
-    
-    // Словарь
     MAX_VOCAB_SIZE: 2000,
     MIN_WORD_LENGTH: 2,
     MAX_WORD_LENGTH: 15,
     MAX_BIGRAMS: 500,
     MAX_TRIGRAMS: 300,
-    
-    // Файлы
     MAX_FILE_SIZE: 10 * 1024 * 1024,
-    
-    // Генерация
     GENERATION_TICKS: 40,
     GENERATION_TOP_K: 5,
     GENERATION_THRESHOLD: 0.3
 };
+
+// ==================== ГЛОБАЛЬНЫЙ ОБРАБОТЧИК ОШИБОК ====================
+window.onerror = function(message, source, lineno, colno, error) {
+    console.error('Global error:', error);
+    const banner = document.getElementById('errorBanner');
+    if (banner) {
+        banner.textContent = `Ошибка: ${message}. Проверьте консоль (F12)`;
+        banner.classList.add('visible');
+    }
+    const loading = document.getElementById('loadingOverlay');
+    if (loading) {
+        loading.classList.add('hidden');
+    }
+    return false;
+};
+
+window.addEventListener('unhandledrejection', function(event) {
+    console.error('Unhandled promise rejection:', event.reason);
+    const banner = document.getElementById('errorBanner');    if (banner) {
+        banner.textContent = `Ошибка загрузки: ${event.reason.message || event.reason}`;
+        banner.classList.add('visible');
+    }
+});
 
 // ==================== УТИЛИТЫ ====================
 class Utils {
@@ -782,7 +852,8 @@ class Utils {
 
     static timestamp() {
         const now = new Date();
-        return now.toLocaleTimeString('ru-RU', { hour12: false });    }
+        return now.toLocaleTimeString('ru-RU', { hour12: false });
+    }
 
     static formatNumber(num) {
         if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -809,7 +880,6 @@ class Utils {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }
-
     static readFile(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -818,23 +888,40 @@ class Utils {
             reader.readAsText(file, 'utf-8');
         });
     }
+
+    // Проверка доступности элемента
+    static getElementSafe(id) {
+        const el = document.getElementById(id);
+        if (!el) {
+            console.warn(`Element #${id} not found`);
+        }
+        return el;
+    }
 }
 
 // ==================== ЛОГГЕР ====================
 class Logger {
     constructor(containerId, maxEntries = 500) {
-        this.container = document.getElementById(containerId);
+        this.containerId = containerId;
         this.maxEntries = maxEntries;
     }
 
+    getContainer() {
+        return Utils.getElementSafe(this.containerId);
+    }
+
     add(message, type = 'info') {
+        const container = this.getContainer();
+        if (!container) return;
+
         const div = document.createElement('div');
         div.className = `log-entry ${type}`;
         div.innerHTML = `<span class="timestamp">[${Utils.timestamp()}]</span>${message}`;
-        this.container.appendChild(div);        this.container.scrollTop = this.container.scrollHeight;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
         
-        while (this.container.children.length > this.maxEntries) {
-            this.container.removeChild(this.container.firstChild);
+        while (container.children.length > this.maxEntries) {
+            container.removeChild(container.firstChild);
         }
     }
 
@@ -842,8 +929,7 @@ class Logger {
     success(msg) { this.add(msg, 'success'); }
     warning(msg) { this.add(msg, 'warning'); }
     error(msg) { this.add(msg, 'error'); }
-    system(msg) { this.add(msg, 'system'); }
-}
+    system(msg) { this.add(msg, 'system'); }}
 
 // ==================== СЛОВАРЬ ТОКЕНОВ ====================
 class Vocabulary {
@@ -852,19 +938,11 @@ class Vocabulary {
         this.tokenToId = new Map();
         this.idToToken = new Map();
         this.sortedTokens = [];
-        
-        this.stats = {
-            characters: 0,
-            words: 0,
-            bigrams: 0,
-            trigrams: 0
-        };
-
+        this.stats = { characters: 0, words: 0, bigrams: 0, trigrams: 0 };
         this._initBaseVocabulary();
     }
 
     _initBaseVocabulary() {
-        // Русский алфавит + базовые символы
         const baseChars = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяabcdefghijklmnopqrstuvwxyz0123456789 .,!?-:;\n\r\t"\'()[]{}';
         for (const char of baseChars) {
             this._addToken(char, true);
@@ -875,17 +953,15 @@ class Vocabulary {
     _addToken(token, isBase = false) {
         if (this.tokenToId.has(token)) return false;
         if (this.tokenToId.size >= this.maxSize) return false;
-
         const id = this.tokenToId.size;
         this.tokenToId.set(token, id);
         this.idToToken.set(id, token);
-        
-        if (!isBase) {            if (token.length === 1) this.stats.characters++;
+        if (!isBase) {
+            if (token.length === 1) this.stats.characters++;
             else if (token.length === 2) this.stats.bigrams++;
             else if (token.length === 3) this.stats.trigrams++;
             else if (token.match(/^[а-яёa-z0-9]+$/)) this.stats.words++;
         }
-
         return true;
     }
 
@@ -895,34 +971,23 @@ class Vocabulary {
 
     train(text) {
         const normalized = text.toLowerCase();
-        
-        // 1. Слова (2-15 символов)
         const wordRegex = /[а-яёa-z0-9]{2,15}/g;
         const words = normalized.match(wordRegex) || [];
-        
         const wordFreq = {};
         for (const word of words) {
             wordFreq[word] = (wordFreq[word] || 0) + 1;
         }
-        
-        // Сортируем по частоте, добавляем самые частые
         const sortedWords = Object.entries(wordFreq)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 800);
-        
+            .sort((a, b) => b[1] - a[1])            .slice(0, 800);
         for (const [word] of sortedWords) {
             this._addToken(word);
         }
-
-        // 2. Биграммы символов
         for (let i = 0; i < normalized.length - 1 && this.stats.bigrams < CONFIG.MAX_BIGRAMS; i++) {
             const bigram = normalized.substring(i, i + 2);
             if (bigram.match(/[а-яёa-z0-9\s]{2}/)) {
                 this._addToken(bigram);
             }
         }
-
-        // 3. Триграммы символов
         for (let i = 0; i < normalized.length - 2 && this.stats.trigrams < CONFIG.MAX_TRIGRAMS; i++) {
             const trigram = normalized.substring(i, i + 3);
             if (trigram.match(/[а-яёa-z0-9\s]{3}/)) {
@@ -936,11 +1001,8 @@ class Vocabulary {
         const normalized = text.toLowerCase();
         const tokens = [];
         let i = 0;
-
         while (i < normalized.length) {
             let matched = false;
-            
-            // Longest match first
             for (const token of this.sortedTokens) {
                 if (normalized.startsWith(token, i)) {
                     tokens.push(this.tokenToId.get(token));
@@ -949,10 +1011,8 @@ class Vocabulary {
                     break;
                 }
             }
-
             if (!matched) i++;
         }
-
         return tokens;
     }
 
@@ -960,17 +1020,13 @@ class Vocabulary {
         if (!Array.isArray(tokenIds)) {
             tokenIds = tokenIds !== -1 ? [tokenIds] : [];
         }
-        
         return tokenIds
             .map(id => this.idToToken.get(id) || '')
             .join('')
             .replace(/\s+([.,!?;:])/g, '$1');
     }
 
-    size() {
-        return this.tokenToId.size;
-    }
-
+    size() { return this.tokenToId.size; }
     toJSON() {
         return {
             tokens: Object.fromEntries(this.tokenToId),
@@ -978,6 +1034,7 @@ class Vocabulary {
             maxSize: this.maxSize
         };
     }
+
     fromJSON(data) {
         this.tokenToId = new Map(Object.entries(data.tokens));
         this.idToToken = new Map();
@@ -989,16 +1046,9 @@ class Vocabulary {
         this._updateSortedTokens();
     }
 
-    getStats() {
-        return {
-            total: this.size(),
-            ...this.stats
-        };
-    }
+    getStats() { return { total: this.size(), ...this.stats }; }
 
-    getPreview(limit = 50) {
-        return this.sortedTokens.slice(0, limit);
-    }
+    getPreview(limit = 50) { return this.sortedTokens.slice(0, limit); }
 }
 
 // ==================== LIF НЕЙРОН ====================
@@ -1021,27 +1071,21 @@ class LIFNeuron {
             this.spiked = false;
             return false;
         }
-
         const noise = Utils.randomGaussian(0, 0.01);
         this.potential += (-this.potential + this.current) / CONFIG.DECAY_TAU + noise;
-
         this.spiked = false;
         if (this.potential >= CONFIG.THRESHOLD) {
-            this.spiked = true;            this.potential = CONFIG.RESTING_POTENTIAL;
-            this.refractoryTime = CONFIG.REFRACTORY_PERIOD;
+            this.spiked = true;
+            this.potential = CONFIG.RESTING_POTENTIAL;            this.refractoryTime = CONFIG.REFRACTORY_PERIOD;
             this.lastSpikeTime = time;
             this.totalSpikes++;
             return true;
         }
-
         this.current *= 0.7;
         return false;
     }
 
-    inject(current) {
-        this.current += current;
-    }
-
+    inject(current) { this.current += current; }
     reset() {
         this.potential = CONFIG.RESTING_POTENTIAL;
         this.current = 0;
@@ -1063,23 +1107,17 @@ class Synapse {
 
     updateSTDP(preNeuron, postNeuron, currentTime) {
         const dt = postNeuron.lastSpikeTime - preNeuron.lastSpikeTime;
-        
         if (Math.abs(dt) > CONFIG.STDP_WINDOW || dt === 0) return;
-
         let deltaWeight;
         if (dt > 0) {
-            deltaWeight = CONFIG.STDP_LEARNING_RATE * CONFIG.STDP_A_PLUS * 
-                         Math.exp(-dt / CONFIG.STDP_TAU_PLUS);
+            deltaWeight = CONFIG.STDP_LEARNING_RATE * CONFIG.STDP_A_PLUS * Math.exp(-dt / CONFIG.STDP_TAU_PLUS);
         } else {
-            deltaWeight = -CONFIG.STDP_LEARNING_RATE * CONFIG.STDP_A_MINUS * 
-                         Math.exp(dt / CONFIG.STDP_TAU_MINUS);
+            deltaWeight = -CONFIG.STDP_LEARNING_RATE * CONFIG.STDP_A_MINUS * Math.exp(dt / CONFIG.STDP_TAU_MINUS);
         }
-
         this.weight = Utils.clamp(this.weight + deltaWeight, this.minWeight, this.maxWeight);
     }
-    toJSON() {
-        return { pre: this.preId, post: this.postId, weight: this.weight };
-    }
+
+    toJSON() { return { pre: this.preId, post: this.postId, weight: this.weight }; }
 
     static fromJSON(data, neurons) {
         return new Synapse(neurons[data.pre], neurons[data.post], data.weight);
@@ -1087,8 +1125,7 @@ class Synapse {
 }
 
 // ==================== READOUT СЛОЙ ====================
-class ReadoutLayer {
-    constructor(neuronCount, vocabSize) {
+class ReadoutLayer {    constructor(neuronCount, vocabSize) {
         this.neuronCount = neuronCount;
         this.vocabSize = vocabSize;
         this.weights = [];
@@ -1100,9 +1137,7 @@ class ReadoutLayer {
 
     _initializeWeights() {
         for (let i = 0; i < this.vocabSize; i++) {
-            this.weights[i] = new Array(this.neuronCount).fill(0).map(() => 
-                Utils.randomGaussian(0, 0.01)
-            );
+            this.weights[i] = new Array(this.neuronCount).fill(0).map(() => Utils.randomGaussian(0, 0.01));
         }
     }
 
@@ -1114,28 +1149,22 @@ class ReadoutLayer {
     }
 
     getAggregatedState() {
-        if (this.stateHistory.length === 0) {
-            return new Array(this.neuronCount).fill(0);
-        }
-
+        if (this.stateHistory.length === 0) return new Array(this.neuronCount).fill(0);
         const aggregated = new Array(this.neuronCount).fill(0);
         const windowSize = this.stateHistory.length;
-
         for (let i = 0; i < windowSize; i++) {
             const weight = (i + 1) / windowSize;
             const states = this.stateHistory[i].states;
-            
-            for (let j = 0; j < this.neuronCount; j++) {                aggregated[j] += states[j] * weight;
+            for (let j = 0; j < this.neuronCount; j++) {
+                aggregated[j] += states[j] * weight;
             }
         }
-
         return aggregated;
     }
 
     predict() {
         const state = this.getAggregatedState();
         const scores = new Array(this.vocabSize).fill(0);
-
         for (let v = 0; v < this.vocabSize; v++) {
             let score = this.bias[v];
             for (let n = 0; n < this.neuronCount; n++) {
@@ -1143,14 +1172,11 @@ class ReadoutLayer {
             }
             scores[v] = score;
         }
-
         return scores;
     }
-
     getTopK(k = CONFIG.GENERATION_TOP_K) {
         const scores = this.predict();
         const indexed = scores.map((score, idx) => ({ idx, score }));
-        
         return indexed
             .filter(item => item.score > CONFIG.GENERATION_THRESHOLD)
             .sort((a, b) => b.score - a.score)
@@ -1160,11 +1186,9 @@ class ReadoutLayer {
 
     train(inputs, targets, regularization = CONFIG.READOUT_REGULARIZATION) {
         const learningRate = 0.001;
-        
         for (let i = 0; i < inputs.length; i++) {
             const state = inputs[i];
             const target = targets[i];
-            
             const prediction = new Array(this.vocabSize).fill(0);
             for (let v = 0; v < this.vocabSize; v++) {
                 for (let n = 0; n < this.neuronCount; n++) {
@@ -1172,7 +1196,6 @@ class ReadoutLayer {
                 }
                 prediction[v] += this.bias[v];
             }
-
             const error = new Array(this.vocabSize).fill(0);
             error[target] = 1 - prediction[target];
             for (let v = 0; v < this.vocabSize; v++) {
@@ -1186,12 +1209,7 @@ class ReadoutLayer {
     }
 
     toJSON() {
-        return {
-            weights: this.weights,
-            bias: this.bias,
-            neuronCount: this.neuronCount,
-            vocabSize: this.vocabSize
-        };
+        return { weights: this.weights, bias: this.bias, neuronCount: this.neuronCount, vocabSize: this.vocabSize };
     }
 
     fromJSON(data) {
@@ -1205,15 +1223,13 @@ class ReadoutLayer {
 // ==================== SNN ====================
 class SpikingNeuralNetwork {
     constructor(neuronCount = CONFIG.NEURON_COUNT) {
-        this.neuronCount = neuronCount;
-        this.neurons = [];
+        this.neuronCount = neuronCount;        this.neurons = [];
         this.synapses = [];
         this.adjacencyList = [];
         this.inputMap = new Map();
         this.outputMap = new Map();
         this.time = 0;
         this.stats = { totalSpikes: 0, spikesPerTick: [], avgFiringRate: 0 };
-
         this._initializeNeurons();
         this._createSynapses();
     }
@@ -1221,20 +1237,18 @@ class SpikingNeuralNetwork {
     _initializeNeurons() {
         this.neurons = [];
         this.adjacencyList = [];
-
         for (let i = 0; i < this.neuronCount; i++) {
-            const type = Math.random() < CONFIG.EXC_RATIO ? 'exc' : 'inh';            this.neurons.push(new LIFNeuron(i, type));
+            const type = Math.random() < CONFIG.EXC_RATIO ? 'exc' : 'inh';
+            this.neurons.push(new LIFNeuron(i, type));
             this.adjacencyList[i] = [];
         }
     }
 
     _createSynapses() {
         this.synapses = [];
-
         for (let preIdx = 0; preIdx < this.neuronCount; preIdx++) {
             const preNeuron = this.neurons[preIdx];
             const sign = preNeuron.type === 'inh' ? -1 : 1;
-
             for (let postIdx = 0; postIdx < this.neuronCount; postIdx++) {
                 if (preIdx === postIdx) continue;
                 if (Math.random() < CONFIG.CONNECTION_DENSITY) {
@@ -1251,35 +1265,26 @@ class SpikingNeuralNetwork {
         const vocabSize = vocabulary.size();
         this.inputMap.clear();
         this.outputMap.clear();
-
         for (let tokenIdx = 0; tokenIdx < vocabSize; tokenIdx++) {
             const targets = [];
             const count = CONFIG.INPUT_NEURONS_PER_TOKEN;
-            
             while (targets.length < count) {
                 const neuronIdx = Math.floor(Math.random() * this.neuronCount);
                 if (!targets.includes(neuronIdx)) targets.push(neuronIdx);
             }
-            
-            this.inputMap.set(tokenIdx, targets);
-        }
-
+            this.inputMap.set(tokenIdx, targets);        }
         const usedNeurons = new Set();
         for (let tokenIdx = 0; tokenIdx < vocabSize; tokenIdx++) {
             if (usedNeurons.size >= this.neuronCount * 0.8) break;
-            
             let neuronIdx;
-            do {
-                neuronIdx = Math.floor(Math.random() * this.neuronCount);
-            } while (usedNeurons.has(neuronIdx));
-                        this.outputMap.set(neuronIdx, tokenIdx);
+            do { neuronIdx = Math.floor(Math.random() * this.neuronCount); } while (usedNeurons.has(neuronIdx));
+            this.outputMap.set(neuronIdx, tokenIdx);
             usedNeurons.add(neuronIdx);
         }
     }
 
     tick(inputTokens = [], learnSTDP = false) {
         this.time++;
-
         for (const tokenIdx of inputTokens) {
             const targets = this.inputMap.get(tokenIdx);
             if (targets) {
@@ -1288,65 +1293,45 @@ class SpikingNeuralNetwork {
                 }
             }
         }
-
         const spikedNeurons = [];
         for (const neuron of this.neurons) {
             if (neuron.tick(this.time)) spikedNeurons.push(neuron);
         }
-
         for (const preNeuron of spikedNeurons) {
             const connections = this.adjacencyList[preNeuron.id];
             for (const { postIdx, synapse } of connections) {
                 this.neurons[postIdx].inject(synapse.weight);
             }
         }
-
         if (learnSTDP) {
             for (const synapse of this.synapses) {
-                synapse.updateSTDP(
-                    this.neurons[synapse.preId],
-                    this.neurons[synapse.postId],
-                    this.time
-                );
+                synapse.updateSTDP(this.neurons[synapse.preId], this.neurons[synapse.postId], this.time);
             }
         }
-
         this.stats.totalSpikes += spikedNeurons.length;
         this.stats.spikesPerTick.push(spikedNeurons.length);
         if (this.stats.spikesPerTick.length > 100) this.stats.spikesPerTick.shift();
-        this.stats.avgFiringRate = 
-            this.stats.spikesPerTick.reduce((a, b) => a + b, 0) / 
-            this.stats.spikesPerTick.length / this.neuronCount * 1000;
-
+        this.stats.avgFiringRate = this.stats.spikesPerTick.reduce((a, b) => a + b, 0) / this.stats.spikesPerTick.length / this.neuronCount * 1000;
         return spikedNeurons;
     }
 
-    getReservoirState() {        return this.neurons.map(n => n.spiked ? 1 : 0);
-    }
+    getReservoirState() { return this.neurons.map(n => n.spiked ? 1 : 0); }
 
     reset() {
         this.time = 0;
         this.stats = { totalSpikes: 0, spikesPerTick: [], avgFiringRate: 0 };
         for (const neuron of this.neurons) neuron.reset();
     }
-
     hardReset() {
         this.reset();
         this._initializeNeurons();
         this._createSynapses();
     }
 
-    getActiveNeurons() {
-        return this.neurons.filter(n => n.spiked);
-    }
+    getActiveNeurons() { return this.neurons.filter(n => n.spiked); }
 
     toJSON() {
-        return {
-            neuronCount: this.neuronCount,
-            synapses: this.synapses.map(s => s.toJSON()),
-            time: this.time,
-            stats: { ...this.stats }
-        };
+        return { neuronCount: this.neuronCount, synapses: this.synapses.map(s => s.toJSON()), time: this.time, stats: { ...this.stats } };
     }
 
     fromJSON(data, vocabulary) {
@@ -1366,61 +1351,86 @@ class Application {
         this.network = null;
         this.readout = null;
         this.logger = null;
-        
         this.trainingData = null;
         this.isTraining = false;
         this.trainingProgress = 0;
-                this.canvas = null;
+        this.canvas = null;
         this.ctx = null;
         this.neuronPositions = null;
-        
         this.chatHistory = [];
-        
-        this.init();
+        this.initialized = false;
     }
 
-    init() {
-        this.logger = new Logger('logOutput');
-        this.vocabulary = new Vocabulary();
-        this.network = new SpikingNeuralNetwork(CONFIG.NEURON_COUNT);
-        this.network.setupIO(this.vocabulary);
-        this.readout = new ReadoutLayer(CONFIG.NEURON_COUNT, this.vocabulary.size());
-        
-        this.canvas = document.getElementById('networkCanvas');
-        this.ctx = this.canvas.getContext('2d');
-        this._resizeCanvas();
-        this._generateNeuronPositions();
-        
-        this._setupEventListeners();
-        this._startVisualization();
-        this._startNetworkLoop();
-        
-        this.logger.system('SNN Neural Entity v4.0 инициализирована');
-        this.logger.info(`Сеть: ${CONFIG.NEURON_COUNT} нейронов, ${this.network.synapses.length} синапсов`);
-        this.logger.info(`Словарь: ${this.vocabulary.size()} токенов`);
-        
-        this._updateStats();
-        this._updateVocabStats();
-        this._updateVocabPreview();
+    async init() {
+        try {
+            console.log('[APP] Starting initialization...');
+            
+            // Проверка наличия всех элементов
+            const requiredIds = ['networkCanvas', 'chatHistory', 'logOutput', 'userInput', 'loadingOverlay'];
+            for (const id of requiredIds) {
+                if (!document.getElementById(id)) {
+                    throw new Error(`Missing element: #${id}`);
+                }            }
+
+            this.logger = new Logger('logOutput');
+            this.vocabulary = new Vocabulary();
+            this.network = new SpikingNeuralNetwork(CONFIG.NEURON_COUNT);
+            this.network.setupIO(this.vocabulary);
+            this.readout = new ReadoutLayer(CONFIG.NEURON_COUNT, this.vocabulary.size());
+            
+            this.canvas = document.getElementById('networkCanvas');
+            this.ctx = this.canvas.getContext('2d');
+            
+            this._resizeCanvas();
+            this._generateNeuronPositions();
+            this._setupEventListeners();
+            this._startVisualization();
+            this._startNetworkLoop();
+            
+            this.logger.system('SNN Neural Entity v4.1 инициализирована');
+            this.logger.info(`Сеть: ${CONFIG.NEURON_COUNT} нейронов, ${this.network.synapses.length} синапсов`);
+            this.logger.info(`Словарь: ${this.vocabulary.size()} токенов`);
+            
+            this._updateStats();
+            this._updateVocabStats();
+            this._updateVocabPreview();
+            
+            // Скрыть loading overlay
+            const loading = document.getElementById('loadingOverlay');
+            if (loading) {
+                loading.classList.add('hidden');
+            }
+            
+            this.initialized = true;
+            console.log('[APP] Initialization complete');
+            
+        } catch (error) {
+            console.error('[APP] Initialization failed:', error);
+            const banner = document.getElementById('errorBanner');
+            if (banner) {
+                banner.textContent = `Ошибка инициализации: ${error.message}`;
+                banner.classList.add('visible');
+            }
+            const loading = document.getElementById('loadingOverlay');
+            if (loading) {
+                loading.classList.add('hidden');
+            }
+        }
     }
 
     _resizeCanvas() {
-        const container = this.canvas.parentElement;
-        this.canvas.width = container.clientWidth;
-        this.canvas.height = this.canvas.parentElement.clientHeight;
+        const container = this.canvas.parentElement;        this.canvas.width = container.clientWidth;
+        this.canvas.height = container.clientHeight;
     }
 
     _generateNeuronPositions() {
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
         const radius = Math.min(centerX, centerY) * 0.7;
-
         this.neuronPositions = this.network.neurons.map((_, i) => {
             const angle = (i / this.network.neuronCount) * Math.PI * 2;
             const r = radius * (0.5 + Math.random() * 0.5);
-            return {
-                x: centerX + Math.cos(angle) * r,                y: centerY + Math.sin(angle) * r
-            };
+            return { x: centerX + Math.cos(angle) * r, y: centerY + Math.sin(angle) * r };
         });
     }
 
@@ -1431,13 +1441,8 @@ class Application {
         datasetInput.addEventListener('change', (e) => this._handleDatasetUpload(e.target.files[0]));
         
         datasetDropZone.addEventListener('click', () => datasetInput.click());
-        datasetDropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            datasetDropZone.classList.add('dragover');
-        });
-        datasetDropZone.addEventListener('dragleave', () => {
-            datasetDropZone.classList.remove('dragover');
-        });
+        datasetDropZone.addEventListener('dragover', (e) => { e.preventDefault(); datasetDropZone.classList.add('dragover'); });
+        datasetDropZone.addEventListener('dragleave', () => { datasetDropZone.classList.remove('dragover'); });
         datasetDropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             datasetDropZone.classList.remove('dragover');
@@ -1446,28 +1451,14 @@ class Application {
             }
         });
 
-        document.getElementById('vocabInput').addEventListener('change', (e) => {
-            this._loadVocabulary(e.target.files[0]);
-            e.target.value = '';
-        });
+        document.getElementById('vocabInput').addEventListener('change', (e) => { this._loadVocabulary(e.target.files[0]); e.target.value = ''; });
+        document.getElementById('weightsInput').addEventListener('change', (e) => { this._loadWeights(e.target.files[0]); e.target.value = ''; });
 
-        document.getElementById('weightsInput').addEventListener('change', (e) => {
-            this._loadWeights(e.target.files[0]);
-            e.target.value = '';
-        });
+        document.getElementById('settingNeurons').addEventListener('change', (e) => { CONFIG.NEURON_COUNT = parseInt(e.target.value); });
+        document.getElementById('settingExcRatio').addEventListener('change', (e) => { CONFIG.EXC_RATIO = parseInt(e.target.value) / 100; });
+        document.getElementById('settingStdpLr').addEventListener('change', (e) => { CONFIG.STDP_LEARNING_RATE = parseFloat(e.target.value); });
+        document.getElementById('settingDensity').addEventListener('change', (e) => { CONFIG.CONNECTION_DENSITY = parseInt(e.target.value) / 100; });
 
-        document.getElementById('settingNeurons').addEventListener('change', (e) => {
-            CONFIG.NEURON_COUNT = parseInt(e.target.value);
-        });
-        document.getElementById('settingExcRatio').addEventListener('change', (e) => {
-            CONFIG.EXC_RATIO = parseInt(e.target.value) / 100;
-        });
-        document.getElementById('settingStdpLr').addEventListener('change', (e) => {
-            CONFIG.STDP_LEARNING_RATE = parseFloat(e.target.value);
-        });
-        document.getElementById('settingDensity').addEventListener('change', (e) => {
-            CONFIG.CONNECTION_DENSITY = parseInt(e.target.value) / 100;
-        });
         window.addEventListener('resize', Utils.debounce(() => {
             this._resizeCanvas();
             this._generateNeuronPositions();
@@ -1476,92 +1467,61 @@ class Application {
 
     async _handleDatasetUpload(file) {
         if (!file) return;
-
         if (file.size > CONFIG.MAX_FILE_SIZE) {
-            this.logger.error(`Файл слишком большой: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-            return;
+            this.logger.error(`Файл слишком большой: ${(file.size / 1024 / 1024).toFixed(2)}MB`);            return;
         }
-
         try {
             this.logger.info(`Загрузка: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
-            
             const content = await Utils.readFile(file);
             const cleaned = content.replace(/\s+/g, ' ').trim();
-
             if (cleaned.length < 100) {
                 this.logger.warning('Датасет слишком мал для обучения');
                 return;
             }
-
             this.trainingData = cleaned;
-            
             const oldVocabSize = this.vocabulary.size();
             this.vocabulary.train(cleaned);
             const newTokens = this.vocabulary.size() - oldVocabSize;
-            
             this.logger.success(`Словарь: ${oldVocabSize} → ${this.vocabulary.size()} (+${newTokens})`);
-            
             this.network.setupIO(this.vocabulary);
             this.readout = new ReadoutLayer(CONFIG.NEURON_COUNT, this.vocabulary.size());
-            
             this._updateVocabStats();
             this._updateVocabPreview();
             this.logger.info('Датасет загружен. Нажмите "Обучить сеть"');
-            
         } catch (error) {
             this.logger.error(`Ошибка загрузки: ${error.message}`);
         }
     }
 
     async startTraining() {
-        if (!this.trainingData) {
-            this.logger.warning('Сначала загрузите датасет');
-            return;
-        }
-        if (this.isTraining) {
-            this.logger.warning('Обучение уже идёт');
-            return;
-        }
-
+        if (!this.trainingData) { this.logger.warning('Сначала загрузите датасет'); return; }
+        if (this.isTraining) { this.logger.warning('Обучение уже идёт'); return; }
         this.isTraining = true;
         this.trainingProgress = 0;
         document.getElementById('btnTrain').disabled = true;
-        
         this.logger.info('Начало обучения...');
         this.network.reset();
-
         const tokens = this.vocabulary.encode(this.trainingData);
         const totalBatches = Math.ceil(tokens.length / CONFIG.TRAINING_BATCH_SIZE);
         let currentBatch = 0;
-
         const readoutInputs = [];
         const readoutTargets = [];
-
         while (currentBatch < totalBatches && this.isTraining) {
             const startIdx = currentBatch * CONFIG.TRAINING_BATCH_SIZE;
             const batch = tokens.slice(startIdx, startIdx + CONFIG.TRAINING_BATCH_SIZE);
-            
             this.network.tick(batch, true);
-            
             if (batch.length > 0) {
                 const state = this.network.getReservoirState();
                 this.readout.recordState(state, this.network.time);
-                
                 if (startIdx + CONFIG.TRAINING_BATCH_SIZE < tokens.length) {
                     readoutInputs.push(state);
                     readoutTargets.push(tokens[startIdx + CONFIG.TRAINING_BATCH_SIZE]);
                 }
-            }
-
-            currentBatch++;
+            }            currentBatch++;
             this.trainingProgress = (currentBatch / totalBatches) * 100;
             this._updateProgress();
-
-            if (currentBatch % 10 === 0) {
-                await new Promise(resolve => setTimeout(resolve, 0));
-            }
+            if (currentBatch % 10 === 0) { await new Promise(resolve => setTimeout(resolve, 0)); }
         }
-
         if (readoutInputs.length > 0 && this.isTraining) {
             this.logger.info('Обучение readout слоя...');
             this.readout.train(readoutInputs, readoutTargets);
@@ -1569,64 +1529,46 @@ class Application {
         this.isTraining = false;
         document.getElementById('btnTrain').disabled = false;
         this._updateProgress(0);
-        
         this.logger.success(`Обучение завершено: ${tokens.length} токенов`);
         this._addChatMessage('snn', 'Обучение завершено. Я готов к диалогу.');
     }
 
-    stopTraining() {
-        if (this.isTraining) {
-            this.isTraining = false;
-            this.logger.info('Обучение остановлено');
-        }
-    }
+    stopTraining() { if (this.isTraining) { this.isTraining = false; this.logger.info('Обучение остановлено'); } }
 
     async sendMessage() {
         const input = document.getElementById('userInput');
         const text = input.value.trim();
-        
         if (!text) return;
-
         this._addChatMessage('user', text);
         input.value = '';
         input.disabled = true;
-
         const tokens = this.vocabulary.encode(text);
-        
         if (tokens.length === 0) {
             this._addChatMessage('snn', '[Не распознано]');
             input.disabled = false;
             return;
         }
-
         this.network.reset();
         this.readout.stateHistory = [];
-
         for (const token of tokens) {
             this.network.tick([token], false);
             await new Promise(resolve => setTimeout(resolve, 20));
         }
-
         const responseTokens = [];
         for (let i = 0; i < CONFIG.GENERATION_TICKS; i++) {
             this.network.tick([], false);
-            
             const topK = this.readout.getTopK(CONFIG.GENERATION_TOP_K);
             if (topK.length > 0) {
                 for (const tokenIdx of topK) {
-                    if (responseTokens.length === 0 || 
-                        responseTokens[responseTokens.length - 1] !== tokenIdx) {                        responseTokens.push(tokenIdx);
+                    if (responseTokens.length === 0 || responseTokens[responseTokens.length - 1] !== tokenIdx) {
+                        responseTokens.push(tokenIdx);
                         break;
                     }
                 }
             }
-            
-            await new Promise(resolve => setTimeout(resolve, 15));
-        }
-
+            await new Promise(resolve => setTimeout(resolve, 15));        }
         const response = this.vocabulary.decode(responseTokens.slice(0, 30));
         this._addChatMessage('snn', response || '[Нет ответа]');
-        
         input.disabled = false;
         input.focus();
     }
@@ -1635,21 +1577,12 @@ class Application {
         const container = document.getElementById('chatHistory');
         const div = document.createElement('div');
         div.className = `chat-message ${role}`;
-        
         const timestamp = Utils.timestamp();
         this.chatHistory.push({ role, content, timestamp });
-        
-        div.innerHTML = `
-            <span class="role">${role === 'user' ? 'Вы' : 'SNN'}</span>
-            <span class="content">${content}</span>
-            <span class="timestamp">${timestamp}</span>
-        `;
+        div.innerHTML = `<span class="role">${role === 'user' ? 'Вы' : 'SNN'}</span><span class="content">${content}</span><span class="timestamp">${timestamp}</span>`;
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
-        
-        while (container.children.length > 100) {
-            container.removeChild(container.firstChild);
-        }
+        while (container.children.length > 100) { container.removeChild(container.firstChild); }
     }
 
     saveVocabulary() {
@@ -1660,94 +1593,60 @@ class Application {
 
     _loadVocabulary(file) {
         if (!file) return;
-        
         Utils.readFile(file)
             .then(content => {
                 const data = JSON.parse(content);
-                this.vocabulary.fromJSON(data);                this.network.setupIO(this.vocabulary);
+                this.vocabulary.fromJSON(data);
+                this.network.setupIO(this.vocabulary);
                 this.readout = new ReadoutLayer(CONFIG.NEURON_COUNT, this.vocabulary.size());
                 this._updateVocabStats();
                 this._updateVocabPreview();
                 this.logger.success(`Словарь загружен: ${this.vocabulary.size()} токенов`);
             })
-            .catch(error => {
-                this.logger.error(`Ошибка: ${error.message}`);
-            });
+            .catch(error => { this.logger.error(`Ошибка: ${error.message}`); });
     }
 
     saveWeights() {
-        const data = {
-            network: this.network.toJSON(),
-            readout: this.readout.toJSON(),
-            config: {
-                NEURON_COUNT: CONFIG.NEURON_COUNT,
-                EXC_RATIO: CONFIG.EXC_RATIO,
-                CONNECTION_DENSITY: CONFIG.CONNECTION_DENSITY
-            }
-        };
+        const data = { network: this.network.toJSON(), readout: this.readout.toJSON(), config: { NEURON_COUNT: CONFIG.NEURON_COUNT, EXC_RATIO: CONFIG.EXC_RATIO, CONNECTION_DENSITY: CONFIG.CONNECTION_DENSITY } };
         Utils.downloadJSON(data, `snn_weights_${new Date().toISOString().slice(0,10)}.json`);
         this.logger.success('Веса сохранены');
     }
 
     _loadWeights(file) {
         if (!file) return;
-        
         Utils.readFile(file)
-            .then(content => {
-                const data = JSON.parse(content);
+            .then(content => {                const data = JSON.parse(content);
                 this.network.fromJSON(data.network, this.vocabulary);
                 this.readout.fromJSON(data.readout);
-                
-                if (data.config) {
-                    CONFIG.NEURON_COUNT = data.config.NEURON_COUNT;
-                    CONFIG.EXC_RATIO = data.config.EXC_RATIO;
-                    CONFIG.CONNECTION_DENSITY = data.config.CONNECTION_DENSITY;
-                }
-                
+                if (data.config) { CONFIG.NEURON_COUNT = data.config.NEURON_COUNT; CONFIG.EXC_RATIO = data.config.EXC_RATIO; CONFIG.CONNECTION_DENSITY = data.config.CONNECTION_DENSITY; }
                 this._generateNeuronPositions();
                 this.logger.success('Веса загружены');
             })
-            .catch(error => {
-                this.logger.error(`Ошибка: ${error.message}`);
-            });
+            .catch(error => { this.logger.error(`Ошибка: ${error.message}`); });
     }
 
     resetNetwork() {
-        this.showModal(            'Сброс сети',
-            'Все веса будут потеряны. Продолжить?',
-            () => {
-                this.network.hardReset();
-                this.network.setupIO(this.vocabulary);
-                this._generateNeuronPositions();
-                this.logger.info('Сеть сброшена');
-                this.hideModal();
-            }
-        );
+        this.showModal('Сброс сети', 'Все веса будут потеряны. Продолжить?', () => {
+            this.network.hardReset();
+            this.network.setupIO(this.vocabulary);
+            this._generateNeuronPositions();
+            this.logger.info('Сеть сброшена');
+            this.hideModal();
+        });
     }
 
     showModal(title, content, onConfirm) {
         document.getElementById('modalTitle').textContent = title;
         document.getElementById('modalContent').textContent = content;
         document.getElementById('modalOverlay').classList.add('active');
-        
-        document.getElementById('modalConfirm').onclick = () => {
-            onConfirm();
-        };
-        
-        document.getElementById('modalCancel').onclick = () => {
-            this.hideModal();
-        };
+        document.getElementById('modalConfirm').onclick = () => { onConfirm(); };
+        document.getElementById('modalCancel').onclick = () => { this.hideModal(); };
     }
 
-    hideModal() {
-        document.getElementById('modalOverlay').classList.remove('active');
-    }
+    hideModal() { document.getElementById('modalOverlay').classList.remove('active'); }
 
     _startVisualization() {
-        const animate = () => {
-            this._renderNetwork();
-            requestAnimationFrame(animate);
-        };
+        const animate = () => { this._renderNetwork(); requestAnimationFrame(animate); };
         animate();
     }
 
@@ -1755,26 +1654,19 @@ class Application {
         const ctx = this.ctx;
         const width = this.canvas.width;
         const height = this.canvas.height;
-
         ctx.fillStyle = 'rgba(5, 5, 5, 0.2)';
         ctx.fillRect(0, 0, width, height);
-
         const activeNeurons = this.network.getActiveNeurons();
         if (activeNeurons.length > 0 && activeNeurons.length < 100) {
             ctx.lineWidth = 0.5;
-            for (const pre of activeNeurons) {                const prePos = this.neuronPositions[pre.id];
+            for (const pre of activeNeurons) {
+                const prePos = this.neuronPositions[pre.id];
                 const connections = this.network.adjacencyList[pre.id];
-                
                 for (const { postIdx, synapse } of connections) {
                     const post = this.network.neurons[postIdx];
-                    if (post.spiked) {
-                        const postPos = this.neuronPositions[postIdx];
+                    if (post.spiked) {                        const postPos = this.neuronPositions[postIdx];
                         const alpha = Math.min(1, Math.abs(synapse.weight) / 2) * 0.3;
-                        
-                        ctx.strokeStyle = synapse.weight > 0 
-                            ? `rgba(0, 255, 200, ${alpha})`
-                            : `rgba(255, 50, 50, ${alpha})`;
-                        
+                        ctx.strokeStyle = synapse.weight > 0 ? `rgba(0, 255, 200, ${alpha})` : `rgba(255, 50, 50, ${alpha})`;
                         ctx.beginPath();
                         ctx.moveTo(prePos.x, prePos.y);
                         ctx.lineTo(postPos.x, postPos.y);
@@ -1783,22 +1675,17 @@ class Application {
                 }
             }
         }
-
         for (let i = 0; i < this.network.neuronCount; i++) {
             const neuron = this.network.neurons[i];
             const pos = this.neuronPositions[i];
-
             if (neuron.spiked) {
                 ctx.beginPath();
                 ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
                 ctx.fillStyle = neuron.type === 'exc' ? '#00ffcc' : '#ff3333';
                 ctx.fill();
-
                 ctx.beginPath();
                 ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
-                ctx.fillStyle = neuron.type === 'exc' 
-                    ? 'rgba(0, 255, 200, 0.2)' 
-                    : 'rgba(255, 50, 50, 0.2)';
+                ctx.fillStyle = neuron.type === 'exc' ? 'rgba(0, 255, 200, 0.2)' : 'rgba(255, 50, 50, 0.2)';
                 ctx.fill();
             } else if (neuron.potential > 0.2) {
                 const alpha = Math.min(0.8, neuron.potential / CONFIG.THRESHOLD);
@@ -1808,15 +1695,13 @@ class Application {
                 ctx.fill();
             }
         }
-
         const active = activeNeurons.length;
         const exc = activeNeurons.filter(n => n.type === 'exc').length;
-        const inh = active - exc;        
+        const inh = active - exc;
         document.getElementById('overlayActive').textContent = active;
         document.getElementById('overlayExc').textContent = exc;
         document.getElementById('overlayInh').textContent = inh;
-        document.getElementById('overlayRate').textContent = 
-            this.network.stats.avgFiringRate.toFixed(1) + ' Hz';
+        document.getElementById('overlayRate').textContent = this.network.stats.avgFiringRate.toFixed(1) + ' Hz';
     }
 
     _startNetworkLoop() {
@@ -1828,8 +1713,7 @@ class Application {
                 } else {
                     this.network.tick([], false);
                 }
-            }
-            this._updateStats();
+            }            this._updateStats();
         }, 30);
     }
 
@@ -1842,7 +1726,6 @@ class Application {
     _updateProgress(value = this.trainingProgress) {
         const bar = document.getElementById('progressBar');
         const text = document.getElementById('progressText');
-        
         bar.style.width = `${value}%`;
         text.textContent = `${value.toFixed(1)}%`;
     }
@@ -1859,18 +1742,29 @@ class Application {
     _updateVocabPreview() {
         const preview = document.getElementById('vocabPreview');
         const tokens = this.vocabulary.getPreview(50);
-        
-        preview.innerHTML = tokens            .map((t, i) => `<span class="vocab-preview-item">#${i}: "${t}"</span>`)
-            .join('');
+        preview.innerHTML = tokens.map((t, i) => `<span class="vocab-preview-item">#${i}: "${t}"</span>`).join('');
     }
 }
 
 // ==================== ЗАПУСК ====================
-let app;
+let app = null;
 
-window.addEventListener('DOMContentLoaded', () => {
+// Гарантированная инициализация после загрузки DOM
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[DOM] DOMContentLoaded fired');
     app = new Application();
+    app.init();
 });
+
+// Fallback на случай если DOMContentLoaded уже прошёл
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    console.log('[DOM] ReadyState already complete, initializing immediately');
+    setTimeout(() => {
+        if (!app) {
+            app = new Application();
+            app.init();        }
+    }, 100);
+}
 </script>
 </body>
-    </html>
+</html>
