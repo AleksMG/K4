@@ -1,1274 +1,1031 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>⚽ AI FOOTBALL v8.0.3 - РЕАЛЬНЫЙ ФУТБОЛ</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #0a0a15;
-            color: white;
-            font-family: 'Segoe UI', sans-serif;
-            overflow: hidden;
-        }
-        #gameCanvas {
-            position: absolute;
-            top: 50px;
-            left: 0;
-            width: 100%;
-            height: calc(100vh - 50px);
-            background: #1a5c1a;
-        }
-        .header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 50px;
-            background: #121225;
-            border-bottom: 1px solid #2a2a45;
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            justify-content: space-between;
-            z-index: 100;
-        }
-        .fps {
-            color: #00ff9d;
-            font-family: monospace;
-        }
-        .score {
-            font-size: 24px;
-            font-weight: bold;
-        }
-        .score.blue { color: #00aaff; }
-        .score.red { color: #ff5500; }
-        .time {
-            color: #ffaa00;
-            font-size: 20px;
-        }
-        .controls {
-            position: absolute;
-            right: 20px;
-            top: 60px;
-            width: 300px;
-            background: rgba(18, 18, 37, 0.95);
-            border: 1px solid #2a2a45;
-            border-radius: 10px;
-            padding: 15px;
-            z-index: 50;
-            backdrop-filter: blur(5px);
-        }
-        .controls button {
-            padding: 8px 12px;
-            margin: 5px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .btn-start { background: #00aaff; color: black; }
-        .btn-reset { background: #ff4444; color: white; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GRU Neural Engine v4.1</title>
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       СТИЛИ (Ванильный CSS, без внешних зависимостей)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <style>
+    :root {
+      --bg: #020203;
+      --surface: #08090b;
+      --border: #12131a;
+      --text: #e2e2e8;
+      --muted: #5a5a6e;
+      --accent: #00ffa3;
+      --accent-dim: rgba(0, 255, 163, 0.08);
+      --error: #ff5577;
+      --user-msg: rgba(0, 255, 163, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       МАКЕТ
+       ═══════════════════════════════════════════════════════════════════════ */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      height: 100%;
+      background: var(--border);
+    }
+
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        display: none;
+      }
+    }
+
+    .chat-col {
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar {
+      background: var(--surface);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       ВЕРХНЯЯ ПАНЕЛЬ
+       ═══════════════════════════════════════════════════════════════════════ */
+    .top-bar {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+      font-size: 1.1rem;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .status-dot.active {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .status-dot.error {
+      background: var(--error);
+      box-shadow: 0 0 8px var(--error);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       ЧАТ
+       ═══════════════════════════════════════════════════════════════════════ */
+    .chat-flow {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+      scroll-behavior: smooth;
+    }
+
+    .msg {
+      max-width: 80%;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .msg.user {
+      align-self: flex-end;
+    }
+
+    .msg.ai {
+      align-self: flex-start;
+    }
+
+    .bubble {
+      padding: 0.8rem 1rem;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .msg.user .bubble {
+      background: var(--accent-dim);
+      border: 1px solid rgba(0, 255, 163, 0.15);
+      border-radius: 10px 10px 2px 10px;
+    }
+
+    .msg.ai .bubble {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px 10px 10px 2px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       ПОЛЕ ВВОДА
+       ═══════════════════════════════════════════════════════════════════════ */
+    .input-area {
+      padding: 1rem 1.5rem;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+    }
+
+    .input-wrap {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.25rem;
+    }
+
+    textarea {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text);
+      padding: 0.6rem;
+      font-family: inherit;
+      font-size: 1rem;
+      resize: none;
+      outline: none;
+    }
+
+    .btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 4px;
+      padding: 0.5rem 1.2rem;
+      color: #000;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter 0.2s;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+    }
+
+    .btn:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn:disabled {
+      background: var(--border);
+      color: var(--muted);
+      cursor: not-allowed;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       БОКОВАЯ ПАНЕЛЬ
+       ═══════════════════════════════════════════════════════════════════════ */
+    .panel {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+    }
+
+    .p-title {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.8rem;
+      display: block;
+      font-size: 0.7rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8rem;
+    }
+
+    .s-val {
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+
+    .s-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+    }
+
+    .drop-zone {
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      padding: 1.2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--muted);
+    }
+
+    .drop-zone:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .log-box {
+      height: 120px;
+      overflow-y: auto;
+      background: #000;
+      padding: 0.5rem;
+      color: var(--muted);
+      border-radius: 4px;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      font-size: 0.65rem;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .btn-sm {
+      background: var(--border);
+      color: var(--text);
+      border: none;
+      padding: 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.7rem;
+      transition: background 0.2s;
+    }
+
+    .btn-sm:hover {
+      background: #1a1b25;
+    }
+
+    .btn-danger {
+      color: var(--error);
+    }
+
+    .btn-danger:hover {
+      background: rgba(255, 85, 119, 0.1);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       СКРОЛЛБАР
+       ═══════════════════════════════════════════════════════════════════════ */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  </style>
 </head>
+
 <body>
-    <div class="header">
-        <h1>⚽ AI FOOTBALL <span style="color:#ff0066">v8.0.3 PRO</span></h1>
-        <div class="score">
-            <span class="score blue" id="scoreBlue">0</span> - 
-            <span class="score red" id="scoreRed">0</span>
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       РАЗМЕТКА
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="layout">
+    <div class="chat-col">
+      <div class="top-bar">
+        <div class="logo">GRU CORE v4.1</div>
+        <div class="status-row">
+          <div class="status-dot" id="status-dot"></div>
+          <span id="status-text" style="color:var(--muted)">Ожидание...</span>
         </div>
-        <div class="time" id="matchTime">00:00</div>
-        <div class="fps" id="fpsCounter">FPS: 0</div>
-    </div>
-    
-    <canvas id="gameCanvas"></canvas>
-    
-    <div class="controls">
-        <h3 style="color:#00f2ff; margin-bottom:10px;">⚙️ УПРАВЛЕНИЕ</h3>
-        <button class="btn-start" id="btnStart">▶ СТАРТ</button>
-        <button class="btn-reset" id="btnReset">🔄 СБРОС</button>
-        <hr style="border-color:#2a2a45; margin:10px 0;">
-        <div>
-            <label>👥 Игроков: <span id="agentCountValue">6</span></label>
-            <input type="range" id="agentCount" min="2" max="8" step="1" value="6" style="width:100%">
+      </div>
+      <div class="chat-flow" id="chat"></div>
+      <div class="input-area">
+        <div class="input-wrap">
+          <textarea id="input" rows="1" placeholder="Загрузите .txt файл для обучения..." disabled></textarea>
+          <button class="btn" id="send" disabled>SEND</button>
         </div>
-        <div style="margin-top:10px">
-            <label>🎯 Скорость: <span id="agentSpeedValue">10</span></label>
-            <input type="range" id="agentSpeed" min="5" max="15" step="1" value="10" style="width:100%">
-        </div>
-        <div style="margin-top:10px">
-            <label>👁️ Зрение: <span id="viewRadiusValue">300</span></label>
-            <input type="range" id="viewRadius" min="150" max="500" step="10" value="300" style="width:100%">
-        </div>
-        <hr style="border-color:#2a2a45; margin:10px 0;">
-        <div style="font-size:12px; color:#b0b0d0; text-align:center">
-            Cortex-2 Neural Network | Реальный футбол
-        </div>
+      </div>
     </div>
 
-<script>
-'use strict';
+    <div class="sidebar">
+      <div class="panel">
+        <span class="p-title">Data Source</span>
+        <input type="file" id="file-in" accept=".txt">
+        <div class="drop-zone" id="drop">Загрузить .txt файл</div>
+        <div style="margin-top:0.5rem; font-size:0.65rem; color:var(--muted); text-align:center;">Диалоги, книги, статьи</div>
+      </div>
 
-// ===========================================
-// КОНФИГУРАЦИЯ - ТОЛЬКО ФУТБОЛ
-// ===========================================
-const FOOTBALL_CONFIG = {
-    FIELD: { width: 1000, height: 600 },
-    GOAL: { 
-        width: 160,  // ширина ворот
-        y: 300,
-        postTop: 220,
-        postBottom: 380 
-    },
-    BALL: { 
-        radius: 8, 
-        friction: 0.98,
-        maxSpeed: 45
-    },
-    PLAYER: {
-        radius: 15,
-        maxSpeed: 15,
-        maxSpeedWithBall: 8.5,
-        acceleration: 0.25,
-        passSpeed: 38,
-        shotSpeed: 75,
-        passAccuracy: 0.82,
-        shotAccuracy: 0.75,
-        interceptRadius: 35,
-        kickCooldown: 5
-    },
-    POSITIONS: {
-        goalkeeper: { attack: { x: 50, y: 300 }, defend: { x: 50, y: 300 } },
-        defender: { attack: { x: 250, y: 300 }, defend: { x: 150, y: 300 } },
-        midfielder: { attack: { x: 500, y: 300 }, defend: { x: 400, y: 300 } },
-        forward: { attack: { x: 800, y: 300 }, defend: { x: 600, y: 300 } }
-    }
-};
+      <div class="panel">
+        <span class="p-title">Model Metrics</span>
+        <div class="stats-grid">
+          <div><div class="s-val" id="s-vocab">0</div><div class="s-label">Vocabulary</div></div>
+          <div><div class="s-val" id="s-hidden">0</div><div class="s-label">Hidden</div></div>
+          <div><div class="s-val" id="s-steps">0</div><div class="s-label">Training Steps</div></div>
+          <div><div class="s-val" id="s-loss">0.000</div><div class="s-label">Avg Loss</div></div>
+        </div>
+      </div>
 
-// ===========================================
-// CORTEX-2 BRAIN (СОКРАЩЕННАЯ ВЕРСИЯ ДЛЯ ФУТБОЛА)
-// ===========================================
-class Cortex2Brain {
-    constructor(config = {}) {
-        this.seed = config.seed || 'football_cortex_' + Date.now();
-        this.lr = config.lr || 0.01;
-        this.gamma = 0.99;
-        this.lambda = 0.95;
-        
-        // Размеры слоев
-        this.INPUT_DIM = 64;
-        this.HIDDEN1 = 48;
-        this.HIDDEN2 = 32;
-        this.OUTPUT_DIM = 16;
-        
-        // Инициализация весов
-        this.W1 = this._initMatrix(this.INPUT_DIM, this.HIDDEN1, 0.1);
-        this.b1 = this._initVector(this.HIDDEN1, 0);
-        
-        this.W2 = this._initMatrix(this.HIDDEN1, this.HIDDEN2, 0.1);
-        this.b2 = this._initVector(this.HIDDEN2, 0);
-        
-        this.W3 = this._initMatrix(this.HIDDEN2, this.OUTPUT_DIM, 0.1);
-        this.b3 = this._initVector(this.OUTPUT_DIM, 0);
-        
-        // Critic (оценка ценности)
-        this.Wv = this._initVector(this.HIDDEN2, 0.1);
-        this.bv = 0;
-        
-        // Состояние
-        this.h1 = new Float32Array(this.HIDDEN1);
-        this.h2 = new Float32Array(this.HIDDEN2);
-        this.output = new Float32Array(this.OUTPUT_DIM);
-        
-        // Для обучения
-        this.traces = [];
-        this.stats = { tdErrors: [] };
-    }
-    
-    _initMatrix(rows, cols, scale) {
-        const mat = [];
+      <div class="panel">
+        <span class="p-title">Model Actions</span>
+        <div class="actions">
+          <button class="btn-sm" id="save">Export</button>
+          <button class="btn-sm" id="load">Import</button>
+          <button class="btn-sm btn-danger" id="reset" style="grid-column: span 2;">Reset Model</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="p-title">Training Control</span>
+        <div class="actions">
+          <button class="btn-sm" id="toggle-train">⏸ Пауза</button>
+          <button class="btn-sm" id="force-save">💾 Сохранить</button>
+        </div>
+        <div style="margin-top:0.5rem; font-size:0.65rem; color:var(--muted);">
+          Автосохранение: <span id="auto-save-status" style="color:var(--accent)">вкл</span>
+        </div>
+      </div>
+
+      <div class="panel" style="flex:1; display:flex; flex-direction:column;">
+        <span class="p-title">System Log</span>
+        <div class="log-box" id="log">System ready.\n</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       JAVASCRIPT
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════
+    // МАТЕМАТИЧЕСКИЕ УТИЛИТЫ
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const MathUtils = {
+      sigmoid: x => 1 / (1 + Math.exp(-x)),
+      dSigmoid: y => y * (1 - y),
+      tanh: x => Math.tanh(x),
+      dTanh: y => 1 - y * y,
+      softmax: (logits) => {
+        const max = Math.max(...logits);
+        const exp = logits.map(v => Math.exp(v - max));
+        const sum = exp.reduce((a, b) => a + b, 0);
+        if (sum < 1e-10) return logits.map(() => 1 / logits.length);
+        return exp.map(v => v / sum);
+      },
+      zeros: (n) => new Float32Array(n),
+      xavierInit: (rows, cols) => {
+        const limit = Math.sqrt(6 / (rows + cols));
+        const arr = new Float32Array(rows * cols);
+        for (let i = 0; i < arr.length; i++) {
+          arr[i] = (Math.random() * 2 - 1) * limit;
+        }
+        return arr;
+      },
+      matVec: (W, rows, cols, vec) => {
+        const out = new Float32Array(rows);
         for (let i = 0; i < rows; i++) {
-            const row = new Float32Array(cols);
-            for (let j = 0; j < cols; j++) {
-                row[j] = (Math.random() * 2 - 1) * scale;
-            }
-            mat.push(row);
+          let sum = 0;
+          const offset = i * cols;
+          for (let j = 0; j < cols; j++) {
+            sum += W[offset + j] * vec[j];
+          }
+          out[i] = sum;
         }
-        return mat;
-    }
-    
-    _initVector(len, scale) {
-        const vec = new Float32Array(len);
-        for (let i = 0; i < len; i++) {
-            vec[i] = (Math.random() * 2 - 1) * scale;
+        return out;
+      },
+      clipGlobalNorm: (grads, maxNorm = 5.0) => {
+        let normSq = 0;
+        for (const g of grads) {
+          for (let i = 0; i < g.length; i++) normSq += g[i] * g[i];
         }
-        return vec;
-    }
-    
-    _relu(x) { return x > 0 ? x : 0.01 * x; }
-    _tanh(x) { 
-        if (x > 20) return 1;
-        if (x < -20) return -1;
-        const e = Math.exp(2 * x);
-        return (e - 1) / (e + 1);
-    }
-    _sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
-    
-    forward(inputs) {
-        if (!inputs || inputs.length !== this.INPUT_DIM) {
-            inputs = new Array(this.INPUT_DIM).fill(0);
+        const norm = Math.sqrt(normSq);
+        if (norm > maxNorm) {
+          const scale = maxNorm / norm;
+          for (const g of grads) {
+            for (let i = 0; i < g.length; i++) g[i] *= scale;
+          }
         }
-        
-        // Слой 1
-        for (let i = 0; i < this.HIDDEN1; i++) {
-            let sum = this.b1[i];
-            for (let j = 0; j < this.INPUT_DIM; j++) {
-                sum += inputs[j] * this.W1[j][i];
-            }
-            this.h1[i] = this._relu(sum);
-        }
-        
-        // Слой 2
-        for (let i = 0; i < this.HIDDEN2; i++) {
-            let sum = this.b2[i];
-            for (let j = 0; j < this.HIDDEN1; j++) {
-                sum += this.h1[j] * this.W2[j][i];
-            }
-            this.h2[i] = this._relu(sum);
-        }
-        
-        // Выходной слой
-        for (let i = 0; i < this.OUTPUT_DIM; i++) {
-            let sum = this.b3[i];
-            for (let j = 0; j < this.HIDDEN2; j++) {
-                sum += this.h2[j] * this.W3[j][i];
-            }
-            this.output[i] = this._tanh(sum);
-        }
-        
-        // Ценность состояния (для обучения)
-        let value = this.bv;
-        for (let i = 0; i < this.HIDDEN2; i++) {
-            value += this.h2[i] * this.Wv[i];
-        }
-        
-        return {
-            output: Array.from(this.output),
-            value: this._tanh(value),
-            hidden: Array.from(this.h2)
-        };
-    }
-    
-    mutate(rate = 0.05) {
-        let mutations = 0;
-        
-        // Мутация весов
-        for (let i = 0; i < this.W1.length; i++) {
-            for (let j = 0; j < this.W1[i].length; j++) {
-                if (Math.random() < rate) {
-                    this.W1[i][j] += (Math.random() * 2 - 1) * 0.1;
-                    mutations++;
-                }
-            }
-        }
-        
-        for (let i = 0; i < this.W2.length; i++) {
-            for (let j = 0; j < this.W2[i].length; j++) {
-                if (Math.random() < rate) {
-                    this.W2[i][j] += (Math.random() * 2 - 1) * 0.1;
-                    mutations++;
-                }
-            }
-        }
-        
-        return mutations;
-    }
-    
-    clone() {
-        const clone = new Cortex2Brain({ seed: this.seed + '_clone' });
-        clone.W1 = this.W1.map(r => r.slice());
-        clone.W2 = this.W2.map(r => r.slice());
-        clone.W3 = this.W3.map(r => r.slice());
-        clone.Wv = this.Wv.slice();
-        clone.b1 = this.b1.slice();
-        clone.b2 = this.b2.slice();
-        clone.b3 = this.b3.slice();
-        clone.bv = this.bv;
-        return clone;
-    }
-}
+        return norm;
+      }
+    };
 
-// ===========================================
-// МЯЧ - ПРАВИЛЬНАЯ ФИЗИКА
-// ===========================================
-class FootballBall {
-    constructor(x, y) {
-        this.x = x || 500;
-        this.y = y || 300;
-        this.vx = 0;
-        this.vy = 0;
-        this.owner = null; // ID игрока, кто последний коснулся
-        this.lastTouchTeam = null;
-        this.radius = FOOTBALL_CONFIG.BALL.radius;
-        this.trail = [];
-    }
-    
-    update() {
-        // Движение
-        this.x += this.vx;
-        this.y += this.vy;
-        
-        // Трение
-        this.vx *= FOOTBALL_CONFIG.BALL.friction;
-        this.vy *= FOOTBALL_CONFIG.BALL.friction;
-        
-        if (Math.abs(this.vx) < 0.1) this.vx = 0;
-        if (Math.abs(this.vy) < 0.1) this.vy = 0;
-        
-        // Максимальная скорость
-        const speed = Math.hypot(this.vx, this.vy);
-        if (speed > FOOTBALL_CONFIG.BALL.maxSpeed) {
-            const scale = FOOTBALL_CONFIG.BALL.maxSpeed / speed;
-            this.vx *= scale;
-            this.vy *= scale;
-        }
-        
-        // Границы поля (с учетом ворот)
-        const goalTop = FOOTBALL_CONFIG.GOAL.postTop;
-        const goalBottom = FOOTBALL_CONFIG.GOAL.postBottom;
-        
-        // Левая граница
-        if (this.x < this.radius) {
-            if (this.y >= goalTop && this.y <= goalBottom) {
-                // ГОЛ! обрабатывается в world
-            } else {
-                this.vx *= -0.5;
-                this.x = this.radius;
-            }
-        }
-        
-        // Правая граница
-        if (this.x > FOOTBALL_CONFIG.FIELD.width - this.radius) {
-            if (this.y >= goalTop && this.y <= goalBottom) {
-                // ГОЛ!
-            } else {
-                this.vx *= -0.5;
-                this.x = FOOTBALL_CONFIG.FIELD.width - this.radius;
-            }
-        }
-        
-        // Верх/низ
-        if (this.y < this.radius) {
-            this.vy *= -0.5;
-            this.y = this.radius;
-        }
-        if (this.y > FOOTBALL_CONFIG.FIELD.height - this.radius) {
-            this.vy *= -0.5;
-            this.y = FOOTBALL_CONFIG.FIELD.height - this.radius;
-        }
-        
-        // След
-        if (this.trail.length === 0 || 
-            Math.hypot(this.trail[0].x - this.x, this.trail[0].y - this.y) > 20) {
-            this.trail.unshift({ x: this.x, y: this.y, age: 0 });
-            if (this.trail.length > 10) this.trail.pop();
-        }
-        this.trail.forEach(t => t.age++);
-        
-        // Сброс владения если мяч далеко
-        if (this.owner) {
-            const owner = window.arenaGame?.world?.getAgent(this.owner);
-            if (!owner || Math.hypot(owner.x - this.x, owner.y - this.y) > 40) {
-                this.owner = null;
-            }
-        }
-    }
-    
-    kick(angle, power, playerId) {
-        this.vx = Math.cos(angle) * power;
-        this.vy = Math.sin(angle) * power;
-        this.owner = playerId;
-    }
-    
-    checkGoal() {
-        const goalTop = FOOTBALL_CONFIG.GOAL.postTop;
-        const goalBottom = FOOTBALL_CONFIG.GOAL.postBottom;
-        
-        // Гол в левые ворота
-        if (this.x < 0 && this.y > goalTop && this.y < goalBottom) {
-            return { team: 'red', x: 0, y: this.y };
-        }
-        
-        // Гол в правые ворота
-        if (this.x > FOOTBALL_CONFIG.FIELD.width && this.y > goalTop && this.y < goalBottom) {
-            return { team: 'blue', x: FOOTBALL_CONFIG.FIELD.width, y: this.y };
-        }
-        
-        return null;
-    }
-    
-    draw(ctx) {
-        // След
-        if (this.trail.length > 1) {
-            ctx.beginPath();
-            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-            ctx.lineWidth = 3;
-            ctx.moveTo(this.trail[0].x, this.trail[0].y);
-            for (let i = 1; i < this.trail.length; i++) {
-                ctx.lineTo(this.trail[i].x, this.trail[i].y);
-            }
-            ctx.stroke();
-        }
-        
-        // Мяч
-        ctx.fillStyle = 'white';
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Пятна
-        ctx.fillStyle = '#333';
-        ctx.beginPath();
-        ctx.arc(this.x - 3, this.y - 2, 2, 0, Math.PI * 2);
-        ctx.arc(this.x + 3, this.y + 2, 2, 0, Math.PI * 2);
-        ctx.fill();
-    }
-}
+    // ═══════════════════════════════════════════════════════════════════════
+    // ТОКЕНИЗАТОР
+    // ═══════════════════════════════════════════════════════════════════════
 
-// ===========================================
-// ИГРОК - ФУТБОЛЬНАЯ МЕХАНИКА
-// ===========================================
-class FootballPlayer {
-    constructor(id, team, role, x, y, color) {
-        this.id = id;
-        this.team = team;
-        this.role = role;
-        this.x = x;
-        this.y = y;
-        this.vx = 0;
-        this.vy = 0;
-        this.color = color;
-        
-        // Состояние
-        this.hasBall = false;
-        this.kickCooldown = 0;
-        this.stamina = 100;
-        
-        // Характеристики (будут влиять на выходы Cortex)
-        this.stats = {
-            speed: 7 + Math.random() * 2,
-            passAcc: 0.7 + Math.random() * 0.2,
-            shotAcc: 0.6 + Math.random() * 0.2,
-            aggression: 0.3 + Math.random() * 0.4
-        };
-        
-        // Мозг
-        this.net = new Cortex2Brain({ seed: `${team}_${role}_${id}` });
-        
-        // Текущее решение
-        this.decision = {
-            action: 'move',
-            targetX: x,
-            targetY: y,
-            targetPlayer: null,
-            power: 0
-        };
-        
-        // История для отладки
-        this.lastDecision = null;
-        this.inputs = new Array(64).fill(0);
-    }
-    
-    // ========== СБОР ВХОДНЫХ ДАННЫХ ==========
-    getInputs(ball, teammates, opponents) {
-        const inputs = new Array(64).fill(0);
-        const maxDist = 500;
-        
-        // 0-1: позиция мяча относительно игрока
-        inputs[0] = (ball.x - this.x) / maxDist;
-        inputs[1] = (ball.y - this.y) / maxDist;
-        
-        // 2-3: скорость мяча
-        inputs[2] = ball.vx / 20;
-        inputs[3] = ball.vy / 20;
-        
-        // 4: дистанция до мяча
-        inputs[4] = Math.min(Math.hypot(ball.x - this.x, ball.y - this.y) / maxDist, 1);
-        
-        // 5-6: ворота противника
-        const enemyGoalX = this.team === 'blue' ? FOOTBALL_CONFIG.FIELD.width : 0;
-        inputs[5] = (enemyGoalX - this.x) / maxDist;
-        inputs[6] = (FOOTBALL_CONFIG.GOAL.y - this.y) / maxDist;
-        
-        // 7-8: свои ворота
-        const myGoalX = this.team === 'blue' ? 0 : FOOTBALL_CONFIG.FIELD.width;
-        inputs[7] = (myGoalX - this.x) / maxDist;
-        
-        // 9-12: ближайший партнер
-        if (teammates.length > 0) {
-            const nearest = teammates[0];
-            inputs[9] = (nearest.x - this.x) / maxDist;
-            inputs[10] = (nearest.y - this.y) / maxDist;
-            inputs[11] = Math.min(Math.hypot(nearest.x - this.x, nearest.y - this.y) / maxDist, 1);
+    class Tokenizer {
+      constructor() {
+        this.tokenToId = new Map();
+        this.idToToken = new Map();
+        this._addSpecialTokens();
+      }
+
+      _addSpecialTokens() {
+        this._add('<PAD>');
+        this._add('<UNK>');
+        this._add('<BOS>');
+        this._add('<EOS>');
+      }
+
+      _add(token) {
+        if (!this.tokenToId.has(token)) {
+          const id = this.tokenToId.size;
+          this.tokenToId.set(token, id);
+          this.idToToken.set(id, token);
         }
-        
-        // 13-16: ближайший соперник
-        if (opponents.length > 0) {
-            const nearest = opponents[0];
-            inputs[13] = (nearest.x - this.x) / maxDist;
-            inputs[14] = (nearest.y - this.y) / maxDist;
-            inputs[15] = Math.min(Math.hypot(nearest.x - this.x, nearest.y - this.y) / maxDist, 1);
+      }
+
+      _normalize(text) {
+        return text.toLowerCase()
+          .replace(/[^а-яёa-z0-9\s\.\,\!\?\-\']/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      buildVocabulary(text, minFreq = 2) {
+        const words = this._normalize(text).split(' ').filter(w => w.length > 0);
+        const freq = new Map();
+        for (const w of words) {
+          freq.set(w, (freq.get(w) || 0) + 1);
         }
-        
-        // 17: есть ли мяч
-        inputs[17] = this.hasBall ? 1 : 0;
-        
-        // 18-19: куда должен бежать по роли
-        let targetX, targetY;
-        if (this.team === 'blue') {
-            targetX = this.role === 'forward' ? 800 : 
-                     this.role === 'midfielder' ? 500 : 
-                     this.role === 'defender' ? 250 : 50;
-        } else {
-            targetX = this.role === 'forward' ? 200 : 
-                     this.role === 'midfielder' ? 500 : 
-                     this.role === 'defender' ? 750 : 950;
+        for (const [word, count] of freq) {
+          if (count >= minFreq) this._add(word);
         }
-        targetY = this.role === 'goalkeeper' ? 300 : 
-                 300 + (parseInt(this.id.split('_')[1]) - 3) * 50;
-        
-        inputs[18] = (targetX - this.x) / maxDist;
-        inputs[19] = (targetY - this.y) / maxDist;
-        
-        // 20: выносливость
-        inputs[20] = this.stamina / 100;
-        
-        // 21-22: скорость игрока
-        inputs[21] = this.vx / 10;
-        inputs[22] = this.vy / 10;
-        
-        this.inputs = inputs;
-        return inputs;
-    }
-    
-    // ========== ИНТЕРПРЕТАЦИЯ ВЫХОДОВ CORTEX ==========
-    setOutput(output, value) {
-        // output[0] - движение вправо/влево (-1..1)
-        // output[1] - движение вверх/вниз (-1..1)
-        // output[2] - пас (0..1)
-        // output[3] - удар (0..1)
-        // output[4] - отбор/агрессия (0..1)
-        // output[5] - дриблинг/скорость (0..1)
-        // output[6..15] - запасные
-        
-        // Сохраняем решение
-        this.lastDecision = {
-            output: output.slice(),
-            value: value,
-            action: 'idle'
-        };
-        
-        // Базовая скорость
-        const speedBase = this.hasBall ? 
-            FOOTBALL_CONFIG.PLAYER.maxSpeedWithBall : 
-            FOOTBALL_CONFIG.PLAYER.maxSpeed;
-        
-        // Влияние выносливости
-        const staminaFactor = 0.5 + this.stamina / 200;
-        
-        // Движение
-        const moveX = output[0] * speedBase * staminaFactor;
-        const moveY = output[1] * speedBase * staminaFactor;
-        
-        // Плавное ускорение
-        this.vx += (moveX - this.vx) * FOOTBALL_CONFIG.PLAYER.acceleration;
-        this.vy += (moveY - this.vy) * FOOTBALL_CONFIG.PLAYER.acceleration;
-        
-        // Действия
-        if (output[2] > 0.7 && this.hasBall && this.kickCooldown <= 0) {
-            this.lastDecision.action = 'pass';
-        } else if (output[3] > 0.7 && this.hasBall && this.kickCooldown <= 0) {
-            this.lastDecision.action = 'shoot';
-        } else if (output[4] > 0.7 && !this.hasBall) {
-            this.lastDecision.action = 'tackle';
-        } else if (output[5] > 0.5 && this.hasBall) {
-            this.lastDecision.action = 'dribble';
-        } else {
-            this.lastDecision.action = 'move';
+        for (let i = 0; i < words.length - 1; i++) {
+          const a = words[i], b = words[i + 1];
+          if (freq.get(a) >= minFreq && freq.get(b) >= minFreq) {
+            this._add(`${a}‗${b}`);
+          }
         }
-        
-        // Выносливость
-        if (Math.abs(output[0]) > 0.5 || Math.abs(output[1]) > 0.5) {
-            this.stamina = Math.max(0, this.stamina - 0.1);
-        } else {
-            this.stamina = Math.min(100, this.stamina + 0.05);
-        }
-    }
-    
-    // ========== ДВИЖЕНИЕ ==========
-    move() {
-        this.x += this.vx;
-        this.y += this.vy;
-        
-        // Трение
-        this.vx *= 0.95;
-        this.vy *= 0.95;
-        
-        // Границы
-        this.x = Math.max(20, Math.min(FOOTBALL_CONFIG.FIELD.width - 20, this.x));
-        this.y = Math.max(20, Math.min(FOOTBALL_CONFIG.FIELD.height - 20, this.y));
-        
-        if (this.kickCooldown > 0) this.kickCooldown--;
-    }
-    
-    // ========== ПАС ==========
-    pass(ball, teammates, opponents) {
-        if (!this.hasBall) return null;
-        
-        // Ищем лучшую цель
-        let bestTarget = null;
-        let bestScore = -Infinity;
-        
-        for (const mate of teammates) {
-            if (mate.id === this.id) continue;
-            
-            const dx = mate.x - this.x;
-            const dy = mate.y - this.y;
-            const dist = Math.hypot(dx, dy);
-            
-            // Не пасуем слишком близко или слишком далеко
-            if (dist < 100 || dist > 550) continue;
-            
-            // Проверка на перехват
-            let interceptRisk = 0;
-            for (const opp of opponents) {
-                const distToLine = Math.abs(
-                    (opp.y - this.y) * dx - (opp.x - this.x) * dy
-                ) / dist;
-                
-                if (distToLine < 40) {
-                    interceptRisk += (1 - distToLine / 40) * 
-                                     (1 - Math.hypot(opp.x - mate.x, opp.y - mate.y) / 200);
-                }
+        return words.length;
+      }
+
+      encode(text) {
+        const words = this._normalize(text).split(' ').filter(w => w.length > 0);
+        const ids = [];
+        for (let i = 0; i < words.length; ) {
+          let matched = false;
+          if (i < words.length - 1) {
+            const bigram = `${words[i]}‗${words[i + 1]}`;
+            const id = this.tokenToId.get(bigram);
+            if (id !== undefined) {
+              ids.push(id);
+              i += 2;
+              matched = true;
             }
-            
-            // Оценка
-            let score = 1000 / dist;
-            score -= interceptRisk * 300;
-            
-            // Нападающий в штрафной - приоритет
-            if (mate.role === 'forward' && 
-                ((this.team === 'blue' && mate.x > 700) || 
-                 (this.team === 'red' && mate.x < 300))) {
-                score += 200;
-            }
-            
-            if (score > bestScore) {
-                bestScore = score;
-                bestTarget = mate;
-            }
+          }
+          if (!matched) {
+            const id = this.tokenToId.get(words[i]);
+            ids.push(id !== undefined ? id : this.tokenToId.get('<UNK>'));
+            i++;
+          }
         }
-        
-        if (!bestTarget) return null;
-        
-        // Расчет паса с упреждением
-        const dx = bestTarget.x - this.x;
-        const dy = bestTarget.y - this.y;
-        const dist = Math.hypot(dx, dy);
-        
-        // Время полета
-        const flightTime = dist / FOOTBALL_CONFIG.PLAYER.passSpeed;
-        
-        // Предсказание позиции принимающего
-        const interceptX = bestTarget.x + bestTarget.vx * flightTime;
-        const interceptY = bestTarget.y + bestTarget.vy * flightTime;
-        
-        // Угол паса
-        const angle = Math.atan2(interceptY - this.y, interceptX - this.x);
-        
-        // Точность
-        const accuracy = this.stats.passAcc * FOOTBALL_CONFIG.PLAYER.passAccuracy;
-        const error = (1 - accuracy) * 0.15;
-        const finalAngle = angle + (Math.random() - 0.5) * error;
-        
-        // Сила паса
-        const power = Math.min(dist * 0.9, FOOTBALL_CONFIG.PLAYER.passSpeed);
-        
-        // Пас
-        ball.kick(finalAngle, power, this.id);
-        this.hasBall = false;
-        this.kickCooldown = FOOTBALL_CONFIG.PLAYER.kickCooldown;
-        
-        return {
-            type: 'pass',
-            from: this.id,
-            to: bestTarget.id,
-            power,
-            angle: finalAngle
+        return ids;
+      }
+
+      decode(ids) {
+        return ids
+          .map(id => this.idToToken.get(id) || '<UNK>')
+          .join(' ')
+          .replace(/‗/g, ' ');
+      }
+
+      export() {
+        return Array.from(this.tokenToId.entries());
+      }
+
+      import(data) {
+        this.tokenToId = new Map(data);
+        this.idToToken = new Map();
+        for (const [token, id] of data) {
+          this.idToToken.set(id, token);
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GRU НЕЙРОСЕТЬ
+    // ═══════════════════════════════════════════════════════════════════════
+
+    class GRUNetwork {
+      constructor(vocabSize, hiddenSize = 96) {
+        this.V = vocabSize;
+        this.H = hiddenSize;
+        this.Wz = MathUtils.xavierInit(this.V, this.H);
+        this.Uz = MathUtils.xavierInit(this.H, this.H);
+        this.bz = MathUtils.zeros(this.H);
+        this.Wr = MathUtils.xavierInit(this.V, this.H);
+        this.Ur = MathUtils.xavierInit(this.H, this.H);
+        this.br = MathUtils.zeros(this.H);
+        this.Wh = MathUtils.xavierInit(this.V, this.H);
+        this.Uh = MathUtils.xavierInit(this.H, this.H);
+        this.bh = MathUtils.zeros(this.H);
+        this.Wy = MathUtils.xavierInit(this.H, this.V);
+        this.by = MathUtils.zeros(this.V);
+        this.adam = { t: 0, beta1: 0.9, beta2: 0.999, eps: 1e-8, lr: 0.002 };
+        this.adamStates = {};
+        this._initAdamStates();
+        this.maxCacheSize = 100;
+        this.cache = [];
+        this.hiddenState = null;
+      }
+
+      _initAdamStates() {
+        const weights = ['Wz', 'Uz', 'bz', 'Wr', 'Ur', 'br', 'Wh', 'Uh', 'bh', 'Wy', 'by'];
+        const shapes = {
+          Wz: [this.V, this.H], Uz: [this.H, this.H], bz: [this.H],
+          Wr: [this.V, this.H], Ur: [this.H, this.H], br: [this.H],
+          Wh: [this.V, this.H], Uh: [this.H, this.H], bh: [this.H],
+          Wy: [this.H, this.V], by: [this.V]
         };
-    }
-    
-    // ========== УДАР ==========
-    shoot(ball) {
-        const enemyGoalX = this.team === 'blue' ? 
-            FOOTBALL_CONFIG.FIELD.width : 0;
-        
-        const distToGoal = Math.abs(enemyGoalX - this.x);
-        
-        // Сила удара от расстояния
-        let power;
-        if (distToGoal < 100) power = 14;
-        else if (distToGoal < 200) power = 28;
-        else power = 42;
-        
-        // Цель - угол ворот
-        const targetY = FOOTBALL_CONFIG.GOAL.y + (Math.random() > 0.5 ? -40 : 40);
-        
-        const dx = enemyGoalX - this.x;
-        const dy = targetY - this.y;
-        const angle = Math.atan2(dy, dx);
-        
-        // Точность
-        const accuracy = this.stats.shotAcc * FOOTBALL_CONFIG.PLAYER.shotAccuracy;
-        const error = (1 - accuracy) * 0.12;
-        const finalAngle = angle + (Math.random() - 0.5) * error;
-        
-        // Удар
-        ball.kick(finalAngle, power, this.id);
-        this.hasBall = false;
-        this.kickCooldown = FOOTBALL_CONFIG.PLAYER.kickCooldown;
-        
-        return {
-            type: 'shot',
-            from: this.id,
-            power,
-            targetY
+        for (const name of weights) {
+          const [rows, cols] = shapes[name];
+          const size = rows * (cols || 1);
+          this.adamStates[name] = { m: MathUtils.zeros(size), v: MathUtils.zeros(size) };
+        }
+      }
+
+      _getRow(W, rowId) {
+        const H = this.H;
+        return W.subarray(rowId * H, (rowId + 1) * H);
+      }
+
+      _cacheStep(step) {
+        if (this.cache.length >= this.maxCacheSize) this.cache.shift();
+        this.cache.push(step);
+      }
+
+      forward(tokenId, hidden) {
+        const { V, H } = this;
+        const x = this._getRow(this.Wz, tokenId);
+        const Uz_h = MathUtils.matVec(this.Uz, H, H, hidden);
+        const z = new Float32Array(H);
+        for (let i = 0; i < H; i++) z[i] = MathUtils.sigmoid(x[i] + Uz_h[i] + this.bz[i]);
+        const Ur_h = MathUtils.matVec(this.Ur, H, H, hidden);
+        const r = new Float32Array(H);
+        for (let i = 0; i < H; i++) r[i] = MathUtils.sigmoid(x[i] + Ur_h[i] + this.br[i]);
+        const r_h = new Float32Array(H);
+        for (let i = 0; i < H; i++) r_h[i] = r[i] * hidden[i];
+        const Uh_rh = MathUtils.matVec(this.Uh, H, H, r_h);
+        const hTilde = new Float32Array(H);
+        for (let i = 0; i < H; i++) hTilde[i] = MathUtils.tanh(x[i] + Uh_rh[i] + this.bh[i]);
+        const newHidden = new Float32Array(H);
+        for (let i = 0; i < H; i++) newHidden[i] = (1 - z[i]) * hidden[i] + z[i] * hTilde[i];
+        const logits = MathUtils.matVec(this.Wy, V, H, newHidden);
+        for (let i = 0; i < V; i++) logits[i] += this.by[i];
+        this._cacheStep({ tokenId, hidden: new Float32Array(hidden), x: new Float32Array(x), z: new Float32Array(z), r: new Float32Array(r), r_h: new Float32Array(r_h), hTilde: new Float32Array(hTilde), newHidden: new Float32Array(newHidden), logits: new Float32Array(logits) });
+        return { hidden: newHidden, logits };
+      }
+
+      train(sequence, learningRate = null) {
+        if (sequence.length < 2) return 0;
+        const lr = learningRate || this.adam.lr;
+        this.cache = [];
+        let hidden = this.hiddenState ? new Float32Array(this.hiddenState) : MathUtils.zeros(this.H);
+        for (let t = 0; t < sequence.length; t++) {
+          const result = this.forward(sequence[t], hidden);
+          hidden = result.hidden;
+        }
+        this.hiddenState = new Float32Array(hidden);
+        const { V, H } = this;
+        let dhNext = MathUtils.zeros(H);
+        let totalLoss = 0;
+        const grads = {
+          Wz: MathUtils.zeros(V * H), Uz: MathUtils.zeros(H * H), bz: MathUtils.zeros(H),
+          Wr: MathUtils.zeros(V * H), Ur: MathUtils.zeros(H * H), br: MathUtils.zeros(H),
+          Wh: MathUtils.zeros(V * H), Uh: MathUtils.zeros(H * H), bh: MathUtils.zeros(H),
+          Wy: MathUtils.zeros(H * V), by: MathUtils.zeros(V)
         };
-    }
-    
-    // ========== ОТБОР ==========
-    tackle(ball, opponents) {
-        // Ищем ближайшего соперника с мячом
-        const opponentWithBall = opponents.find(o => o.hasBall);
-        if (!opponentWithBall) return null;
-        
-        const dist = Math.hypot(opponentWithBall.x - this.x, opponentWithBall.y - this.y);
-        
-        if (dist < 30) {
-            // Шанс отбора
-            const tackleChance = 0.4 + this.stats.aggression * 0.3;
-            
-            if (Math.random() < tackleChance) {
-                // Отбор
-                ball.owner = this.id;
-                this.hasBall = true;
-                opponentWithBall.hasBall = false;
-                
-                // Мяч отлетает
-                const angle = Math.atan2(this.y - opponentWithBall.y, this.x - opponentWithBall.x);
-                ball.kick(angle, 3, this.id);
-                
-                this.kickCooldown = 10;
-                
-                return {
-                    type: 'tackle_success',
-                    opponent: opponentWithBall.id
-                };
-            } else {
-                // Неудачный отбор
-                this.vx += (this.x - opponentWithBall.x) * 0.2;
-                this.vy += (this.y - opponentWithBall.y) * 0.2;
-                
-                return {
-                    type: 'tackle_fail',
-                    opponent: opponentWithBall.id
-                };
+        for (let t = this.cache.length - 1; t >= 0; t--) {
+          const step = this.cache[t];
+          const target = sequence[t];
+          const probs = MathUtils.softmax(step.logits);
+          const prob = probs[target] || 1e-10;
+          totalLoss -= Math.log(prob);
+          const dy = new Float32Array(V);
+          for (let i = 0; i < V; i++) dy[i] = probs[i] - (i === target ? 1 : 0);
+          const dhFromOutput = MathUtils.zeros(H);
+          for (let i = 0; i < V; i++) {
+            for (let j = 0; j < H; j++) {
+              grads.Wy[j * V + i] += dy[i] * step.newHidden[j];
+              dhFromOutput[j] += this.Wy[j * V + i] * dy[i];
             }
-        }
-        
-        return null;
-    }
-    
-    // ========== ПЕРЕХВАТ ==========
-    intercept(ball) {
-        if (this.hasBall || ball.owner === this.id || !ball.owner) return false;
-        
-        const dist = Math.hypot(ball.x - this.x, ball.y - this.y);
-        
-        if (dist < 40 && Math.hypot(ball.vx, ball.vy) > 2) {
-            // Предсказание траектории
-            const futureX = ball.x + ball.vx * 0.5;
-            const futureY = ball.y + ball.vy * 0.5;
-            
-            const interceptDist = Math.hypot(futureX - this.x, futureY - this.y);
-            
-            if (interceptDist < 30) {
-                // Перехват
-                ball.vx *= 0.3;
-                ball.vy *= 0.3;
-                ball.owner = this.id;
-                this.hasBall = true;
-                this.kickCooldown = 5;
-                
-                return true;
+            grads.by[i] += dy[i];
+          }
+          const dhNew = new Float32Array(H);
+          for (let i = 0; i < H; i++) dhNew[i] = dhNext[i] + dhFromOutput[i];
+          const dhTilde = new Float32Array(H);
+          for (let i = 0; i < H; i++) dhTilde[i] = dhNew[i] * step.z[i] * MathUtils.dTanh(step.hTilde[i]);
+          const dz = new Float32Array(H);
+          for (let i = 0; i < H; i++) dz[i] = dhNew[i] * (step.hTilde[i] - step.hidden[i]) * MathUtils.dSigmoid(step.z[i]);
+          const dUh_rh = MathUtils.matVec(this.Uh, H, H, dhTilde);
+          const dr = new Float32Array(H);
+          for (let i = 0; i < H; i++) dr[i] = dUh_rh[i] * step.hidden[i] * MathUtils.dSigmoid(step.r[i]);
+          const dhPrev = new Float32Array(H);
+          for (let i = 0; i < H; i++) dhPrev[i] = dhNew[i] * (1 - step.z[i]) + dUh_rh[i] * step.r[i];
+          for (let i = 0; i < H; i++) {
+            grads.bz[i] += dz[i];
+            grads.Wz[step.tokenId * H + i] += dz[i];
+            for (let j = 0; j < H; j++) {
+              grads.Uz[i * H + j] += dz[i] * step.hidden[j];
+              dhPrev[j] += this.Uz[i * H + j] * dz[i];
             }
+          }
+          for (let i = 0; i < H; i++) {
+            grads.br[i] += dr[i];
+            grads.Wr[step.tokenId * H + i] += dr[i];
+            for (let j = 0; j < H; j++) {
+              grads.Ur[i * H + j] += dr[i] * step.hidden[j];
+              dhPrev[j] += this.Ur[i * H + j] * dr[i];
+            }
+          }
+          for (let i = 0; i < H; i++) {
+            grads.bh[i] += dhTilde[i];
+            grads.Wh[step.tokenId * H + i] += dhTilde[i];
+            for (let j = 0; j < H; j++) grads.Uh[i * H + j] += dhTilde[i] * step.r_h[j];
+          }
+          dhNext = dhPrev;
         }
-        
+        MathUtils.clipGlobalNorm(Object.values(grads), 5.0);
+        this.adam.t++;
+        const { beta1, beta2, eps, t } = this.adam;
+        const bias1 = 1 - Math.pow(beta1, t);
+        const bias2 = 1 - Math.pow(beta2, t);
+        for (const [name, grad] of Object.entries(grads)) {
+          const state = this.adamStates[name];
+          const weight = this[name];
+          for (let i = 0; i < weight.length; i++) {
+            state.m[i] = beta1 * state.m[i] + (1 - beta1) * grad[i];
+            state.v[i] = beta2 * state.v[i] + (1 - beta2) * grad[i] * grad[i];
+            const mHat = state.m[i] / bias1;
+            const vHat = state.v[i] / bias2;
+            weight[i] -= lr * mHat / (Math.sqrt(vHat) + eps);
+          }
+        }
+        return totalLoss / sequence.length;
+      }
+
+      generate(seedSequence, maxLength = 50, temperature = 0.8, topK = 15) {
+        const { V, H } = this;
+        const EOS = 3;
+        let hidden = this.hiddenState ? new Float32Array(this.hiddenState) : MathUtils.zeros(H);
+        const output = [];
+        let lastToken = seedSequence.length > 0 ? seedSequence[seedSequence.length - 1] : 2;
+        for (const token of seedSequence) {
+          const result = this.forward(token, hidden);
+          hidden = result.hidden;
+        }
+        for (let i = 0; i < maxLength; i++) {
+          const result = this.forward(lastToken, hidden);
+          hidden = result.hidden;
+          const logits = result.logits.map(l => l / temperature);
+          const probs = MathUtils.softmax(logits);
+          const indexed = probs.map((p, idx) => ({ p, idx })).sort((a, b) => b.p - a.p).slice(0, Math.min(topK, V));
+          const sum = indexed.reduce((s, x) => s + x.p, 0);
+          for (const x of indexed) x.p /= sum;
+          const r = Math.random();
+          let cumSum = 0;
+          let nextToken = indexed[0].idx;
+          for (const x of indexed) {
+            cumSum += x.p;
+            if (r <= cumSum) { nextToken = x.idx; break; }
+          }
+          if (nextToken === EOS) break;
+          output.push(nextToken);
+          lastToken = nextToken;
+        }
+        return output;
+      }
+
+      resetState() {
+        this.hiddenState = null;
+        this.cache = [];
+      }
+
+      export() {
+        const data = { V: this.V, H: this.H, adam: { ...this.adam }, weights: {}, adamStates: {} };
+        for (const name of ['Wz', 'Uz', 'bz', 'Wr', 'Ur', 'br', 'Wh', 'Uh', 'bh', 'Wy', 'by']) {
+          data.weights[name] = Array.from(this[name]);
+          data.adamStates[name] = { m: Array.from(this.adamStates[name].m), v: Array.from(this.adamStates[name].v) };
+        }
+        return data;
+      }
+
+      import(data) {
+        this.V = data.V;
+        this.H = data.H;
+        this.adam = { ...this.adam };
+        for (const [name, arr] of Object.entries(data.weights)) this[name] = new Float32Array(arr);
+        this._initAdamStates();
+        if (data.adamStates) {
+          for (const [name, state] of Object.entries(data.adamStates)) {
+            this.adamStates[name].m = new Float32Array(state.m);
+            this.adamStates[name].v = new Float32Array(state.v);
+          }
+        }
+      }
+
+      getParamCount() {
+        return this.V * this.H * 4 + this.H * this.H * 3 + this.H * 3 + this.V + this.H * this.V;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ПРИЛОЖЕНИЕ
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const UI = {
+      chat: document.getElementById('chat'),
+      input: document.getElementById('input'),
+      send: document.getElementById('send'),
+      statusDot: document.getElementById('status-dot'),
+      statusText: document.getElementById('status-text'),
+      log: document.getElementById('log'),
+      vocab: document.getElementById('s-vocab'),
+      hidden: document.getElementById('s-hidden'),
+      steps: document.getElementById('s-steps'),
+      loss: document.getElementById('s-loss')
+    };
+
+    const Logger = {
+      add: (msg) => {
+        const time = new Date().toLocaleTimeString();
+        UI.log.textContent += `[${time}] ${msg}\n`;
+        UI.log.scrollTop = UI.log.scrollHeight;
+      }
+    };
+
+    const Status = {
+      set: (text, state = 'idle') => {
+        UI.statusText.textContent = text;
+        UI.statusDot.className = 'status-dot';
+        if (state === 'active') UI.statusDot.classList.add('active');
+        if (state === 'error') UI.statusDot.classList.add('error');
+      }
+    };
+
+    let tokenizer = null;
+    let network = null;
+    let dataset = [];
+    let trainIndex = 0;
+    let isTraining = false;
+    let trainingPaused = false;
+    let autoSaveEnabled = true;
+
+    function addMessage(text, isUser) {
+      const msg = document.createElement('div');
+      msg.className = `msg ${isUser ? 'user' : 'ai'}`;
+      msg.innerHTML = `<div class="bubble">${text}</div>`;
+      UI.chat.appendChild(msg);
+      UI.chat.scrollTop = UI.chat.scrollHeight;
+    }
+
+    function saveToLocalStorage() {
+      if (!autoSaveEnabled || !network || !tokenizer) return;
+      try {
+        const data = { tokenizer: tokenizer.export(), network: network.export(), trainIndex, timestamp: Date.now() };
+        localStorage.setItem('gru-model-v4', JSON.stringify(data));
+        Logger.add('✓ Автосохранение');
+      } catch (e) {
+        Logger.add(`✗ Не сохранено: ${e.message}`);
+      }
+    }
+
+    function loadFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem('gru-model-v4');
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        tokenizer = new Tokenizer();
+        tokenizer.import(data.tokenizer);
+        network = new GRUNetwork(data.network.V, data.network.H);
+        network.import(data.network);
+        trainIndex = data.trainIndex || 0;
+        UI.vocab.textContent = tokenizer.tokenToId.size;
+        UI.hidden.textContent = network.H;
+        UI.steps.textContent = network.adam.t;
+        UI.loss.textContent = '0.000';
+        UI.input.disabled = false;
+        UI.input.placeholder = 'Напишите сообщение...';
+        UI.send.disabled = false;
+        Status.set('Модель загружена (авто)', 'active');
+        Logger.add(`✓ Модель восстановлена (${new Date(data.timestamp).toLocaleString()})`);
+        return true;
+      } catch (e) {
+        Logger.add(`✗ Ошибка загрузки: ${e.message}`);
         return false;
+      }
     }
-    
-    // ========== ВЕДЕНИЕ ==========
-    dribble(ball) {
-        if (!this.hasBall) return;
-        
-        // Мяч должен быть перед игроком
-        const desiredBallX = this.x + Math.cos(this.lastDecision?.angle || 0) * 20;
-        const desiredBallY = this.y + Math.sin(this.lastDecision?.angle || 0) * 20;
-        
-        const ballDist = Math.hypot(ball.x - desiredBallX, ball.y - desiredBallY);
-        
-        if (ballDist > 10) {
-            // Подправляем мяч
-            const angle = Math.atan2(desiredBallY - ball.y, desiredBallX - ball.x);
-            ball.kick(angle, 2, this.id);
-        }
-    }
-    
-    // ========== ОБНОВЛЕНИЕ ==========
-    update(ball, teammates, opponents) {
-        // Получаем входные данные
-        const inputs = this.getInputs(ball, teammates, opponents);
-        
-        // Forward через Cortex
-        const result = this.net.forward(inputs);
-        
-        // Применяем выход
-        this.setOutput(result.output, result.value);
-        
-        // Выполняем действие
-        let event = null;
-        
-        switch(this.lastDecision.action) {
-            case 'pass':
-                event = this.pass(ball, teammates, opponents);
-                break;
-            case 'shoot':
-                event = this.shoot(ball);
-                break;
-            case 'tackle':
-                event = this.tackle(ball, opponents);
-                break;
-            case 'dribble':
-                this.dribble(ball);
-                break;
-        }
-        
-        // Перехват
-        if (!this.hasBall && Math.random() < 0.1) {
-            this.intercept(ball);
-        }
-        
-        // Движение
-        this.move();
-        
-        // Обновляем владение
-        const distToBall = Math.hypot(ball.x - this.x, ball.y - this.y);
-        
-        if (!this.hasBall && ball.owner === this.id) {
-            this.hasBall = true;
-        }
-        
-        if (this.hasBall && distToBall > 25) {
-            this.hasBall = false;
-        }
-        
-        if (!this.hasBall && !ball.owner && distToBall < 15) {
-            ball.owner = this.id;
-            this.hasBall = true;
-        }
-        
-        return event;
-    }
-    
-    draw(ctx, showVision) {
-        // Игрок
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, FOOTBALL_CONFIG.PLAYER.radius, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Роль
-        ctx.fillStyle = 'white';
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(this.role[0].toUpperCase(), this.x, this.y - 20);
-        
-        // Если с мячом
-        if (this.hasBall) {
-            ctx.strokeStyle = 'yellow';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, FOOTBALL_CONFIG.PLAYER.radius + 3, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-        
-        // Выносливость
-        ctx.fillStyle = '#333';
-        ctx.fillRect(this.x - 15, this.y - 25, 30, 3);
-        ctx.fillStyle = this.stamina > 50 ? '#00ff9d' : '#ff4444';
-        ctx.fillRect(this.x - 15, this.y - 25, 30 * (this.stamina / 100), 3);
-        
-        // Vision
-        if (showVision) {
-            ctx.strokeStyle = 'rgba(0,255,0,0.2)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, 200, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-    }
-}
 
-// ===========================================
-// МИР - ОСНОВНОЙ ЦИКЛ
-// ===========================================
-class FootballWorld {
-    constructor() {
-        this.ball = new FootballBall(500, 300);
-        this.players = [];
-        this.score = { blue: 0, red: 0 };
-        this.time = 0;
-        this.step = 0;
-        this.events = [];
-        
-        this.teamPlayers = {
-            blue: [],
-            red: []
-        };
+    async function trainBatch(batchSize = 10) {
+      if (trainingPaused) { setTimeout(() => trainBatch(batchSize), 500); return; }
+      if (!network || !dataset || trainIndex >= dataset.length) {
+        isTraining = false;
+        Status.set('Готов к работе', 'active');
+        Logger.add('Обучение завершено');
+        if (autoSaveEnabled) saveToLocalStorage();
+        return;
+      }
+      let batchLoss = 0;
+      const end = Math.min(trainIndex + batchSize, dataset.length);
+      for (let i = trainIndex; i < end; i++) { const loss = network.train(dataset[i]); batchLoss += loss; }
+      trainIndex = end;
+      UI.vocab.textContent = tokenizer.tokenToId.size;
+      UI.hidden.textContent = network.H;
+      UI.steps.textContent = network.adam.t;
+      UI.loss.textContent = (batchLoss / (end - trainIndex + batchSize)).toFixed(4);
+      if (network.adam.t % 100 === 0) {
+        Logger.add(`Step ${network.adam.t}, Loss: ${(batchLoss / (end - trainIndex)).toFixed(4)}`);
+        if (autoSaveEnabled) saveToLocalStorage();
+      }
+      setTimeout(() => trainBatch(batchSize), 0);
     }
-    
-    spawnPlayers(count = 6) {
-        this.players = [];
-        this.teamPlayers.blue = [];
-        this.teamPlayers.red = [];
-        
-        const colors = { blue: '#00aaff', red: '#ff5500' };
-        
-        // Синяя команда
-        const blueRoles = [
-            'goalkeeper',
-            'defender', 'defender',
-            'midfielder', 'midfielder',
-            'forward'
-        ];
-        
-        for (let i = 0; i < count; i++) {
-            const role = blueRoles[i % blueRoles.length];
-            let x, y;
-            
-            switch(role) {
-                case 'goalkeeper': x = 50; y = 300; break;
-                case 'defender': x = 200; y = 200 + (i % 2) * 200; break;
-                case 'midfielder': x = 400; y = 250 + (i % 2) * 100; break;
-                case 'forward': x = 700; y = 300; break;
-                default: x = 500; y = 300;
-            }
-            
-            const player = new FootballPlayer(
-                `blue_${i}`,
-                'blue',
-                role,
-                x + (Math.random() * 20 - 10),
-                y + (Math.random() * 20 - 10),
-                colors.blue
-            );
-            
-            this.players.push(player);
-            this.teamPlayers.blue.push(player);
-        }
-        
-        // Красная команда
-        const redRoles = [
-            'goalkeeper',
-            'defender', 'defender',
-            'midfielder', 'midfielder',
-            'forward'
-        ];
-        
-        for (let i = 0; i < count; i++) {
-            const role = redRoles[i % redRoles.length];
-            let x, y;
-            
-            switch(role) {
-                case 'goalkeeper': x = 950; y = 300; break;
-                case 'defender': x = 800; y = 200 + (i % 2) * 200; break;
-                case 'midfielder': x = 600; y = 250 + (i % 2) * 100; break;
-                case 'forward': x = 300; y = 300; break;
-                default: x = 500; y = 300;
-            }
-            
-            const player = new FootballPlayer(
-                `red_${i}`,
-                'red',
-                role,
-                x + (Math.random() * 20 - 10),
-                y + (Math.random() * 20 - 10),
-                colors.red
-            );
-            
-            this.players.push(player);
-            this.teamPlayers.red.push(player);
-        }
-    }
-    
-    getAgent(id) {
-        return this.players.find(p => p.id === id);
-    }
-    
-    update() {
-        this.step++;
-        this.time = this.step / 60;
-        
-        // Обновляем мяч
-        this.ball.update();
-        
-        // Сортируем игроков по дистанции до мяча (для обработки)
-        const playersByDistance = [...this.players].sort((a, b) => {
-            const da = Math.hypot(a.x - this.ball.x, a.y - this.ball.y);
-            const db = Math.hypot(b.x - this.ball.x, b.y - this.ball.y);
-            return da - db;
-        });
-        
-        // Обновляем игроков
-        this.events = [];
-        
-        for (const player of playersByDistance) {
-            const teammates = this.teamPlayers[player.team].filter(p => p.id !== player.id);
-            const opponents = this.teamPlayers[player.team === 'blue' ? 'red' : 'blue'];
-            
-            const event = player.update(this.ball, teammates, opponents);
-            if (event) this.events.push(event);
-        }
-        
-        // Проверка гола
-        const goal = this.ball.checkGoal();
-        if (goal) {
-            this.score[goal.team]++;
-            this.resetAfterGoal();
-        }
-        
-        // Мутация каждые 1000 шагов
-        if (this.step % 1000 === 0) {
-            this.mutatePlayers();
-        }
-    }
-    
-    resetAfterGoal() {
-        // Сброс мяча
-        this.ball = new FootballBall(500, 300);
-        
-        // Возврат игроков на позиции
-        this.players.forEach(player => {
-            if (player.team === 'blue') {
-                switch(player.role) {
-                    case 'goalkeeper': player.x = 50; player.y = 300; break;
-                    case 'defender': player.x = 200; player.y = player.id.includes('0') ? 200 : 400; break;
-                    case 'midfielder': player.x = 400; player.y = player.id.includes('2') ? 250 : 350; break;
-                    case 'forward': player.x = 700; player.y = 300; break;
-                }
-            } else {
-                switch(player.role) {
-                    case 'goalkeeper': player.x = 950; player.y = 300; break;
-                    case 'defender': player.x = 800; player.y = player.id.includes('0') ? 200 : 400; break;
-                    case 'midfielder': player.x = 600; player.y = player.id.includes('2') ? 250 : 350; break;
-                    case 'forward': player.x = 300; player.y = 300; break;
-                }
-            }
-            player.vx = 0;
-            player.vy = 0;
-            player.hasBall = false;
-        });
-        
-        this.ball.owner = null;
-    }
-    
-    mutatePlayers() {
-        // Мутируем случайных игроков
-        for (const player of this.players) {
-            if (Math.random() < 0.1) {
-                const mutations = player.net.mutate(0.1);
-                if (mutations > 0) {
-                    console.log(`🧬 Мутация у ${player.id}: ${mutations} изменений`);
-                }
-            }
-        }
-    }
-    
-    draw(ctx, vision = false) {
-        // Поле
-        ctx.fillStyle = '#1a5c1a';
-        ctx.fillRect(0, 0, FOOTBALL_CONFIG.FIELD.width, FOOTBALL_CONFIG.FIELD.height);
-        
-        // Разметка
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2;
-        
-        // Линии
-        ctx.strokeRect(10, 10, FOOTBALL_CONFIG.FIELD.width - 20, FOOTBALL_CONFIG.FIELD.height - 20);
-        
-        // Центр
-        ctx.beginPath();
-        ctx.moveTo(FOOTBALL_CONFIG.FIELD.width / 2, 10);
-        ctx.lineTo(FOOTBALL_CONFIG.FIELD.width / 2, FOOTBALL_CONFIG.FIELD.height - 10);
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.arc(FOOTBALL_CONFIG.FIELD.width / 2, FOOTBALL_CONFIG.FIELD.height / 2, 60, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        // Вратарские
-        ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        ctx.fillRect(0, 220, 20, 160);
-        ctx.fillRect(FOOTBALL_CONFIG.FIELD.width - 20, 220, 20, 160);
-        
-        // Игроки
-        this.players.forEach(p => p.draw(ctx, vision));
-        
-        // Мяч
-        this.ball.draw(ctx);
-        
-        // Счет
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 36px Arial';
-        ctx.fillText(this.score.blue, 400, 80);
-        ctx.fillText(this.score.red, 560, 80);
-        
-        // Время
-        ctx.font = '24px Arial';
-        const minutes = Math.floor(this.time / 60);
-        const seconds = Math.floor(this.time % 60);
-        ctx.fillText(`${minutes}:${seconds.toString().padStart(2, '0')}`, 450, 130);
-    }
-}
 
-// ===========================================
-// ДВИЖОК ИГРЫ
-// ===========================================
-class GameEngine {
-    constructor() {
-        this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d');
-        
-        this.world = new FootballWorld();
-        this.world.spawnPlayers(6);
-        
-        this.running = false;
-        this.lastTime = 0;
-        this.fps = 60;
-        this.vision = false;
-        
-        this.setupCanvas();
-        this.setupEvents();
-    }
-    
-    setupCanvas() {
-        const resize = () => {
-            this.canvas.width = FOOTBALL_CONFIG.FIELD.width;
-            this.canvas.height = FOOTBALL_CONFIG.FIELD.height;
-        };
-        resize();
-        window.addEventListener('resize', resize);
-    }
-    
-    setupEvents() {
-        document.getElementById('btnStart').onclick = () => this.toggle();
-        document.getElementById('btnReset').onclick = () => this.reset();
-        
-        document.getElementById('agentCount').oninput = (e) => {
-            document.getElementById('agentCountValue').textContent = e.target.value;
-        };
-        
-        document.getElementById('agentSpeed').oninput = (e) => {
-            const val = parseFloat(e.target.value);
-            document.getElementById('agentSpeedValue').textContent = val;
-            FOOTBALL_CONFIG.PLAYER.maxSpeed = val;
-        };
-        
-        document.getElementById('viewRadius').oninput = (e) => {
-            document.getElementById('viewRadiusValue').textContent = e.target.value;
-        };
-        
-        document.addEventListener('keydown', (e) => {
-            if (e.key === ' ') {
-                e.preventDefault();
-                this.toggle();
-            } else if (e.key === 'v') {
-                this.vision = !this.vision;
-            }
-        });
-    }
-    
-    toggle() {
-        this.running = !this.running;
-        const btn = document.getElementById('btnStart');
-        btn.textContent = this.running ? '⏸ ПАУЗА' : '▶ СТАРТ';
-        if (this.running) {
-            this.lastTime = performance.now();
-            this.loop();
-        }
-    }
-    
-    reset() {
-        this.running = false;
-        document.getElementById('btnStart').textContent = '▶ СТАРТ';
-        
-        const count = parseInt(document.getElementById('agentCount').value);
-        this.world = new FootballWorld();
-        this.world.spawnPlayers(count);
-    }
-    
-    loop() {
-        if (!this.running) return;
-        
-        const now = performance.now();
-        const delta = now - this.lastTime;
-        
-        if (delta > 16) {
-            this.fps = Math.round(1000 / delta);
-            document.getElementById('fpsCounter').textContent = `FPS: ${this.fps}`;
-            
-            // Обновление мира
-            this.world.update();
-            
-            // Обновление UI
-            document.getElementById('scoreBlue').textContent = this.world.score.blue;
-            document.getElementById('scoreRed').textContent = this.world.score.red;
-            
-            const minutes = Math.floor(this.world.time / 60);
-            const seconds = Math.floor(this.world.time % 60);
-            document.getElementById('matchTime').textContent = 
-                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            
-            // Отрисовка
-            this.world.draw(this.ctx, this.vision);
-            
-            this.lastTime = now;
-        }
-        
-        requestAnimationFrame(() => this.loop());
-    }
-}
+    document.getElementById('drop').onclick = () => document.getElementById('file-in').click();
 
-// ===========================================
-// ЗАПУСК
-// ===========================================
-window.addEventListener('load', () => {
-    window.arenaGame = new GameEngine();
-    console.log('⚽ AI FOOTBALL v8.0.3 - РЕАЛЬНЫЙ ФУТБОЛ');
-    console.log('🧠 Cortex-2 управляет игроками');
-});
-</script>
+    document.getElementById('file-in').onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      Logger.add(`Загрузка файла: ${file.name}`);
+      Status.set('Обработка текста...', 'active');
+      try {
+        const text = await file.text();
+        tokenizer = new Tokenizer();
+        const wordCount = tokenizer.buildVocabulary(text, 2);
+        Logger.add(`Словарь: ${tokenizer.tokenToId.size} токенов из ${wordCount} слов`);
+        dataset = text.split('\n').map(line => tokenizer._normalize(line)).filter(line => line.length > 5)
+          .map(line => { const ids = tokenizer.encode(line); return [2, ...ids, 3]; }).filter(seq => seq.length > 3);
+        Logger.add(`Подготовлено ${dataset.length} последовательностей`);
+        network = new GRUNetwork(tokenizer.tokenToId.size, 96);
+        Logger.add(`Сеть: ${network.getParamCount().toLocaleString()} параметров`);
+        UI.vocab.textContent = tokenizer.tokenToId.size;
+        UI.hidden.textContent = network.H;
+        UI.input.disabled = false;
+        UI.input.placeholder = 'Напишите сообщение...';
+        UI.send.disabled = false;
+        isTraining = true;
+        Status.set('Обучение...', 'active');
+        trainBatch(20);
+      } catch (err) {
+        Logger.add(`Ошибка: ${err.message}`);
+        Status.set('Ошибка', 'error');
+      }
+    };
+
+    UI.send.onclick = () => {
+      const text = UI.input.value.trim();
+      if (!text || !network || !tokenizer) return;
+      addMessage(text, true);
+      UI.input.value = '';
+      const inputIds = tokenizer.encode(text);
+      const sequence = [2, ...inputIds, 3];
+      network.train(sequence, 0.0005);
+      const outputIds = network.generate([2, ...inputIds], 60, 0.85, 20);
+      const response = tokenizer.decode(outputIds).trim();
+      setTimeout(() => { addMessage(response || '...', false); }, 100);
+      UI.steps.textContent = network.adam.t;
+      if (autoSaveEnabled) saveToLocalStorage();
+    };
+
+    UI.input.onkeydown = (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); UI.send.onclick(); }
+    };
+
+    UI.input.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    document.getElementById('save').onclick = () => {
+      if (!network || !tokenizer) { Logger.add('Нет модели для экспорта'); return; }
+      const data = { tokenizer: tokenizer.export(), network: network.export() };
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gru-model-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      Logger.add('Модель экспортирована');
+    };
+
+    document.getElementById('load').onclick = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = async (e) => {
+        try {
+          const data = JSON.parse(await e.target.files[0].text());
+          tokenizer = new Tokenizer();
+          tokenizer.import(data.tokenizer);
+          network = new GRUNetwork(data.network.V, data.network.H);
+          network.import(data.network);
+          UI.vocab.textContent = tokenizer.tokenToId.size;
+          UI.hidden.textContent = network.H;
+          UI.steps.textContent = network.adam.t;
+          UI.input.disabled = false;
+          UI.input.placeholder = 'Напишите сообщение...';
+          UI.send.disabled = false;
+          Status.set('Модель загружена', 'active');
+          Logger.add('Модель импортирована успешно');
+        } catch (err) {
+          Logger.add(`Ошибка импорта: ${err.message}`);
+          Status.set('Ошибка импорта', 'error');
+        }
+      };
+      input.click();
+    };
+
+    document.getElementById('reset').onclick = () => {
+      if (!network) return;
+      network.resetState();
+      trainIndex = 0;
+      localStorage.removeItem('gru-model-v4');
+      UI.steps.textContent = '0';
+      UI.loss.textContent = '0.000';
+      Logger.add('Состояние сброшено');
+    };
+
+    document.getElementById('toggle-train').onclick = () => {
+      trainingPaused = !trainingPaused;
+      const btn = document.getElementById('toggle-train');
+      if (trainingPaused) {
+        btn.textContent = '▶ Продолжить';
+        Status.set('Обучение на паузе', 'active');
+        Logger.add('Обучение приостановлено');
+      } else {
+        btn.textContent = '⏸ Пауза';
+        Status.set('Обучение...', 'active');
+        Logger.add('Обучение продолжено');
+      }
+    };
+
+    document.getElementById('force-save').onclick = () => { saveToLocalStorage(); };
+
+    if (!loadFromLocalStorage()) {
+      Logger.add('Система готова к загрузке данных');
+      Status.set('Ожидание файла', 'idle');
+    } else {
+      UI.input.disabled = false;
+      UI.send.disabled = false;
+    }
+  </script>
 </body>
 </html>
+
