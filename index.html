@@ -96,7 +96,8 @@
             background: var(--bg-tertiary);
         }
 
-        .panel-header h1 {            font-size: 16px;
+        .panel-header h1 {
+            font-size: 16px;
             text-transform: uppercase;
             letter-spacing: 2px;
             color: var(--text-primary);
@@ -292,7 +293,8 @@
             border: 1px solid rgba(51, 153, 255, 0.3);
         }
 
-        .chat-message.snn .content {            background: rgba(0, 255, 153, 0.1);
+        .chat-message.snn .content {
+            background: rgba(0, 255, 153, 0.1);
             border: 1px solid rgba(0, 255, 153, 0.3);
         }
 
@@ -390,7 +392,8 @@
 
         .input-group .btn {
             width: auto;
-            margin: 0;            padding: 12px 20px;
+            margin: 0;
+            padding: 12px 20px;
         }
 
         /* SETTINGS */
@@ -439,7 +442,8 @@
 
         .stat-card {
             background: var(--bg-primary);
-            border: 1px solid var(--border-color);            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
             padding: 12px;
             text-align: center;
         }
@@ -537,7 +541,8 @@
             gap: 20px;
         }
 
-        .loading-overlay.hidden {            display: none;
+        .loading-overlay.hidden {
+            display: none;
         }
 
         .spinner {
@@ -558,6 +563,16 @@
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
+        }
+        
+        /* TRAINING METRICS */
+        .training-metrics {
+            display: none;
+            margin-bottom: 15px;
+        }
+        
+        .training-metrics.visible {
+            display: block;
         }
     </style>
 </head>
@@ -586,7 +601,8 @@
                     <span>Тормозные:</span>
                     <span class="stat-value" id="overlayInh">0</span>
                 </div>
-                <div class="stat-row">                    <span>Частота спайков:</span>
+                <div class="stat-row">
+                    <span>Частота спайков:</span>
                     <span class="stat-value" id="overlayRate">0 Hz</span>
                 </div>
             </div>
@@ -632,10 +648,29 @@
                         <input type="file" id="datasetInput" class="file-input" accept=".txt,.json,.csv">
                     </div>
 
+                    <!-- Training Metrics (ADDED) -->
+                    <div class="training-metrics" id="trainingMetrics">
+                        <div class="vocab-info">
+                            <div class="vocab-info-row">
+                                <span class="vocab-info-label">Loss:</span>
+                                <span class="vocab-info-value" id="metricLoss">0.000</span>
+                            </div>
+                            <div class="vocab-info-row">
+                                <span class="vocab-info-label">Accuracy:</span>
+                                <span class="vocab-info-value" id="metricAcc">0%</span>
+                            </div>
+                            <div class="vocab-info-row">
+                                <span class="vocab-info-label">Epoch:</span>
+                                <span class="vocab-info-value" id="metricEpoch">0/10</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="progress-container">
                         <div class="progress-label">
                             <span>Прогресс обучения</span>
-                            <span id="progressText">0%</span>                        </div>
+                            <span id="progressText">0%</span>
+                        </div>
                         <div class="progress-bar">
                             <div class="progress-fill" id="progressBar"></div>
                         </div>
@@ -684,7 +719,8 @@
                         </button>
                         <button class="btn" onclick="document.getElementById('vocabInput').click()">
                             📂 Загрузить словарь
-                        </button>                        <input type="file" id="vocabInput" class="file-input" accept=".json">
+                        </button>
+                        <input type="file" id="vocabInput" class="file-input" accept=".json">
                     </div>
 
                     <div class="vocab-preview" id="vocabPreview"></div>
@@ -733,7 +769,8 @@
                     </button>
                 </div>
 
-                <!-- Chat Section -->                <div class="section">
+                <!-- Chat Section -->
+                <div class="section">
                     <div class="section-title">💬 Чат с нейросетью</div>
                     <div class="chat-container" id="chatHistory">
                         <div class="chat-message snn">
@@ -744,7 +781,7 @@
                     </div>
                 </div>
 
-                <!-- Input Section (MOVED HERE - between chat and log) -->
+                <!-- Input Section -->
                 <div class="section">
                     <div class="input-group">
                         <input type="text" class="input-field" id="userInput" placeholder="Введите сообщение..." onkeydown="if(event.key==='Enter') app.sendMessage()">
@@ -758,8 +795,6 @@
                     <div class="log-container" id="logOutput"></div>
                 </div>
             </div>
-
-            <!-- Panel Footer REMOVED - input moved to panel-content -->
         </div>
     </div>
 
@@ -779,13 +814,12 @@
 /**
  * SNN NEURAL ENTITY — RUSSIAN EDITION v4.1
  * 
- * ИСПРАВЛЕНИЯ ДЛЯ GITHUB PAGES:
- * 1. Явная инициализация после DOMContentLoaded
- * 2. Обработка ошибок с видимым баннером
- * 3. Loading overlay до полной инициализации
- * 4. Глобальный обработчик ошибок
- * 5. Проверка доступности элементов перед использованием
+ * ИСПРАВЛЕНИЯ:
+ * 1. Реальное обучение с эпохами и итерациями
+ * 2. Проверки на null для всех DOM элементов
+ * 3. Training metrics блок добавлен в HTML
  */
+
 // ==================== КОНФИГУРАЦИЯ ====================
 const CONFIG = {
     NEURON_COUNT: 400,
@@ -839,7 +873,8 @@ window.onerror = function(message, source, lineno, colno, error) {
 
 window.addEventListener('unhandledrejection', function(event) {
     console.error('Unhandled promise rejection:', event.reason);
-    const banner = document.getElementById('errorBanner');    if (banner) {
+    const banner = document.getElementById('errorBanner');
+    if (banner) {
         banner.textContent = `Ошибка загрузки: ${event.reason.message || event.reason}`;
         banner.classList.add('visible');
     }
@@ -888,6 +923,7 @@ class Utils {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }
+    
     static readFile(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -897,7 +933,6 @@ class Utils {
         });
     }
 
-    // Проверка доступности элемента
     static getElementSafe(id) {
         const el = document.getElementById(id);
         if (!el) {
@@ -939,7 +974,8 @@ class Logger {
     success(msg) { this.add(msg, 'success'); }
     warning(msg) { this.add(msg, 'warning'); }
     error(msg) { this.add(msg, 'error'); }
-    system(msg) { this.add(msg, 'system'); }}
+    system(msg) { this.add(msg, 'system'); }
+}
 
 // ==================== СЛОВАРЬ ТОКЕНОВ ====================
 class Vocabulary {
@@ -988,7 +1024,8 @@ class Vocabulary {
             wordFreq[word] = (wordFreq[word] || 0) + 1;
         }
         const sortedWords = Object.entries(wordFreq)
-            .sort((a, b) => b[1] - a[1])            .slice(0, 800);
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 800);
         for (const [word] of sortedWords) {
             this._addToken(word);
         }
@@ -1037,6 +1074,7 @@ class Vocabulary {
     }
 
     size() { return this.tokenToId.size; }
+    
     toJSON() {
         return {
             tokens: Object.fromEntries(this.tokenToId),
@@ -1086,7 +1124,8 @@ class LIFNeuron {
         this.spiked = false;
         if (this.potential >= CONFIG.THRESHOLD) {
             this.spiked = true;
-            this.potential = CONFIG.RESTING_POTENTIAL;            this.refractoryTime = CONFIG.REFRACTORY_PERIOD;
+            this.potential = CONFIG.RESTING_POTENTIAL;
+            this.refractoryTime = CONFIG.REFRACTORY_PERIOD;
             this.lastSpikeTime = time;
             this.totalSpikes++;
             return true;
@@ -1096,6 +1135,7 @@ class LIFNeuron {
     }
 
     inject(current) { this.current += current; }
+    
     reset() {
         this.potential = CONFIG.RESTING_POTENTIAL;
         this.current = 0;
@@ -1135,7 +1175,8 @@ class Synapse {
 }
 
 // ==================== READOUT СЛОЙ ====================
-class ReadoutLayer {    constructor(neuronCount, vocabSize) {
+class ReadoutLayer {
+    constructor(neuronCount, vocabSize) {
         this.neuronCount = neuronCount;
         this.vocabSize = vocabSize;
         this.weights = [];
@@ -1184,6 +1225,7 @@ class ReadoutLayer {    constructor(neuronCount, vocabSize) {
         }
         return scores;
     }
+    
     getTopK(k = CONFIG.GENERATION_TOP_K) {
         const scores = this.predict();
         const indexed = scores.map((score, idx) => ({ idx, score }));
@@ -1233,7 +1275,8 @@ class ReadoutLayer {    constructor(neuronCount, vocabSize) {
 // ==================== SNN ====================
 class SpikingNeuralNetwork {
     constructor(neuronCount = CONFIG.NEURON_COUNT) {
-        this.neuronCount = neuronCount;        this.neurons = [];
+        this.neuronCount = neuronCount;
+        this.neurons = [];
         this.synapses = [];
         this.adjacencyList = [];
         this.inputMap = new Map();
@@ -1282,7 +1325,8 @@ class SpikingNeuralNetwork {
                 const neuronIdx = Math.floor(Math.random() * this.neuronCount);
                 if (!targets.includes(neuronIdx)) targets.push(neuronIdx);
             }
-            this.inputMap.set(tokenIdx, targets);        }
+            this.inputMap.set(tokenIdx, targets);
+        }
         const usedNeurons = new Set();
         for (let tokenIdx = 0; tokenIdx < vocabSize; tokenIdx++) {
             if (usedNeurons.size >= this.neuronCount * 0.8) break;
@@ -1332,6 +1376,7 @@ class SpikingNeuralNetwork {
         this.stats = { totalSpikes: 0, spikesPerTick: [], avgFiringRate: 0 };
         for (const neuron of this.neurons) neuron.reset();
     }
+    
     hardReset() {
         this.reset();
         this._initializeNeurons();
@@ -1384,7 +1429,8 @@ class Application {
             for (const id of requiredIds) {
                 if (!document.getElementById(id)) {
                     throw new Error(`Missing element: #${id}`);
-                }            }
+                }
+            }
 
             this.logger = new Logger('logOutput');
             this.vocabulary = new Vocabulary();
@@ -1433,7 +1479,8 @@ class Application {
     }
 
     _resizeCanvas() {
-        const container = this.canvas.parentElement;        this.canvas.width = container.clientWidth;
+        const container = this.canvas.parentElement;
+        this.canvas.width = container.clientWidth;
         this.canvas.height = container.clientHeight;
     }
 
@@ -1482,7 +1529,8 @@ class Application {
     async _handleDatasetUpload(file) {
         if (!file) return;
         if (file.size > CONFIG.MAX_FILE_SIZE) {
-            this.logger.error(`Файл слишком большой: ${(file.size / 1024 / 1024).toFixed(2)}MB`);            return;
+            this.logger.error(`Файл слишком большой: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+            return;
         }
         try {
             this.logger.info(`Загрузка: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
@@ -1516,6 +1564,10 @@ class Application {
         this.totalLoss = 0;
         this.totalAcc = 0;
         this.trainingSteps = 0;
+        
+        // Показать метрики обучения
+        const trainingMetrics = document.getElementById('trainingMetrics');
+        if (trainingMetrics) trainingMetrics.classList.add('visible');
         
         document.getElementById('btnTrain').disabled = true;
         this.logger.info('═══════════════════════════════════════');
@@ -1571,9 +1623,14 @@ class Application {
                     const avgLoss = epochLoss / Math.max(epochSteps, 1);
                     const avgAcc = epochAcc / Math.max(epochSteps, 1) * 100;
                     
-                    document.getElementById('metricLoss').textContent = avgLoss.toFixed(3);
-                    document.getElementById('metricAcc').textContent = avgAcc.toFixed(1) + '%';
-                    document.getElementById('metricEpoch').textContent = `${epoch + 1}/${CONFIG.EPOCHS}`;
+                    // ИСПРАВЛЕНИЕ: проверки на null
+                    const metricLossEl = document.getElementById('metricLoss');
+                    const metricAccEl = document.getElementById('metricAcc');
+                    const metricEpochEl = document.getElementById('metricEpoch');
+                    
+                    if (metricLossEl) metricLossEl.textContent = avgLoss.toFixed(3);
+                    if (metricAccEl) metricAccEl.textContent = avgAcc.toFixed(1) + '%';
+                    if (metricEpochEl) metricEpochEl.textContent = `${epoch + 1}/${CONFIG.EPOCHS}`;
                     
                     this.trainingProgress = (currentIteration / totalIterations) * 100;
                     this._updateProgress();
@@ -1645,7 +1702,8 @@ class Application {
                     }
                 }
             }
-            await new Promise(resolve => setTimeout(resolve, 15));        }
+            await new Promise(resolve => setTimeout(resolve, 15));
+        }
         const response = this.vocabulary.decode(responseTokens.slice(0, 30));
         this._addChatMessage('snn', response || '[Нет ответа]');
         input.disabled = false;
@@ -1694,7 +1752,8 @@ class Application {
     _loadWeights(file) {
         if (!file) return;
         Utils.readFile(file)
-            .then(content => {                const data = JSON.parse(content);
+            .then(content => {
+                const data = JSON.parse(content);
                 this.network.fromJSON(data.network, this.vocabulary);
                 this.readout.fromJSON(data.readout);
                 if (data.config) { CONFIG.NEURON_COUNT = data.config.NEURON_COUNT; CONFIG.EXC_RATIO = data.config.EXC_RATIO; CONFIG.CONNECTION_DENSITY = data.config.CONNECTION_DENSITY; }
@@ -1743,7 +1802,8 @@ class Application {
                 const connections = this.network.adjacencyList[pre.id];
                 for (const { postIdx, synapse } of connections) {
                     const post = this.network.neurons[postIdx];
-                    if (post.spiked) {                        const postPos = this.neuronPositions[postIdx];
+                    if (post.spiked) {
+                        const postPos = this.neuronPositions[postIdx];
                         const alpha = Math.min(1, Math.abs(synapse.weight) / 2) * 0.3;
                         ctx.strokeStyle = synapse.weight > 0 ? `rgba(0, 255, 200, ${alpha})` : `rgba(255, 50, 50, ${alpha})`;
                         ctx.beginPath();
@@ -1792,7 +1852,8 @@ class Application {
                 } else {
                     this.network.tick([], false);
                 }
-            }            this._updateStats();
+            }
+            this._updateStats();
         }, 30);
     }
 
@@ -1805,8 +1866,8 @@ class Application {
     _updateProgress(value = this.trainingProgress) {
         const bar = document.getElementById('progressBar');
         const text = document.getElementById('progressText');
-        bar.style.width = `${value}%`;
-        text.textContent = `${value.toFixed(1)}%`;
+        if (bar) bar.style.width = `${value}%`;
+        if (text) text.textContent = `${value.toFixed(1)}%`;
     }
 
     _updateVocabStats() {
@@ -1841,10 +1902,10 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     setTimeout(() => {
         if (!app) {
             app = new Application();
-            app.init();        }
+            app.init();
+        }
     }, 100);
 }
 </script>
 </body>
 </html>
-
