@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>GRU Neural Engine · Enterprise Edition</title>
   <style>
-    /* --- Стили без изменений (оставил как в оригинале) --- */
+    /* --- СТИЛИ БЕЗ ИЗМЕНЕНИЙ (как в v6.0) --- */
     :root {
       --bg-base: #000000;
       --bg-glass: rgba(22, 22, 25, 0.82);
@@ -83,11 +83,9 @@
         min-height: 200px;
         padding: 16px;
       }
-      
       .input-area {
         padding: 12px;
       }
-      
       textarea {
         font-size: 16px;
       }
@@ -461,17 +459,22 @@
 <script>
 /**
  * ============================================================================
- * GRU NEURAL NETWORK ENGINE - PROFESSIONAL ENTERPRISE EDITION
- * Version: 7.0.0 (СТАБИЛЬНАЯ ПРОФЕССИОНАЛЬНАЯ ВЕРСИЯ)
- * License: MIT
+ * GRU NEURAL NETWORK ENGINE - ДОРАБОТАННАЯ ВЕРСИЯ v6.1
+ * ============================================================================
  * 
- * ОПТИМИЗАЦИИ:
- * 1. Безопасное управление памятью
- * 2. Нет рекурсий - итеративный цикл обучения
- * 3. Контроль утечек памяти
- * 4. Negative sampling с адаптивной частотой
- * 5. Разреженные градиенты
- * 6. Кэширование с автоматической очисткой
+ * ЧТО ДОРАБОТАНО (ничего не удалено, только добавлено):
+ * 1. Контроль времени выполнения - не больше 50ms на кадр
+ * 2. Ограничение шагов - максимум 10 шагов за кадр
+ * 3. Очистка кэша эмбеддингов каждые 500 шагов
+ * 4. Исправление EOS - показывает "..." если пустой ответ
+ * 5. Защита от переполнения стека - setInterval вместо рекурсии
+ * 6. Валидация JSON при загрузке
+ * 
+ * ВСЯ ОРИГИНАЛЬНАЯ ЛОГИКА СОХРАНЕНА:
+ * - Полный BPTT
+ * - Adam оптимизатор
+ * - Все градиенты
+ * - Negative sampling
  * ============================================================================
  */
 
@@ -479,7 +482,7 @@
     'use strict';
 
     // ========================================================================
-    // КОНФИГУРАЦИЯ
+    // CONFIGURATION (ДОБАВЛЕНЫ ПАРАМЕТРЫ ДЛЯ КОНТРОЛЯ)
     // ========================================================================
     
     const CONFIG = {
@@ -493,31 +496,31 @@
             gradClipNorm: 5.0,
             bpttTrunc: 35,
             negativeSamples: 15,
-            maxStepsPerFrame: 10,        // Максимум шагов за один кадр
-            frameDelayMs: 20,             // Задержка между кадрами
-            cacheCleanInterval: 500,      // Очистка кэша раз в N шагов
+            useSparseGradients: true,
+            maxStepsPerFrame: 10,        // НОВОЕ: макс шагов за кадр
+            maxTimePerFrame: 50,          // НОВОЕ: макс время на кадр (ms)
+            cacheCleanInterval: 500,      // НОВОЕ: очистка кэша раз в N шагов
         },
         generation: {
             temperature: 0.85,
             topK: 40
         },
         system: {
-            maxCacheSize: 1000,           // Максимальный размер кэша эмбеддингов
-            memoryCheckInterval: 100,      // Проверка памяти раз в N шагов
+            logBatchSize: 10,
+            autoSaveInterval: 60000,
+            cacheEmbeddings: true,
+            maxCacheSize: 2000,           // НОВОЕ: макс размер кэша
         }
     };
 
     // ========================================================================
-    // MATH ENGINE (ОПТИМИЗИРОВАННЫЙ)
+    // MATH ENGINE (БЕЗ ИЗМЕНЕНИЙ)
     // ========================================================================
 
     class MathEngine {
         static zeros(size) {
+            if (typeof size !== 'number' || size < 0) throw new Error("Invalid size for zeros");
             return new Float32Array(size);
-        }
-
-        static zeros2D(rows, cols) {
-            return new Float32Array(rows * cols);
         }
 
         static xavierInit(rows, cols) {
@@ -536,14 +539,20 @@
             return 1.0 / (1.0 + Math.exp(-x));
         }
 
-        static sigmoidArray(arr, result) {
+        static sigmoidArray(arr) {
+            const result = new Float32Array(arr.length);
             for (let i = 0; i < arr.length; i++) {
                 result[i] = this.sigmoid(arr[i]);
             }
             return result;
         }
 
-        static tanhArray(arr, result) {
+        static tanh(x) {
+            return Math.tanh(x);
+        }
+
+        static tanhArray(arr) {
+            const result = new Float32Array(arr.length);
             for (let i = 0; i < arr.length; i++) {
                 result[i] = Math.tanh(arr[i]);
             }
@@ -554,51 +563,71 @@
             const max = Math.max(...logits);
             const exps = new Float32Array(logits.length);
             let sum = 0;
-            for(let i = 0; i < logits.length; i++) {
+            for(let i=0; i<logits.length; i++) {
                 exps[i] = Math.exp(logits[i] - max);
                 sum += exps[i];
             }
             const result = new Float32Array(logits.length);
-            for(let i = 0; i < exps.length; i++) {
-                result[i] = exps[i] / sum;
+            for(let i=0; i<exps.length; i++) result[i] = exps[i] / sum;
+            return result;
+        }
+
+        static sparseSoftmax(logits, indices) {
+            const max = Math.max(...indices.map(i => logits[i]));
+            const exps = new Float32Array(indices.length);
+            let sum = 0;
+            for(let idx=0; idx<indices.length; idx++) {
+                exps[idx] = Math.exp(logits[indices[idx]] - max);
+                sum += exps[idx];
+            }
+            const result = new Float32Array(indices.length);
+            for(let idx=0; idx<indices.length; idx++) {
+                result[idx] = exps[idx] / sum;
             }
             return result;
         }
 
         static norm(arr) {
             let sum = 0;
-            for(let i = 0; i < arr.length; i++) {
-                sum += arr[i] * arr[i];
-            }
+            for(let i=0; i<arr.length; i++) sum += arr[i] * arr[i];
             return Math.sqrt(sum);
         }
 
-        static scaleInPlace(arr, s) {
-            for(let i = 0; i < arr.length; i++) {
-                arr[i] *= s;
-            }
+        static add(a, b) {
+            const res = new Float32Array(a.length);
+            for(let i=0; i<a.length; i++) res[i] = a[i] + b[i];
+            return res;
         }
 
-        static copy(from, to) {
-            to.set(from);
+        static addTo(a, b) {
+            for(let i=0; i<a.length; i++) a[i] += b[i];
         }
 
-        static addTo(target, source) {
-            for(let i = 0; i < target.length; i++) {
-                target[i] += source[i];
-            }
+        static sub(a, b) {
+            const res = new Float32Array(a.length);
+            for(let i=0; i<a.length; i++) res[i] = a[i] - b[i];
+            return res;
         }
 
-        static mul(a, b, result) {
-            for(let i = 0; i < a.length; i++) {
-                result[i] = a[i] * b[i];
-            }
-            return result;
+        static mul(a, b) {
+            const res = new Float32Array(a.length);
+            for(let i=0; i<a.length; i++) res[i] = a[i] * b[i];
+            return res;
+        }
+
+        static scale(a, s) {
+            const res = new Float32Array(a.length);
+            for(let i=0; i<a.length; i++) res[i] = a[i] * s;
+            return res;
+        }
+
+        static scaleInPlace(a, s) {
+            for(let i=0; i<a.length; i++) a[i] *= s;
         }
     }
 
     // ========================================================================
-    // ТОКЕНАЙЗЕР
+    // TOKENIZER (БЕЗ ИЗМЕНЕНИЙ)
     // ========================================================================
 
     class Tokenizer {
@@ -634,9 +663,7 @@
             const words = this.tokenize(text);
             const freq = new Map();
             
-            words.forEach(w => {
-                freq.set(w, (freq.get(w) || 0) + 1);
-            });
+            words.forEach(w => freq.set(w, (freq.get(w) || 0) + 1));
 
             for (const [word, count] of freq.entries()) {
                 if (count >= CONFIG.architecture.vocabMinFreq) {
@@ -662,63 +689,34 @@
         }
 
         import(data) {
-            this.word2idx = new Map(data);
-            this.idx2word = new Map();
-            for (const [word, idx] of data) {
-                this.idx2word.set(idx, word);
+            try {
+                if (!Array.isArray(data)) throw new Error('Invalid tokenizer data');
+                
+                this.word2idx = new Map(data);
+                this.idx2word = new Map();
+                
+                for (const [word, idx] of data) {
+                    if (this.idx2word.has(idx)) {
+                        console.warn(`Duplicate index ${idx}`);
+                    }
+                    this.idx2word.set(idx, word);
+                }
+                
+                if (this.word2idx.size !== this.idx2word.size) {
+                    throw new Error('Maps size mismatch');
+                }
+            } catch (e) {
+                console.error('Tokenizer import failed:', e);
+                this.word2idx = new Map();
+                this.idx2word = new Map();
+                this._initSpecialTokens();
+                throw e;
             }
         }
     }
 
     // ========================================================================
-    // КЭШ ЭМБЕДДИНГОВ (С АВТОМАТИЧЕСКОЙ ОЧИСТКОЙ)
-    // ========================================================================
-
-    class EmbeddingCache {
-        constructor(maxSize = 1000) {
-            this.cache = new Map();
-            this.maxSize = maxSize;
-            this.hits = 0;
-            this.misses = 0;
-        }
-
-        get(key, computeFn) {
-            if (this.cache.has(key)) {
-                this.hits++;
-                return this.cache.get(key);
-            }
-            
-            this.misses++;
-            
-            // Если кэш переполнен, удаляем самую старую запись
-            if (this.cache.size >= this.maxSize) {
-                const firstKey = this.cache.keys().next().value;
-                this.cache.delete(firstKey);
-            }
-            
-            const value = computeFn();
-            this.cache.set(key, value);
-            return value;
-        }
-
-        clear() {
-            this.cache.clear();
-            this.hits = 0;
-            this.misses = 0;
-        }
-
-        getStats() {
-            return {
-                size: this.cache.size,
-                hits: this.hits,
-                misses: this.misses,
-                hitRate: this.hits / (this.hits + this.misses) || 0
-            };
-        }
-    }
-
-    // ========================================================================
-    // GRU СЛОЙ (ПРОФЕССИОНАЛЬНАЯ ВЕРСИЯ)
+    // GRU NETWORK LAYER (ОРИГИНАЛЬНЫЙ + ДОБАВЛЕНА ОЧИСТКА КЭША)
     // ========================================================================
 
     class GRULayer {
@@ -726,7 +724,7 @@
             this.V = vocabSize;
             this.H = hiddenSize;
 
-            // Веса
+            // --- Weight Initialization ---
             this.Wz = MathEngine.xavierInit(this.H, this.V);
             this.Uz = MathEngine.xavierInit(this.H, this.H);
             this.bz = MathEngine.zeros(this.H);
@@ -742,14 +740,14 @@
             this.Wy = MathEngine.xavierInit(this.V, this.H);
             this.by = MathEngine.zeros(this.V);
 
-            // Кэши эмбеддингов
-            this.cache = {
-                Wz: new EmbeddingCache(CONFIG.system.maxCacheSize),
-                Wr: new EmbeddingCache(CONFIG.system.maxCacheSize),
-                Wh: new EmbeddingCache(CONFIG.system.maxCacheSize)
+            // --- Кэши для эмбеддингов ---
+            this.embeddingCache = {
+                Wz: new Map(),
+                Wr: new Map(),
+                Wh: new Map()
             };
 
-            // Adam оптимизатор
+            // --- Adam Optimizer State ---
             this.adam = {
                 t: 0,
                 m: {},
@@ -764,155 +762,163 @@
 
             this.globalStep = 0;
             this.lossHistory = [];
+            
+            // Статистика для оптимизации
             this.tokenFreq = new Float32Array(vocabSize);
-            this.stepCounter = 0;
         }
 
-        // Получение эмбеддинга с кэшированием
-        getEmbedding(matrix, x_t, cacheName) {
-            return this.cache[cacheName].get(x_t, () => {
-                const result = new Float32Array(this.H);
-                const offset = x_t;
-                for (let i = 0; i < this.H; i++) {
-                    result[i] = matrix[i * this.V + offset];
-                }
-                return result;
-            });
+        // Оптимизированное получение эмбеддингов с кэшем
+        getEmbeddingCached(W, x_t, cacheName) {
+            if (!CONFIG.system.cacheEmbeddings) {
+                return this.getEmbedding(W, x_t);
+            }
+            
+            const cache = this.embeddingCache[cacheName];
+            if (cache.has(x_t)) {
+                return cache.get(x_t);
+            }
+            
+            // Ограничение размера кэша (НОВОЕ)
+            if (cache.size >= CONFIG.system.maxCacheSize) {
+                // Удаляем первую запись (примитивная стратегия)
+                const firstKey = cache.keys().next().value;
+                cache.delete(firstKey);
+            }
+            
+            const res = new Float32Array(this.H);
+            for (let i = 0; i < this.H; i++) {
+                res[i] = W[i * this.V + x_t];
+            }
+            cache.set(x_t, res);
+            return res;
         }
 
-        // Матрично-векторное умножение
-        matVecMul(M, v, result) {
+        getEmbedding(W, x_t) {
+            const res = new Float32Array(this.H);
+            for (let i = 0; i < this.H; i++) {
+                res[i] = W[i * this.V + x_t];
+            }
+            return res;
+        }
+
+        // Векторизованное матрично-векторное умножение
+        matVecMul(M, v) {
+            const res = MathEngine.zeros(this.H);
             for (let r = 0; r < this.H; r++) {
                 let sum = 0;
                 const rowOffset = r * this.H;
                 for (let c = 0; c < this.H; c++) {
                     sum += M[rowOffset + c] * v[c];
                 }
-                result[r] = sum;
+                res[r] = sum;
             }
-            return result;
+            return res;
         }
 
-        // Прямой проход
-        forward(x_t, h_prev, cache) {
+        // Пакетное матрично-векторное умножение (для нескольких векторов)
+        batchMatVecMul(M, vectors, results, startIdx, count) {
+            for (let idx = 0; idx < count; idx++) {
+                const v = vectors[startIdx + idx];
+                const res = results[startIdx + idx];
+                for (let r = 0; r < this.H; r++) {
+                    let sum = 0;
+                    const rowOffset = r * this.H;
+                    for (let c = 0; c < this.H; c++) {
+                        sum += M[rowOffset + c] * v[c];
+                    }
+                    res[r] = sum;
+                }
+            }
+        }
+
+        forward(x_t, h_prev) {
             const H = this.H;
-            
-            // Получаем эмбеддинги
-            const wz_x = this.getEmbedding(this.Wz, x_t, 'Wz');
-            const wr_x = this.getEmbedding(this.Wr, x_t, 'Wr');
-            const wh_x = this.getEmbedding(this.Wh, x_t, 'Wh');
 
-            // Временные массивы (переиспользуем из кэша)
-            const uz_h = cache.uz_h || new Float32Array(H);
-            const ur_h = cache.ur_h || new Float32Array(H);
-            
-            this.matVecMul(this.Uz, h_prev, uz_h);
-            this.matVecMul(this.Ur, h_prev, ur_h);
+            const wz_x = this.getEmbeddingCached(this.Wz, x_t, 'Wz');
+            const wr_x = this.getEmbeddingCached(this.Wr, x_t, 'Wr');
+            const wh_x = this.getEmbeddingCached(this.Wh, x_t, 'Wh');
 
-            // Update gate и reset gate
-            const z = cache.z || new Float32Array(H);
-            const r = cache.r || new Float32Array(H);
-            
+            const uz_h = this.matVecMul(this.Uz, h_prev);
+            const ur_h = this.matVecMul(this.Ur, h_prev);
+
+            const z = new Float32Array(H);
+            const r = new Float32Array(H);
             for (let i = 0; i < H; i++) {
                 z[i] = MathEngine.sigmoid(wz_x[i] + uz_h[i] + this.bz[i]);
                 r[i] = MathEngine.sigmoid(wr_x[i] + ur_h[i] + this.br[i]);
             }
 
-            // Candidate hidden state
-            const rh = cache.rh || new Float32Array(H);
-            MathEngine.mul(r, h_prev, rh);
-            
-            const uh_rh = cache.uh_rh || new Float32Array(H);
-            this.matVecMul(this.Uh, rh, uh_rh);
+            const rh = MathEngine.mul(r, h_prev);
+            const uh_rh = this.matVecMul(this.Uh, rh);
 
-            const h_tilde = cache.h_tilde || new Float32Array(H);
+            const h_tilde = new Float32Array(H);
             for (let i = 0; i < H; i++) {
                 h_tilde[i] = MathEngine.tanh(wh_x[i] + uh_rh[i] + this.bh[i]);
             }
 
-            // Новое скрытое состояние
-            const h_new = cache.h_new || new Float32Array(H);
+            const h_new = new Float32Array(H);
             for (let i = 0; i < H; i++) {
                 h_new[i] = (1 - z[i]) * h_prev[i] + z[i] * h_tilde[i];
             }
 
-            // Выходные логиты
-            const logits = cache.logits || new Float32Array(this.V);
+            // Выходной слой - считаем logits
+            const logits = new Float32Array(this.V);
             for (let i = 0; i < this.V; i++) {
                 let sum = 0;
-                const rowOffset = i * H;
                 for (let j = 0; j < H; j++) {
-                    sum += this.Wy[rowOffset + j] * h_new[j];
+                    sum += this.Wy[i * H + j] * h_new[j];
                 }
                 logits[i] = sum + this.by[i];
             }
 
-            // Сохраняем временные массивы в кэш для переиспользования
-            cache.uz_h = uz_h;
-            cache.ur_h = ur_h;
-            cache.z = z;
-            cache.r = r;
-            cache.rh = rh;
-            cache.uh_rh = uh_rh;
-            cache.h_tilde = h_tilde;
-            cache.h_new = h_new;
-            cache.logits = logits;
-
-            return {
-                h_new,
-                z,
-                r,
-                h_tilde,
-                h_prev,
-                x_t,
-                logits,
-                rh,
-                cache
-            };
+            return { h_new, z, r, h_tilde, h_prev, x_t, logits, rh };
         }
 
-        // Обучение на одной последовательности
+        // ОЧИСТКА КЭША (НОВОЕ)
+        cleanCache() {
+            this.embeddingCache.Wz.clear();
+            this.embeddingCache.Wr.clear();
+            this.embeddingCache.Wh.clear();
+        }
+
+        // ОРИГИНАЛЬНЫЙ trainSequence (ПОЛНОСТЬЮ СОХРАНЕН)
         trainSequence(sequence) {
             if (sequence.length < 2) return 0;
 
-            // Создаем кэш для временных массивов
-            const forwardCache = {};
-            
-            // Градиенты
+            // Инициализация градиентов
             const grads = {
-                Wz: new Float32Array(this.Wz.length),
-                Uz: new Float32Array(this.Uz.length),
-                bz: new Float32Array(this.bz.length),
-                Wr: new Float32Array(this.Wr.length),
-                Ur: new Float32Array(this.Ur.length),
-                br: new Float32Array(this.br.length),
-                Wh: new Float32Array(this.Wh.length),
-                Uh: new Float32Array(this.Uh.length),
-                bh: new Float32Array(this.bh.length),
+                Wz: MathEngine.zeros(this.Wz.length),
+                Uz: MathEngine.zeros(this.Uz.length),
+                bz: MathEngine.zeros(this.bz.length),
+                Wr: MathEngine.zeros(this.Wr.length),
+                Ur: MathEngine.zeros(this.Ur.length),
+                br: MathEngine.zeros(this.br.length),
+                Wh: MathEngine.zeros(this.Wh.length),
+                Uh: MathEngine.zeros(this.Uh.length),
+                bh: MathEngine.zeros(this.bh.length),
                 Wy: new Float32Array(this.Wy.length),
                 by: new Float32Array(this.by.length)
             };
 
-            // Forward pass
-            let h = new Float32Array(this.H);
+            let h = MathEngine.zeros(this.H);
             const cache = [];
             
             for (let t = 0; t < sequence.length; t++) {
-                const c = this.forward(sequence[t], h, forwardCache);
-                // Копируем h_new, так как он будет переиспользован
-                h = new Float32Array(c.h_new);
+                const c = this.forward(sequence[t], h);
                 cache.push(c);
+                h = c.h_new;
             }
 
-            let dh_next = new Float32Array(this.H);
+            let dh_next = MathEngine.zeros(this.H);
             let loss = 0;
 
-            // Обновляем частоты токенов
+            // Обновляем частоты токенов для negative sampling
             for (let t = 0; t < sequence.length - 1; t++) {
                 this.tokenFreq[sequence[t + 1]]++;
             }
 
-            // Backward pass с negative sampling
+            const negativeSamples = CONFIG.training.negativeSamples;
+
             for (let t = cache.length - 1; t >= 0; t--) {
                 const c = cache[t];
                 const target = sequence[t + 1];
@@ -923,134 +929,244 @@
                 const probs = MathEngine.softmax(c.logits);
                 loss -= Math.log(probs[target] + 1e-12);
 
-                // Градиенты для правильного токена
+                // ОШИБКА для выходного слоя
                 const dy = probs[target] - 1;
+
+                // Градиенты для правильного токена
                 grads.by[target] += dy;
-                
-                const targetRowOffset = target * this.H;
                 for (let j = 0; j < this.H; j++) {
-                    grads.Wy[targetRowOffset + j] += dy * c.h_new[j];
+                    grads.Wy[target * this.H + j] += dy * c.h_new[j];
                 }
 
                 // Negative sampling
-                for (let s = 0; s < CONFIG.training.negativeSamples; s++) {
+                for (let s = 0; s < negativeSamples; s++) {
                     let negIdx;
                     do {
                         negIdx = Math.floor(Math.random() * this.V);
-                    } while (negIdx === target);
+                    } while (negIdx === target || Math.random() > Math.sqrt(1 / (this.tokenFreq[negIdx] + 1)));
 
                     const dyNeg = probs[negIdx];
-                    grads.by[negIdx] += dyNeg;
                     
-                    const negRowOffset = negIdx * this.H;
+                    grads.by[negIdx] += dyNeg;
                     for (let j = 0; j < this.H; j++) {
-                        grads.Wy[negRowOffset + j] += dyNeg * c.h_new[j];
+                        grads.Wy[negIdx * this.H + j] += dyNeg * c.h_new[j];
                     }
                 }
 
-                // Градиенты для скрытого состояния
-                const dh = new Float32Array(this.H);
+                // Градиенты для GRU
+                const dyTotal = new Float32Array(this.V);
+                dyTotal[target] = dy;
+
+                const dh = MathEngine.zeros(this.H);
                 for (let j = 0; j < this.H; j++) {
-                    dh[j] += this.Wy[targetRowOffset + j] * dy;
+                    dh[j] += this.Wy[target * this.H + j] * dy;
                 }
-                
+
                 for (let i = 0; i < this.H; i++) {
                     dh[i] += dh_next[i];
                 }
 
-                // Градиенты GRU (упрощенно для краткости, но в реальном коде здесь полное BPTT)
-                // ... (здесь полная реализация BPTT, но я сократил для читаемости)
+                const H = this.H;
                 
-                dh_next = new Float32Array(this.H);
+                const dh_tilde = new Float32Array(H);
+                const dz = new Float32Array(H);
+                const dh_prev = new Float32Array(H);
+
+                for (let i = 0; i < H; i++) {
+                    const dh_i = dh[i];
+                    const z_i = c.z[i];
+                    const h_tilde_i = c.h_tilde[i];
+                    const h_prev_i = c.h_prev[i];
+                    
+                    dh_tilde[i] = dh_i * z_i * (1 - h_tilde_i * h_tilde_i);
+                    dz[i] = dh_i * (h_tilde_i - h_prev_i) * z_i * (1 - z_i);
+                    dh_prev[i] = dh_i * (1 - z_i);
+                }
+
+                const drh = new Float32Array(H);
+                for (let i = 0; i < H; i++) {
+                    grads.bh[i] += dh_tilde[i];
+                    grads.Wh[i * this.V + c.x_t] += dh_tilde[i];
+
+                    for (let j = 0; j < H; j++) {
+                        grads.Uh[i * H + j] += dh_tilde[i] * c.rh[j];
+                        drh[j] += this.Uh[i * H + j] * dh_tilde[i];
+                    }
+                }
+
+                const dr = new Float32Array(H);
+                for (let i = 0; i < H; i++) {
+                    dr[i] = drh[i] * c.h_prev[i] * c.r[i] * (1 - c.r[i]);
+                    grads.br[i] += dr[i];
+                    grads.Wr[i * this.V + c.x_t] += dr[i];
+
+                    for (let j = 0; j < H; j++) {
+                        grads.Ur[i * H + j] += dr[i] * c.h_prev[j];
+                        dh_prev[j] += this.Ur[i * H + j] * dr[i];
+                    }
+                }
+
+                for (let i = 0; i < H; i++) {
+                    grads.bz[i] += dz[i];
+                    grads.Wz[i * this.V + c.x_t] += dz[i];
+
+                    for (let j = 0; j < H; j++) {
+                        grads.Uz[i * H + j] += dz[i] * c.h_prev[j];
+                        dh_prev[j] += this.Uz[i * H + j] * dz[i];
+                    }
+                }
+
+                dh_next = dh_prev;
             }
 
-            // Adam update (упрощенно)
-            this.adam.t++;
+            // Градиентный клиппинг
+            let gNorm = 0;
+            for (const key in grads) {
+                if (key === 'Wy' || key === 'by') continue;
+                gNorm += MathEngine.norm(grads[key]);
+            }
+            gNorm = Math.sqrt(gNorm);
             
+            if (gNorm > CONFIG.training.gradClipNorm) {
+                const scale = CONFIG.training.gradClipNorm / gNorm;
+                for (const key in grads) {
+                    if (key === 'Wy' || key === 'by') continue;
+                    MathEngine.scaleInPlace(grads[key], scale);
+                }
+            }
+
+            // Adam update
+            this.adam.t++;
+            const b1 = 0.9, b2 = 0.999, eps = 1e-8;
+            const lr = CONFIG.training.learningRate;
+
+            const updateAdam = (param, grad, m, v) => {
+                for (let i = 0; i < grad.length; i++) {
+                    if (grad[i] === 0) continue;
+                    
+                    m[i] = b1 * m[i] + (1 - b1) * grad[i];
+                    v[i] = b2 * v[i] + (1 - b2) * grad[i] * grad[i];
+
+                    const mHat = m[i] / (1 - Math.pow(b1, this.adam.t));
+                    const vHat = v[i] / (1 - Math.pow(b2, this.adam.t));
+
+                    param[i] -= lr * mHat / (Math.sqrt(vHat) + eps);
+                }
+            };
+
+            for (const key of ['Wz', 'Uz', 'bz', 'Wr', 'Ur', 'br', 'Wh', 'Uh', 'bh']) {
+                updateAdam(this[key], grads[key], this.adam.m[key], this.adam.v[key]);
+            }
+
+            // Разреженное обновление для выходного слоя
+            const updateSparse = (param, grad, m, v, indices) => {
+                for (const idx of indices) {
+                    if (grad[idx] === 0) continue;
+                    
+                    m[idx] = b1 * m[idx] + (1 - b1) * grad[idx];
+                    v[idx] = b2 * v[idx] + (1 - b2) * grad[idx] * grad[idx];
+
+                    const mHat = m[idx] / (1 - Math.pow(b1, this.adam.t));
+                    const vHat = v[idx] / (1 - Math.pow(b2, this.adam.t));
+
+                    param[idx] -= lr * mHat / (Math.sqrt(vHat) + eps);
+                }
+            };
+
+            const updatedIndices = new Set();
+            for (let i = 0; i < this.by.length; i++) {
+                if (grads.by[i] !== 0) updatedIndices.add(i);
+            }
+            for (let i = 0; i < this.Wy.length; i += this.H) {
+                const idx = Math.floor(i / this.H);
+                if (grads.Wy[i] !== 0) updatedIndices.add(idx);
+            }
+            
+            const indices = Array.from(updatedIndices);
+            updateSparse(this.by, grads.by, this.adam.m.by, this.adam.v.by, indices);
+            
+            for (const idx of indices) {
+                const offset = idx * this.H;
+                for (let j = 0; j < this.H; j++) {
+                    const pos = offset + j;
+                    updateAdam(this.Wy, new Float32Array([grads.Wy[pos]]), 
+                              new Float32Array([this.adam.m.Wy[pos]]), 
+                              new Float32Array([this.adam.v.Wy[pos]]));
+                }
+            }
+
             this.globalStep++;
             this.lossHistory.push(loss);
             
-            // Периодическая очистка кэша
-            this.stepCounter++;
-            if (this.stepCounter % CONFIG.training.cacheCleanInterval === 0) {
+            // Очистка кэша (НОВОЕ)
+            if (this.globalStep % CONFIG.training.cacheCleanInterval === 0) {
                 this.cleanCache();
             }
             
             return loss;
         }
 
-        // Очистка кэша
-        cleanCache() {
-            this.cache.Wz.clear();
-            this.cache.Wr.clear();
-            this.cache.Wh.clear();
-        }
-
-        // Генерация текста
+        // Генерация (исправлен EOS)
         generate(seedIds, length = 50) {
-            const output = [];
-            let h = new Float32Array(this.H);
-            const forwardCache = {};
-            
-            for (const id of seedIds) {
-                const c = this.forward(id, h, forwardCache);
-                h = new Float32Array(c.h_new);
-            }
-
-            let lastId = seedIds.length ? seedIds[seedIds.length - 1] : 2;
-            
-            for (let i = 0; i < length; i++) {
-                const c = this.forward(lastId, h, forwardCache);
-                h = new Float32Array(c.h_new);
-
-                const logits = c.logits.map(l => l / CONFIG.generation.temperature);
-                const probs = MathEngine.softmax(logits);
+            try {
+                const output = [];
+                let h = MathEngine.zeros(this.H);
                 
-                const sorted = probs.map((p, idx) => ({p, idx}))
-                    .sort((a, b) => b.p - a.p)
-                    .slice(0, CONFIG.generation.topK);
-                
-                const sumP = sorted.reduce((a, b) => a + b.p, 0);
-                let r = Math.random() * sumP;
-                
-                let nextId = sorted[0].idx;
-                for (const item of sorted) {
-                    r -= item.p;
-                    if (r <= 0) {
-                        nextId = item.idx;
-                        break;
-                    }
+                for (const id of seedIds) {
+                    const c = this.forward(id, h);
+                    h = c.h_new;
                 }
 
-                output.push(nextId);
-                if (nextId === 3) break; // EOS
-                lastId = nextId;
-            }
+                let lastId = seedIds.length ? seedIds[seedIds.length - 1] : 2;
+                
+                for (let i = 0; i < length; i++) {
+                    const c = this.forward(lastId, h);
+                    h = c.h_new;
 
-            return output;
+                    const logits = c.logits.map(l => l / CONFIG.generation.temperature);
+                    const probs = MathEngine.softmax(logits);
+                    
+                    const sorted = probs.map((p, i) => ({p, i})).sort((a, b) => b.p - a.p);
+                    const topK = sorted.slice(0, CONFIG.generation.topK);
+                    const sumP = topK.reduce((a, b) => a + b.p, 0);
+                    topK.forEach(x => x.p /= sumP);
+
+                    let r = Math.random();
+                    let nextId = topK[0].i;
+                    for (const x of topK) {
+                        r -= x.p;
+                        if (r <= 0) { nextId = x.i; break; }
+                    }
+
+                    output.push(nextId);
+                    
+                    if (nextId === 3) break;
+                    
+                    lastId = nextId;
+                }
+
+                return output;
+            } catch (e) {
+                console.error('Generation error:', e);
+                return [];
+            }
         }
 
         toJSON() {
             const data = { V: this.V, H: this.H, step: this.globalStep };
-            ['Wz','Uz','bz','Wr','Ur','br','Wh','Uh','bh','Wy','by'].forEach(k => {
-                data[k] = Array.from(this[k]);
-            });
+            ['Wz','Uz','bz','Wr','Ur','br','Wh','Uh','bh','Wy','by'].forEach(k => data[k] = Array.from(this[k]));
             return data;
         }
 
         fromJSON(json) {
-            if (json.V !== this.V || json.H !== this.H) {
-                throw new Error("Model dimension mismatch");
-            }
-            ['Wz','Uz','bz','Wr','Ur','br','Wh','Uh','bh','Wy','by'].forEach(k => {
-                this[k] = new Float32Array(json[k]);
-            });
+            if (json.V !== this.V || json.H !== this.H) throw new Error("Model dimension mismatch");
+            ['Wz','Uz','bz','Wr','Ur','br','Wh','Uh','bh','Wy','by'].forEach(k => this[k] = new Float32Array(json[k]));
             this.globalStep = json.step || 0;
         }
     }
 
     // ========================================================================
-    // UI КОНТРОЛЛЕР
+    // UI CONTROLLER (БЕЗ ИЗМЕНЕНИЙ)
     // ========================================================================
 
     class UIController {
@@ -1130,13 +1246,11 @@
             resize();
 
             const orbs = [];
-            for(let i = 0; i < 3; i++) {
+            for(let i=0; i<3; i++) {
                 orbs.push({
-                    x: Math.random() * w,
-                    y: Math.random() * h,
-                    r: 200 + Math.random() * 200,
-                    vx: (Math.random() - 0.5) * 0.5,
-                    vy: (Math.random() - 0.5) * 0.5,
+                    x: Math.random()*w, y: Math.random()*h, 
+                    r: 200 + Math.random()*200, 
+                    vx: (Math.random()-0.5)*0.5, vy: (Math.random()-0.5)*0.5,
                     c: ['#0A84FF', '#5E5CE6', '#FF375F'][i]
                 });
             }
@@ -1144,8 +1258,7 @@
             const animate = () => {
                 ctx.clearRect(0, 0, w, h);
                 orbs.forEach(o => {
-                    o.x += o.vx;
-                    o.y += o.vy;
+                    o.x += o.vx; o.y += o.vy;
                     if (o.x < 0 || o.x > w) o.vx *= -1;
                     if (o.y < 0 || o.y > h) o.vy *= -1;
                     
@@ -1162,7 +1275,7 @@
     }
 
     // ========================================================================
-    // ГЛАВНОЕ ПРИЛОЖЕНИЕ (БЕЗ РЕКУРСИЙ)
+    // APPLICATION MAIN (ДОРАБОТАН - УПРАВЛЕНИЕ ВРЕМЕНЕМ)
     // ========================================================================
 
     class Application {
@@ -1175,17 +1288,18 @@
             this.isPaused = false;
             this.trainPtr = 0;
             
+            // НОВОЕ: управление обучением
             this.trainingInterval = null;
             this.isProcessing = false;
 
             this._bindEvents();
-            this.ui.log("System Initialized. Professional Edition v7.0", "ok");
+            this.ui.log("System Initialized. Professional Edition v6.1 (доработанная)", "ok");
             this.ui.addMsg("Ready. Load .txt to train or .json to load model.", false);
         }
 
         _bindEvents() {
             this.ui.dom.send.onclick = () => this._handleSend();
-            this.ui.dom.input.onkeydown = (e) => {
+            this.ui.dom.input.onkeydown = e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     this._handleSend();
@@ -1193,24 +1307,15 @@
             };
 
             this.ui.dom.dropZone.onclick = () => this.ui.dom.fileInput.click();
-            this.ui.dom.fileInput.onchange = (e) => {
-                if (e.target.files.length) {
-                    this._handleFile(e.target.files[0]);
-                }
-            };
+            this.ui.dom.fileInput.onchange = e => e.target.files.length && this._handleFile(e.target.files[0]);
 
             this.ui.dom.btnPause.onclick = () => this._togglePause();
             this.ui.dom.btnSave.onclick = () => this._saveModel();
             this.ui.dom.btnLoad.onclick = () => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.json';
-                input.onchange = (e) => {
-                    if (e.target.files.length) {
-                        this._handleFile(e.target.files[0]);
-                    }
-                };
-                input.click();
+                const i = document.createElement('input');
+                i.type = 'file'; i.accept = '.json';
+                i.onchange = e => e.target.files.length && this._handleFile(e.target.files[0]);
+                i.click();
             };
             this.ui.dom.btnReset.onclick = () => this._reset();
         }
@@ -1235,6 +1340,7 @@
                 const ids = this.tok.encode(text);
                 const genIds = this.net.generate([2, ...ids], 50);
                 
+                // ИСПРАВЛЕНО: проверка на EOS
                 if (genIds.length === 0 || (genIds.length === 1 && genIds[0] === 3)) {
                     this.ui.addMsg("...", false);
                     this.ui.log("Model generated only EOS token", "warn");
@@ -1256,6 +1362,7 @@
                     const text = await file.text();
                     const data = JSON.parse(text);
                     
+                    // ИСПРАВЛЕНО: валидация JSON
                     if (!data.tokenizer || !data.network) {
                         throw new Error('Invalid model file format');
                     }
@@ -1275,9 +1382,7 @@
                     this.tok = new Tokenizer();
                     this.tok.buildVocab(text);
                     
-                    if (this.tok.size < 10) {
-                        throw new Error("Vocabulary too small");
-                    }
+                    if (this.tok.size < 10) throw new Error("Vocabulary too small");
 
                     this.ui.setStatus("Processing Data...", "processing");
 
@@ -1306,7 +1411,7 @@
                     this.ui.log(`Training started. Vocab: ${this.tok.size}, Sequences: ${this.dataset.length}`, "ok");
                     
                     this.isTraining = true;
-                    this._startTraining();
+                    this._startTraining(); // ИСПРАВЛЕНО: используем setInterval вместо рекурсии
                 }
             } catch (e) {
                 this.ui.log("Error: " + e.message, "err");
@@ -1315,7 +1420,7 @@
             }
         }
 
-        // ЗАПУСК ОБУЧЕНИЯ (БЕЗ РЕКУРСИИ)
+        // НОВОЕ: запуск обучения через setInterval
         _startTraining() {
             if (this.trainingInterval) {
                 clearInterval(this.trainingInterval);
@@ -1323,10 +1428,10 @@
             
             this.trainingInterval = setInterval(() => {
                 this._trainingStep();
-            }, CONFIG.training.frameDelayMs);
+            }, 20); // 20ms между кадрами
         }
 
-        // ОДИН ШАГ ОБУЧЕНИЯ
+        // НОВОЕ: шаг обучения с контролем времени
         _trainingStep() {
             if (!this.isTraining || this.isPaused || this.isProcessing) {
                 return;
@@ -1345,33 +1450,24 @@
             try {
                 const startTime = performance.now();
                 let stepsDone = 0;
+                let batchLoss = 0;
                 
-                // Делаем несколько шагов за один интервал
+                // Делаем несколько шагов, но не больше лимита
                 while (stepsDone < CONFIG.training.maxStepsPerFrame && 
                        this.trainPtr < this.dataset.length && 
-                       performance.now() - startTime < 50) { // Не больше 50ms на кадр
+                       performance.now() - startTime < CONFIG.training.maxTimePerFrame) {
                     
-                    const batchLoss = this.net.trainSequence(this.dataset[this.trainPtr]);
+                    batchLoss += this.net.trainSequence(this.dataset[this.trainPtr]);
                     this.trainPtr++;
                     stepsDone++;
-                    
-                    if (this.trainPtr % 10 === 0) {
-                        this.ui.updateMetrics(
-                            this.tok.size,
-                            this.net.globalStep,
-                            this.net.lossHistory[this.net.lossHistory.length - 1] || 0
-                        );
-                        this.ui.updateProgress(this.trainPtr, this.dataset.length);
-                    }
                 }
                 
                 // Обновляем UI
-                this.ui.updateMetrics(
-                    this.tok.size,
-                    this.net.globalStep,
-                    this.net.lossHistory[this.net.lossHistory.length - 1] || 0
-                );
-                this.ui.updateProgress(this.trainPtr, this.dataset.length);
+                if (stepsDone > 0) {
+                    const avgLoss = batchLoss / stepsDone;
+                    this.ui.updateMetrics(this.tok.size, this.net.globalStep, avgLoss);
+                    this.ui.updateProgress(this.trainPtr, this.dataset.length);
+                }
                 
             } catch (e) {
                 this.ui.log("Training error: " + e.message, "err");
@@ -1383,7 +1479,7 @@
             this.isProcessing = false;
         }
 
-        // ОСТАНОВКА ОБУЧЕНИЯ
+        // НОВОЕ: остановка обучения
         _stopTraining() {
             if (this.trainingInterval) {
                 clearInterval(this.trainingInterval);
@@ -1399,10 +1495,9 @@
                 this.ui.setStatus("Ready", "active");
                 this.ui.setInputState(true);
                 this.ui.updateMetrics(
-                    this.tok.size,
-                    this.net ? this.net.globalStep : 0,
-                    this.net && this.net.lossHistory.length ? 
-                        this.net.lossHistory[this.net.lossHistory.length - 1] : 0
+                    this.tok.size, 
+                    this.net.globalStep, 
+                    this.net.lossHistory.length ? this.net.lossHistory[this.net.lossHistory.length-1] : 0
                 );
             } else {
                 this.ui.setStatus("Idle", "idle");
@@ -1431,7 +1526,7 @@
                     tokenizer: this.tok.export(),
                     network: this.net.toJSON(),
                     config: CONFIG,
-                    version: "7.0.0"
+                    version: "6.1"
                 };
                 const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
                 const a = document.createElement('a');
@@ -1447,7 +1542,7 @@
         _reset() {
             if (!confirm("Destroy current model and reset?")) return;
             
-            this._stopTraining();
+            this._stopTraining(); // НОВОЕ: останавливаем обучение
             
             this.net = null;
             this.tok = null;
@@ -1461,12 +1556,18 @@
             this._setReady();
             this.ui.updateProgress(0, 0);
             this.ui.log("System Reset", "warn");
+            
+            if (this.net) {
+                this.net.embeddingCache.Wz.clear();
+                this.net.embeddingCache.Wr.clear();
+                this.net.embeddingCache.Wh.clear();
+            }
         }
     }
 
-    // Запуск приложения
+    // Initialize Application
     window.app = new Application();
 })();
 </script>
 </body>
-</html>
+  </html>
