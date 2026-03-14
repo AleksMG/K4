@@ -3,11 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GRU Neural Engine v4.2 PRO</title>
-  
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       СТИЛИ (Ванильный CSS, без внешних зависимостей)
-       ═══════════════════════════════════════════════════════════════════════ -->
+  <title>GRU Neural Engine v4.3 PRO</title>
   <style>
     :root {
       --bg: #020203;
@@ -53,6 +49,7 @@
       background: var(--bg);
       display: flex;
       flex-direction: column;
+      height: 100vh;
     }
 
     .sidebar {
@@ -74,6 +71,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-shrink: 0;
     }
 
     .logo {
@@ -99,20 +97,9 @@
       transition: background 0.2s, box-shadow 0.2s;
     }
 
-    .status-dot.active {
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
-    }
-
-    .status-dot.error {
-      background: var(--error);
-      box-shadow: 0 0 8px var(--error);
-    }
-
-    .status-dot.warning {
-      background: var(--warning);
-      box-shadow: 0 0 8px var(--warning);
-    }
+    .status-dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .status-dot.error { background: var(--error); box-shadow: 0 0 8px var(--error); }
+    .status-dot.warning { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
 
     /* ═══════════════════════════════════════════════════════════════════════
        ЧАТ
@@ -162,22 +149,28 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
-       ПОЛЕ ВВОДА
+       ПОЛЕ ВВОДА - ЗАКРЕПЛЕНО ВНИЗУ (ОБЯЗАТЕЛЬНО ВИДИМО)
        ═══════════════════════════════════════════════════════════════════════ */
     .input-area {
       padding: 1rem 1.5rem;
-      background: var(--bg);
-      border-top: 1px solid var(--border);
+      background: var(--surface);
+      border-top: 2px solid var(--border);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 100;
     }
 
     .input-wrap {
       display: flex;
-      background: var(--surface);
-      border: 1px solid var(--border);
+      background: var(--bg);
+      border: 2px solid var(--border);
       border-radius: 8px;
       padding: 0.3rem;
       gap: 0.5rem;
+      transition: border-color 0.2s;
     }
+
+    .input-wrap:focus-within { border-color: var(--accent); }
 
     textarea {
       flex: 1;
@@ -245,17 +238,49 @@
       gap: 0.9rem;
     }
 
-    .s-val {
-      font-size: 1.2rem;
-      color: var(--accent);
-      font-weight: 600;
+    .s-val { font-size: 1.2rem; color: var(--accent); font-weight: 600; }
+    .s-label { font-size: 0.65rem; color: var(--muted); }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       ПРОГРЕСС-БАР ОБУЧЕНИЯ
+       ═══════════════════════════════════════════════════════════════════════ */
+    .progress-container {
+      margin: 1rem 0;
+      background: var(--bg);
+      border-radius: 6px;
+      overflow: hidden;
+      height: 28px;
+      position: relative;
+      border: 1px solid var(--border);
     }
 
-    .s-label {
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent) 0%, #00cc88 100%);
+      transition: width 0.3s ease;
+      width: 0%;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 0.5rem;
       font-size: 0.65rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-weight: 600;
+      color: #000;
+      white-space: nowrap;
+    }
+
+    .progress-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 0.65rem;
+      color: var(--text);
+      font-weight: 600;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+      z-index: 1;
+      width: 100%;
+      text-align: center;
     }
 
     .drop-zone {
@@ -274,12 +299,7 @@
       background: var(--accent-dim);
     }
 
-    .drop-zone small {
-      display: block;
-      margin-top: 0.4rem;
-      font-size: 0.65rem;
-      opacity: 0.8;
-    }
+    .drop-zone small { display: block; margin-top: 0.4rem; font-size: 0.65rem; opacity: 0.8; }
 
     input[type="file"] { display: none; }
 
@@ -292,19 +312,16 @@
       border-radius: 4px;
       white-space: pre-wrap;
       line-height: 1.4;
-      font-size: 0.65rem;
+      font-size: 0.62rem;
       font-family: 'JetBrains Mono', monospace;
     }
 
     .log-box .error { color: var(--error); }
     .log-box .warn { color: var(--warning); }
     .log-box .ok { color: var(--success); }
+    .log-box .debug { color: #8888ff; }
 
-    .actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.6rem;
-    }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
 
     .btn-sm {
       background: var(--border);
@@ -320,45 +337,23 @@
     }
 
     .btn-sm:hover { background: #1a1b25; }
-    .btn-sm:active { transform: scale(0.98); }
     .btn-danger { color: var(--error); }
     .btn-danger:hover { background: rgba(255, 85, 119, 0.12); }
-    .btn-primary { background: var(--accent); color: #000; font-weight: 600; }
-    .btn-primary:hover { filter: brightness(1.08); }
 
-    /* ═══════════════════════════════════════════════════════════════════════
-       СКРОЛЛБАР
-       ═══════════════════════════════════════════════════════════════════════ */
     ::-webkit-scrollbar { width: 7px; height: 7px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb {
-      background: var(--border);
-      border-radius: 3px;
-      transition: background 0.2s;
-    }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #2a2a3a; }
-
-    /* ═══════════════════════════════════════════════════════════════════════
-       УТИЛИТЫ
-       ═══════════════════════════════════════════════════════════════════════ */
-    .hidden { display: none !important; }
-    .text-center { text-align: center; }
-    .mt-1 { margin-top: 0.5rem; }
-    .mb-1 { margin-bottom: 0.5rem; }
-    .flex-center { display: flex; align-items: center; justify-content: center; }
   </style>
 </head>
 
 <body>
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       РАЗМЕТКА
-       ═══════════════════════════════════════════════════════════════════════ -->
   <div class="layout">
     
-    <!-- Левая колонка: Чат -->
+    <!-- ЛЕВАЯ КОЛОНКА: ЧАТ -->
     <div class="chat-col">
       <div class="top-bar">
-        <div class="logo">GRU CORE v4.2</div>
+        <div class="logo">GRU CORE v4.3</div>
         <div class="status-row">
           <div class="status-dot" id="status-dot"></div>
           <span id="status-text">Ожидание...</span>
@@ -371,6 +366,7 @@
         </div>
       </div>
       
+      <!-- ПОЛЕ ВВОДА - ЗАКРЕПЛЕНО ВНИЗУ, ВСЕГДА ВИДИМО -->
       <div class="input-area">
         <div class="input-wrap">
           <textarea id="input" rows="1" placeholder="Загрузите файл для начала..." disabled></textarea>
@@ -379,10 +375,9 @@
       </div>
     </div>
 
-    <!-- Правая колонка: Панель управления -->
+    <!-- ПРАВАЯ КОЛОНКА: ПАНЕЛЬ -->
     <div class="sidebar">
       
-      <!-- Загрузка данных -->
       <div class="panel">
         <span class="p-title">📁 Data Source</span>
         <input type="file" id="file-in" accept=".txt,.md">
@@ -392,30 +387,22 @@
         </div>
       </div>
 
-      <!-- Метрики модели -->
       <div class="panel">
         <span class="p-title">📊 Model Metrics</span>
         <div class="stats-grid">
-          <div>
-            <div class="s-val" id="s-vocab">0</div>
-            <div class="s-label">Vocabulary</div>
-          </div>
-          <div>
-            <div class="s-val" id="s-hidden">96</div>
-            <div class="s-label">Hidden Units</div>
-          </div>
-          <div>
-            <div class="s-val" id="s-steps">0</div>
-            <div class="s-label">Training Steps</div>
-          </div>
-          <div>
-            <div class="s-val" id="s-loss">0.000</div>
-            <div class="s-label">Avg Loss</div>
-          </div>
+          <div><div class="s-val" id="s-vocab">0</div><div class="s-label">Vocabulary</div></div>
+          <div><div class="s-val" id="s-hidden">96</div><div class="s-label">Hidden Units</div></div>
+          <div><div class="s-val" id="s-steps">0</div><div class="s-label">Training Steps</div></div>
+          <div><div class="s-val" id="s-loss">0.000</div><div class="s-label">Avg Loss</div></div>
+        </div>
+        
+        <!-- ПРОГРЕСС-БАР ОБУЧЕНИЯ -->
+        <div class="progress-container">
+          <div class="progress-bar" id="progress-bar"></div>
+          <div class="progress-text" id="progress-text">0 / 0 последовательностей</div>
         </div>
       </div>
 
-      <!-- Управление моделью -->
       <div class="panel">
         <span class="p-title">⚙️ Model Actions</span>
         <div class="actions">
@@ -425,137 +412,110 @@
         </div>
       </div>
 
-      <!-- Управление обучением -->
       <div class="panel">
         <span class="p-title">🎛️ Training Control</span>
         <div class="actions">
           <button class="btn-sm" id="toggle-train">⏸ Pause</button>
           <button class="btn-sm" id="force-save">✨ Save Now</button>
         </div>
-        <div class="mt-1 text-center" style="font-size:0.65rem; color:var(--muted);">
+        <div style="margin-top:0.5rem; font-size:0.65rem; color:var(--muted); text-align:center;">
           Auto-save: <span id="auto-save-status" style="color:var(--success)">ON</span>
         </div>
       </div>
 
-      <!-- Лог системы -->
-      <div class="panel" style="flex:1; display:flex; flex-direction:column; min-height:150px;">
+      <div class="panel" style="flex:1; display:flex; flex-direction:column;">
         <span class="p-title">📋 System Log</span>
-        <div class="log-box" id="log">[SYS] Engine initialized v4.2\n</div>
+        <div class="log-box" id="log">[SYS] Engine initialized v4.3\n</div>
       </div>
       
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       JAVASCRIPT ЯДРО
-       ═══════════════════════════════════════════════════════════════════════ -->
   <script>
     'use strict';
 
     // ═══════════════════════════════════════════════════════════════════════
-    // КОНСТАНТЫ И КОНФИГУРАЦИЯ
+    // КОНФИГУРАЦИЯ
     // ═══════════════════════════════════════════════════════════════════════
     const CONFIG = {
-      VERSION: 1,                    // Версия формата сохранения
-      HIDDEN_SIZE: 96,               // Размер скрытого состояния
-      MIN_FREQ: 2,                   // Мин. частота слова для словаря
-      MIN_LINE_LEN: 5,               // Мин. длина строки для обучения
-      MAX_CACHE_SIZE: 100,           // Размер кэша для BPTT
-      BATCH_SIZE: 20,                // Размер пакета обучения
-      LR_INITIAL: 0.002,             // Начальный learning rate
-      LR_INFERENCE: 0.0005,          // LR для дообучения на инференсе
-      GRAD_CLIP_NORM: 5.0,           // Порог для clip по норме
-      GEN_MAX_LENGTH: 60,            // Макс. длина генерации
-      GEN_TEMPERATURE: 0.85,         // Температура сэмплирования
-      GEN_TOP_K: 20,                 // Top-K сэмплирование
-      STORAGE_KEY: 'gru-engine-v4'   // Ключ для localStorage
+      VERSION: 1,
+      HIDDEN_SIZE: 96,
+      MIN_FREQ: 2,
+      MIN_LINE_LEN: 5,
+      MAX_CACHE_SIZE: 100,
+      BATCH_SIZE: 20,
+      LR_INITIAL: 0.002,
+      LR_INFERENCE: 0.0005,
+      GRAD_CLIP_NORM: 5.0,
+      GEN_MAX_LENGTH: 60,
+      GEN_TEMPERATURE: 0.85,
+      GEN_TOP_K: 20,
+      STORAGE_KEY: 'gru-engine-v4'
     };
 
     // ═══════════════════════════════════════════════════════════════════════
-    // МАТЕМАТИЧЕСКИЕ УТИЛИТЫ (низкоуровневые, без аллокаций в горячих путях)
+    // МАТЕМАТИКА
     // ═══════════════════════════════════════════════════════════════════════
-    const MathUtils = (() => {
-      // Предвыделенные буферы для временных вычислений (оптимизация)
-      const tempBuffers = new Map();
-      const getBuffer = (name, size) => {
-        if (!tempBuffers.has(name) || tempBuffers.get(name).length < size) {
-          tempBuffers.set(name, new Float32Array(size));
+    const MathUtils = {
+      sigmoid: (x) => 1 / (1 + Math.exp(Math.max(-500, Math.min(500, x)))),
+      dSigmoid: (y) => y * (1 - y),
+      tanh: (x) => Math.tanh(x),
+      dTanh: (y) => Math.max(1e-7, 1 - y * y),
+
+      softmax: (logits) => {
+        const max = Math.max(...logits);
+        const exp = new Float32Array(logits.length);
+        let sum = 0;
+        for (let i = 0; i < logits.length; i++) {
+          exp[i] = Math.exp(logits[i] - max);
+          sum += exp[i];
         }
-        return tempBuffers.get(name);
-      };
+        if (sum < 1e-10) {
+          const uniform = 1 / logits.length;
+          return new Float32Array(logits.length).fill(uniform);
+        }
+        for (let i = 0; i < exp.length; i++) exp[i] /= sum;
+        return exp;
+      },
 
-      return {
-        sigmoid: (x) => 1 / (1 + Math.exp(Math.max(-500, Math.min(500, x)))),
-        dSigmoid: (y) => y * (1 - y),
-        tanh: (x) => Math.tanh(x),
-        dTanh: (y) => Math.max(1e-7, 1 - y * y), // Защита от деления на 0
+      zeros: (n) => new Float32Array(n),
 
-        softmax: (logits) => {
-          const max = Math.max(...logits);
-          const exp = new Float32Array(logits.length);
+      xavierInit: (rows, cols, scale = 1.0) => {
+        const limit = scale * Math.sqrt(6 / (rows + cols));
+        const arr = new Float32Array(rows * cols);
+        for (let i = 0; i < arr.length; i++) arr[i] = (Math.random() * 2 - 1) * limit;
+        return arr;
+      },
+
+      matVec: (W, rows, cols, vec, out = null) => {
+        const result = out || new Float32Array(rows);
+        for (let i = 0; i < rows; i++) {
           let sum = 0;
-          for (let i = 0; i < logits.length; i++) {
-            exp[i] = Math.exp(logits[i] - max);
-            sum += exp[i];
-          }
-          if (sum < 1e-10) {
-            const uniform = 1 / logits.length;
-            return new Float32Array(logits.length).fill(uniform);
-          }
-          for (let i = 0; i < exp.length; i++) exp[i] /= sum;
-          return exp;
-        },
-
-        zeros: (n) => new Float32Array(n),
-
-        xavierInit: (rows, cols, scale = 1.0) => {
-          const limit = scale * Math.sqrt(6 / (rows + cols));
-          const arr = new Float32Array(rows * cols);
-          for (let i = 0; i < arr.length; i++) {
-            arr[i] = (Math.random() * 2 - 1) * limit;
-          }
-          return arr;
-        },
-
-        // Умножение матрицы (rows×cols, flat) на вектор → вектор
-        matVec: (W, rows, cols, vec, out = null) => {
-          const result = out || new Float32Array(rows);
-          for (let i = 0; i < rows; i++) {
-            let sum = 0;
-            const offset = i * cols;
-            for (let j = 0; j < cols; j++) sum += W[offset + j] * vec[j];
-            result[i] = sum;
-          }
-          return result;
-        },
-
-        // Clip градиентов по глобальной норме
-        clipGlobalNorm: (grads, maxNorm) => {
-          let normSq = 0;
-          for (const g of grads) {
-            for (let i = 0; i < g.length; i++) normSq += g[i] * g[i];
-          }
-          const norm = Math.sqrt(normSq);
-          if (norm > maxNorm && norm > 0) {
-            const scale = maxNorm / norm;
-            for (const g of grads) {
-              for (let i = 0; i < g.length; i++) g[i] *= scale;
-            }
-          }
-          return norm;
-        },
-
-        // Копирование массива с проверкой
-        safeCopy: (src, dst) => {
-          if (!src || !dst || src.length !== dst.length) return false;
-          dst.set(src);
-          return true;
+          const offset = i * cols;
+          for (let j = 0; j < cols; j++) sum += W[offset + j] * vec[j];
+          result[i] = sum;
         }
-      };
-    })();
+        return result;
+      },
+
+      clipGlobalNorm: (grads, maxNorm) => {
+        let normSq = 0;
+        for (const g of grads) {
+          for (let i = 0; i < g.length; i++) normSq += g[i] * g[i];
+        }
+        const norm = Math.sqrt(normSq);
+        if (norm > maxNorm && norm > 0) {
+          const scale = maxNorm / norm;
+          for (const g of grads) {
+            for (let i = 0; i < g.length; i++) g[i] *= scale;
+          }
+        }
+        return norm;
+      }
+    };
 
     // ═══════════════════════════════════════════════════════════════════════
-    // ТОКЕНИЗАТОР (N-gram + BPE-lite с валидацией)
+    // ТОКЕНИЗАТОР (ИСПРАВЛЕННЫЙ ПАРСИНГ)
     // ═══════════════════════════════════════════════════════════════════════
     class Tokenizer {
       constructor() {
@@ -576,31 +536,31 @@
         }
       }
 
+      // ИСПРАВЛЕННАЯ НОРМАЛИЗАЦИЯ
       _normalize(text) {
-        if (!text) return '';
+        if (!text || typeof text !== 'string') return '';
         return text.toLowerCase()
-          .replace(/[^а-яёa-z0-9\s\.\,\!\?\-\']/g, ' ')
-          .replace(/\s+/g, ' ')
+          .replace(/[^а-яёa-z0-9\s\.\,\!\?\-\']/g, ' ')  // Заменяем всё лишнее на пробел
+          .replace(/\s+/g, ' ')  // Множественные пробелы → один
           .trim();
       }
 
       buildVocabulary(text, minFreq = CONFIG.MIN_FREQ) {
-        const words = this._normalize(text).split(' ').filter(w => w.length > 0);
+        const normalized = this._normalize(text);
+        const words = normalized.split(' ').filter(w => w.length > 0);
         if (words.length === 0) return 0;
 
         const freq = new Map();
         for (const w of words) freq.set(w, (freq.get(w) || 0) + 1);
 
-        // Добавляем униграммы
         for (const [word, count] of freq) {
           if (count >= minFreq) this._add(word);
         }
 
-        // Добавляем биграммы
         for (let i = 0; i < words.length - 1; i++) {
           const a = words[i], b = words[i + 1];
           if ((freq.get(a) || 0) >= minFreq && (freq.get(b) || 0) >= minFreq) {
-            this._add(`${a}‗${b}`); // U+2017 как внутренний разделитель
+            this._add(`${a}‗${b}`);
           }
         }
         return words.length;
@@ -627,10 +587,7 @@
 
       decode(ids) {
         if (!Array.isArray(ids)) return '';
-        return ids
-          .map(id => this.idToToken.get(id) || '<UNK>')
-          .join(' ')
-          .replace(/‗/g, ' ');
+        return ids.map(id => this.idToToken.get(id) || '<UNK>').join(' ').replace(/‗/g, ' ');
       }
 
       export() { return Array.from(this.tokenToId.entries()); }
@@ -648,12 +605,11 @@
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // GRU НЕЙРОСЕТЬ (полный BPTT + Adam + валидация)
+    // GRU НЕЙРОСЕТЬ
     // ═══════════════════════════════════════════════════════════════════════
     class GRUNetwork {
       constructor(vocabSize, hiddenSize = CONFIG.HIDDEN_SIZE) {
         if (vocabSize < 4) throw new Error('Vocab size must be >= 4');
-        
         this.V = vocabSize;
         this.H = hiddenSize;
         this._initWeights();
@@ -700,7 +656,7 @@
 
       forward(tokenId, hidden) {
         const { V, H } = this;
-        if (tokenId < 0 || tokenId >= V) tokenId = 1; // <UNK>
+        if (tokenId < 0 || tokenId >= V) tokenId = 1;
 
         const x = this._getRow(this.Wz, tokenId);
         const Uz_h = MathUtils.matVec(this.Uz, H, H, hidden);
@@ -735,7 +691,6 @@
         
         let hidden = this.hiddenState ? new Float32Array(this.hiddenState) : MathUtils.zeros(this.H);
         
-        // Forward pass
         for (const token of sequence) {
           const res = this.forward(token, hidden);
           hidden = res.hidden;
@@ -743,7 +698,6 @@
         this.hiddenState = new Float32Array(hidden);
         if (this.cache.length === 0) return 0;
 
-        // Backward pass (BPTT)
         const { V, H } = this;
         let dhNext = MathUtils.zeros(H);
         let totalLoss = 0;
@@ -925,16 +879,16 @@
       vocab: document.getElementById('s-vocab'),
       hidden: document.getElementById('s-hidden'),
       steps: document.getElementById('s-steps'),
-      loss: document.getElementById('s-loss')
+      loss: document.getElementById('s-loss'),
+      progressBar: document.getElementById('progress-bar'),
+      progressText: document.getElementById('progress-text')
     };
 
     const Logger = {
       add: (msg, type = 'info') => {
         const time = new Date().toLocaleTimeString();
         const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠' : '✓';
-        const cls = type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'ok';
         UI.log.textContent += `[${time}] ${prefix} ${msg}\n`;
-        if (cls) UI.log.lastChild?.classList?.add?.(cls);
         UI.log.scrollTop = UI.log.scrollHeight;
       }
     };
@@ -949,8 +903,7 @@
       }
     };
 
-    // Глобальное состояние
-    let tokenizer = null, network = null, dataset = [], trainIndex = 0;
+    let tokenizer = null, network = null, dataset = [], trainIndex = 0, totalSequences = 0;
     let isTraining = false, trainingPaused = false, autoSaveEnabled = true;
 
     function addMessage(text, isUser) {
@@ -961,21 +914,19 @@
       UI.chat.scrollTop = UI.chat.scrollHeight;
     }
 
+    function updateProgress(current, total) {
+      const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+      UI.progressBar.style.width = `${percent}%`;
+      UI.progressText.textContent = `${current} / ${total} последовательностей (${percent}%)`;
+    }
+
     function saveToStorage() {
       if (!autoSaveEnabled || !network || !tokenizer) return;
       try {
-        const data = {
-          version: CONFIG.VERSION,
-          tokenizer: tokenizer.export(),
-          network: network.export(),
-          trainIndex,
-          timestamp: Date.now()
-        };
+        const data = { version: CONFIG.VERSION, tokenizer: tokenizer.export(), network: network.export(), trainIndex, timestamp: Date.now() };
         localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(data));
         Logger.add('Модель автосохранена', 'ok');
-      } catch (e) {
-        Logger.add(`Не удалось сохранить: ${e.message}`, 'error');
-      }
+      } catch (e) { Logger.add(`Не удалось сохранить: ${e.message}`, 'error'); }
     }
 
     function loadFromStorage() {
@@ -983,23 +934,16 @@
         const raw = localStorage.getItem(CONFIG.STORAGE_KEY);
         if (!raw) return false;
         const data = JSON.parse(raw);
-        
-        // Проверка версии
         if (data.version !== CONFIG.VERSION) {
           Logger.add(`Несовместимая версия (${data.version} ≠ ${CONFIG.VERSION}), сброс`, 'warn');
           localStorage.removeItem(CONFIG.STORAGE_KEY);
           return false;
         }
-        
         tokenizer = new Tokenizer();
         if (!tokenizer.import(data.tokenizer)) return false;
-        
         network = new GRUNetwork(data.network.V, data.network.H);
         if (!network.import(data.network)) return false;
-        
         trainIndex = data.trainIndex || 0;
-        
-        // Обновление UI
         UI.vocab.textContent = tokenizer.size;
         UI.hidden.textContent = network.H;
         UI.steps.textContent = network.getMetrics().steps;
@@ -1007,14 +951,10 @@
         UI.input.disabled = false;
         UI.input.placeholder = 'Напишите сообщение...';
         UI.send.disabled = false;
-        
         Status.set('Модель загружена', 'active');
         Logger.add(`Восстановлено: ${tokenizer.size} токенов, шаг ${trainIndex}`, 'ok');
         return true;
-      } catch (e) {
-        Logger.add(`Ошибка загрузки: ${e.message}`, 'error');
-        return false;
-      }
+      } catch (e) { Logger.add(`Ошибка загрузки: ${e.message}`, 'error'); return false; }
     }
 
     function updateMetrics() {
@@ -1026,14 +966,15 @@
     }
 
     async function trainBatch(batchSize = CONFIG.BATCH_SIZE) {
-      // Обновляем UI сразу для видимости прогресса
       updateMetrics();
+      updateProgress(trainIndex, totalSequences);
       
       if (trainingPaused) { setTimeout(() => trainBatch(batchSize), 500); return; }
       if (!network || !dataset || trainIndex >= dataset.length) {
         isTraining = false;
         Status.set('Готов к работе', 'active');
         Logger.add('Обучение завершено', 'ok');
+        updateProgress(totalSequences, totalSequences);
         if (autoSaveEnabled) saveToStorage();
         return;
       }
@@ -1047,10 +988,9 @@
       }
       trainIndex = end;
       
-      if (count > 0) {
-        UI.loss.textContent = (batchLoss / count).toFixed(4);
-      }
+      if (count > 0) UI.loss.textContent = (batchLoss / count).toFixed(4);
       updateMetrics();
+      updateProgress(trainIndex, totalSequences);
       
       if (network.getMetrics().steps % 100 === 0 && count > 0) {
         Logger.add(`Шаг ${network.getMetrics().steps}, Loss: ${(batchLoss/count).toFixed(4)}`, 'ok');
@@ -1059,7 +999,6 @@
       setTimeout(() => trainBatch(batchSize), 0);
     }
 
-    // Обработчики событий
     document.getElementById('drop').onclick = () => document.getElementById('file-in').click();
 
     document.getElementById('file-in').onchange = async (e) => {
@@ -1071,50 +1010,39 @@
       
       try {
         const text = await file.text();
-        if (!text || text.trim().length === 0) {
-          throw new Error('Пустой файл');
-        }
+        if (!text || text.trim().length === 0) throw new Error('Пустой файл');
         
         tokenizer = new Tokenizer();
         const words = tokenizer.buildVocabulary(text, CONFIG.MIN_FREQ);
         
-        // КРИТИЧЕСКАЯ ПРОВЕРКА: словарь
-        if (tokenizer.size <= 4) {
-          throw new Error(`Словарь пуст (${tokenizer.size} токенов). Увеличьте файл или уменьшите minFreq`);
-        }
+        if (tokenizer.size <= 4) throw new Error(`Словарь пуст (${tokenizer.size} токенов). Увеличьте файл или уменьшите minFreq`);
+        if (tokenizer.size > 100000) Logger.add(`⚠ Большой словарь (${tokenizer.size}). Обучение может быть медленным`, 'warn');
         
-        // Подготовка датасета
         dataset = text.split('\n')
           .map(l => tokenizer._normalize(l))
           .filter(l => l.length >= CONFIG.MIN_LINE_LEN)
-          .map(l => {
-            const ids = tokenizer.encode(l);
-            return [2, ...ids, 3]; // <BOS> ... <EOS>
-          })
+          .map(l => { const ids = tokenizer.encode(l); return [2, ...ids, 3]; })
           .filter(seq => seq.length >= 3);
         
-        // КРИТИЧЕСКАЯ ПРОВЕРКА: датасет
-        if (dataset.length === 0) {
-          throw new Error(`Датасет пуст. Проверьте: строки >= ${CONFIG.MIN_LINE_LEN} символов`);
-        }
+        if (dataset.length === 0) throw new Error(`Датасет пуст. Проверьте: строки >= ${CONFIG.MIN_LINE_LEN} символов`);
+        
+        totalSequences = dataset.length;
+        trainIndex = 0;
         
         Logger.add(`Словарь: ${tokenizer.size} | Строки: ${dataset.length} | Слова: ${words}`, 'ok');
+        Logger.add(`Пример токенов: ${JSON.stringify(dataset[0].slice(0, 10))}`, 'debug');
         
-        // Инициализация сети
         network = new GRUNetwork(tokenizer.size, CONFIG.HIDDEN_SIZE);
         Logger.add(`Сеть: ${network.getParamCount().toLocaleString()} параметров`, 'ok');
         
-        // Активация UI
         UI.vocab.textContent = tokenizer.size;
         UI.hidden.textContent = network.H;
         UI.input.disabled = false;
         UI.input.placeholder = 'Напишите сообщение...';
         UI.send.disabled = false;
         
-        // Запуск обучения
         isTraining = true;
         trainingPaused = false;
-        trainIndex = 0;
         Status.set('Обучение...', 'active');
         Logger.add(`Старт: ${dataset.length} последовательностей, batch=${CONFIG.BATCH_SIZE}`);
         trainBatch(CONFIG.BATCH_SIZE);
@@ -1135,10 +1063,7 @@
       UI.input.value = '';
       
       const inputIds = tokenizer.encode(text);
-      if (inputIds.length === 0) {
-        addMessage('Не удалось обработать ввод', 'ai');
-        return;
-      }
+      if (inputIds.length === 0) { addMessage('Не удалось обработать ввод', 'ai'); return; }
       
       const sequence = [2, ...inputIds, 3];
       network.train(sequence, CONFIG.LR_INFERENCE);
@@ -1146,22 +1071,14 @@
       const outputIds = network.generate([2, ...inputIds], CONFIG.GEN_MAX_LENGTH, CONFIG.GEN_TEMPERATURE, CONFIG.GEN_TOP_K);
       const response = tokenizer.decode(outputIds).trim();
       
-      setTimeout(() => {
-        addMessage(response || '...', false);
-      }, 80);
+      setTimeout(() => { addMessage(response || '...', false); }, 80);
       
       updateMetrics();
       if (autoSaveEnabled) saveToStorage();
     };
 
-    UI.input.onkeydown = (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); UI.send.onclick(); }
-    };
-
-    UI.input.addEventListener('input', function() {
-      this.style.height = 'auto';
-      this.style.height = Math.min(this.scrollHeight, 150) + 'px';
-    });
+    UI.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); UI.send.onclick(); } };
+    UI.input.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 150) + 'px'; });
 
     document.getElementById('save').onclick = () => {
       if (!network || !tokenizer) { Logger.add('Нет модели', 'warn'); return; }
@@ -1181,9 +1098,7 @@
       inp.onchange = async (e) => {
         try {
           const data = JSON.parse(await e.target.files[0].text());
-          if (data.version !== CONFIG.VERSION) {
-            throw new Error(`Версия ${data.version} несовместима`);
-          }
+          if (data.version !== CONFIG.VERSION) throw new Error(`Версия ${data.version} несовместима`);
           tokenizer = new Tokenizer(); tokenizer.import(data.tokenizer);
           network = new GRUNetwork(data.network.V, data.network.H); network.import(data.network);
           UI.vocab.textContent = tokenizer.size;
@@ -1191,18 +1106,18 @@
           UI.input.disabled = false; UI.send.disabled = false;
           Status.set('Импорт успешен', 'active');
           Logger.add('Модель загружена', 'ok');
-        } catch (err) {
-          Logger.add(`Импорт: ${err.message}`, 'error');
-        }
+        } catch (err) { Logger.add(`Импорт: ${err.message}`, 'error'); }
       };
       inp.click();
     };
 
     document.getElementById('reset').onclick = () => {
       if (!confirm('Сбросить всё? Прогресс будет утерян.')) return;
-      tokenizer = null; network = null; dataset = []; trainIndex = 0;
+      tokenizer = null; network = null; dataset = []; trainIndex = 0; totalSequences = 0;
       localStorage.removeItem(CONFIG.STORAGE_KEY);
       UI.vocab.textContent = '0'; UI.steps.textContent = '0'; UI.loss.textContent = '0.000';
+      UI.progressBar.style.width = '0%';
+      UI.progressText.textContent = '0 / 0 последовательностей';
       UI.input.disabled = true; UI.input.placeholder = 'Загрузите файл...'; UI.send.disabled = true;
       Status.set('Сброшено', 'idle');
       Logger.add('Полный сброс', 'warn');
@@ -1223,12 +1138,8 @@
       }
     };
 
-    document.getElementById('force-save').onclick = () => {
-      saveToStorage();
-      Logger.add('Ручное сохранение', 'ok');
-    };
+    document.getElementById('force-save').onclick = () => { saveToStorage(); Logger.add('Ручное сохранение', 'ok'); };
 
-    // Инициализация
     if (!loadFromStorage()) {
       Logger.add('Ожидание файла .txt', 'info');
       Status.set('Ожидание', 'idle');
