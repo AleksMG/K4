@@ -87,8 +87,29 @@
     }
 
     @media (max-width: 1024px) {
-      .app-shell { grid-template-columns: 1fr; padding: 10px; gap: 10px; }
-      .sidebar-panel { display: none; }
+      .app-shell { 
+        grid-template-columns: 1fr; 
+        padding: 10px; 
+        gap: 10px; 
+      }
+      .sidebar-panel { 
+        display: none; 
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .chat-body {
+        min-height: 200px;
+        padding: 16px;
+      }
+      
+      .input-area {
+        padding: 12px;
+      }
+      
+      textarea {
+        font-size: 16px;
+      }
     }
 
     /* =============================================================
@@ -105,6 +126,7 @@
       box-shadow: var(--shadow-modal);
       overflow: hidden;
       position: relative;
+      height: 100%;
     }
 
     /* --- Header --- */
@@ -151,6 +173,7 @@
       gap: 18px;
       scrollbar-width: thin;
       scrollbar-color: rgba(255,255,255,0.1) transparent;
+      min-height: 0;
     }
 
     .chat-body::-webkit-scrollbar { width: 6px; }
@@ -194,6 +217,7 @@
       padding: 20px 24px 24px;
       background: rgba(0,0,0,0.15);
       border-top: 1px solid var(--border-glass);
+      flex-shrink: 0;
     }
 
     .input-wrapper {
@@ -224,7 +248,7 @@
       color: #fff;
     }
     
-    textarea:disabled { opacity: 0.5; background: #222; }
+    textarea:disabled { opacity: 0.5; }
     textarea::placeholder { color: var(--text-secondary); }
 
     .btn-action {
@@ -253,6 +277,7 @@
       gap: 18px;
       overflow-y: auto;
       padding-right: 4px;
+      height: 100%;
     }
 
     .card {
@@ -262,6 +287,14 @@
       border-radius: var(--radius-lg);
       padding: 20px;
       box-shadow: var(--shadow-modal);
+      flex-shrink: 0;
+    }
+
+    .card:last-child {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .card-header {
@@ -369,6 +402,7 @@
       color: var(--text-tertiary);
       white-space: pre-wrap;
       line-height: 1.6;
+      flex: 1;
     }
 
     .log-console .err { color: var(--accent-red); }
@@ -398,7 +432,6 @@
 
       <div class="input-area">
         <div class="input-wrapper">
-          <!-- INPUT IS ENABLED BY DEFAULT. Only Button is disabled initially. -->
           <textarea id="userInput" placeholder="Введите сообщение..." rows="1"></textarea>
           <button class="btn-action" id="btnSend" disabled>
             <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -466,7 +499,7 @@
 /**
  * ============================================================================
  * GRU NEURAL NETWORK ENGINE - PROFESSIONAL ENTERPRISE EDITION
- * Version: 5.2.0
+ * Version: 5.2.1 (FIXED)
  * License: MIT
  * 
  * Architecture Breakdown:
@@ -487,48 +520,35 @@
     
     const CONFIG = {
         architecture: {
-            hiddenSize: 128,      // Number of neurons in hidden state
-            vocabMinFreq: 2,      // Minimum frequency for token inclusion
+            hiddenSize: 128,
+            vocabMinFreq: 2,
         },
         training: {
-            learningRate: 0.002,  // Base learning rate for Adam
-            batchSize: 10,        // Number of sequences per batch
-            gradClipNorm: 5.0,    // Gradient clipping threshold
-            bpttTrunc: 20,        // Backpropagation through time truncation
+            learningRate: 0.002,
+            batchSize: 10,
+            gradClipNorm: 5.0,
+            bpttTrunc: 20,
         },
         generation: {
-            temperature: 0.85,    // Sampling temperature
-            topK: 40              // Top-K sampling filter
+            temperature: 0.85,
+            topK: 40
         },
         system: {
-            logBatchSize: 10,     // Log updates frequency
-            autoSaveInterval: 60000 // Auto-save interval (ms)
+            logBatchSize: 10,
+            autoSaveInterval: 60000
         }
     };
 
     // ========================================================================
-    // SECTION 2: MATH ENGINE (VANILLA TENSOR OPERATIONS)
+    // SECTION 2: MATH ENGINE
     // ========================================================================
 
     class MathEngine {
-        
-        /**
-         * Create a zero-filled Float32Array.
-         * @param {number} size 
-         * @returns {Float32Array}
-         */
         static zeros(size) {
             if (typeof size !== 'number' || size < 0) throw new Error("Invalid size for zeros");
             return new Float32Array(size);
         }
 
-        /**
-         * Create array initialized with Xavier/Glorot initialization.
-         * Useful for weight initialization.
-         * @param {number} rows 
-         * @param {number} cols 
-         * @returns {Float32Array}
-         */
         static xavierInit(rows, cols) {
             const size = rows * cols;
             const arr = new Float32Array(size);
@@ -539,38 +559,22 @@
             return arr;
         }
 
-        /**
-         * Sigmoid activation function (logistic).
-         * @param {number} x 
-         * @returns {number}
-         */
         static sigmoid(x) {
-            // Clamping for numerical stability
             if (x > 20) return 1.0;
             if (x < -20) return 0.0;
             return 1.0 / (1.0 + Math.exp(-x));
         }
 
-        /**
-         * Hyperbolic tangent activation.
-         * @param {number} x 
-         * @returns {number}
-         */
         static tanh(x) {
             return Math.tanh(x);
         }
 
-        /**
-         * Softmax activation for probability distribution.
-         * @param {Float32Array} logits 
-         * @returns {Float32Array}
-         */
         static softmax(logits) {
             const max = Math.max(...logits);
             const exps = new Float32Array(logits.length);
             let sum = 0;
             for(let i=0; i<logits.length; i++) {
-                exps[i] = Math.exp(logits[i] - max); // stability
+                exps[i] = Math.exp(logits[i] - max);
                 sum += exps[i];
             }
             const result = new Float32Array(logits.length);
@@ -578,59 +582,30 @@
             return result;
         }
 
-        /**
-         * L2 Norm of a vector.
-         * @param {Float32Array} arr 
-         * @returns {number}
-         */
         static norm(arr) {
             let sum = 0;
             for(let i=0; i<arr.length; i++) sum += arr[i] * arr[i];
             return Math.sqrt(sum);
         }
 
-        /**
-         * Element-wise addition: res = a + b
-         * @param {Float32Array} a 
-         * @param {Float32Array} b 
-         * @returns {Float32Array}
-         */
         static add(a, b) {
             const res = new Float32Array(a.length);
             for(let i=0; i<a.length; i++) res[i] = a[i] + b[i];
             return res;
         }
 
-        /**
-         * Element-wise subtraction: res = a - b
-         * @param {Float32Array} a 
-         * @param {Float32Array} b 
-         * @returns {Float32Array}
-         */
         static sub(a, b) {
             const res = new Float32Array(a.length);
             for(let i=0; i<a.length; i++) res[i] = a[i] - b[i];
             return res;
         }
 
-        /**
-         * Element-wise multiplication (Hadamard product): res = a * b
-         * @param {Float32Array} a 
-         * @param {Float32Array} b 
-         * @returns {Float32Array}
-         */
         static mul(a, b) {
             const res = new Float32Array(a.length);
             for(let i=0; i<a.length; i++) res[i] = a[i] * b[i];
             return res;
         }
 
-        /**
-         * Scale vector by scalar: res = a * s
-         * @param {Float32Array} a 
-         * @param {number} s 
-         * @returns {Float32Array}
-         */
         static scale(a, s) {
             const res = new Float32Array(a.length);
             for(let i=0; i<a.length; i++) res[i] = a[i] * s;
@@ -639,7 +614,7 @@
     }
 
     // ========================================================================
-    // SECTION 3: TOKENIZER
+    // SECTION 3: TOKENIZER (FIXED)
     // ========================================================================
 
     class Tokenizer {
@@ -650,10 +625,10 @@
         }
 
         _initSpecialTokens() {
-            this.addToken('<PAD>'); // 0
-            this.addToken('<UNK>'); // 1
-            this.addToken('<BOS>'); // 2
-            this.addToken('<EOS>'); // 3
+            this.addToken('<PAD>');
+            this.addToken('<UNK>');
+            this.addToken('<BOS>');
+            this.addToken('<EOS>');
         }
 
         addToken(word) {
@@ -685,7 +660,7 @@
         }
 
         encode(text) {
-            return this.tokenize(text).map(w => this.word2idx.get(w) || 1); // 1 is UNK
+            return this.tokenize(text).map(w => this.word2idx.get(w) || 1);
         }
 
         decode(ids) {
@@ -700,15 +675,36 @@
             return Array.from(this.word2idx.entries());
         }
 
+        // FIXED: Proper import with validation
         import(data) {
-            this.word2idx = new Map(data);
-            this.idx2word = new Map();
-            data.forEach(([k, v]) => this.idx2word.set(v, k));
+            try {
+                if (!Array.isArray(data)) throw new Error('Invalid tokenizer data');
+                
+                this.word2idx = new Map(data);
+                this.idx2word = new Map();
+                
+                for (const [word, idx] of data) {
+                    if (this.idx2word.has(idx)) {
+                        console.warn(`Duplicate index ${idx}`);
+                    }
+                    this.idx2word.set(idx, word);
+                }
+                
+                if (this.word2idx.size !== this.idx2word.size) {
+                    throw new Error('Maps size mismatch');
+                }
+            } catch (e) {
+                console.error('Tokenizer import failed:', e);
+                this.word2idx = new Map();
+                this.idx2word = new Map();
+                this._initSpecialTokens();
+                throw e;
+            }
         }
     }
 
     // ========================================================================
-    // SECTION 4: GRU NETWORK LAYER (Full Implementation)
+    // SECTION 4: GRU NETWORK LAYER
     // ========================================================================
 
     class GRULayer {
@@ -717,30 +713,26 @@
             this.H = hiddenSize;
 
             // --- Weight Initialization ---
-            // Update Gate (z)
             this.Wz = MathEngine.xavierInit(this.H, this.V);
             this.Uz = MathEngine.xavierInit(this.H, this.H);
             this.bz = MathEngine.zeros(this.H);
 
-            // Reset Gate (r)
             this.Wr = MathEngine.xavierInit(this.H, this.V);
             this.Ur = MathEngine.xavierInit(this.H, this.H);
             this.br = MathEngine.zeros(this.H);
 
-            // Candidate Hidden (h_tilde)
             this.Wh = MathEngine.xavierInit(this.H, this.V);
             this.Uh = MathEngine.xavierInit(this.H, this.H);
             this.bh = MathEngine.zeros(this.H);
 
-            // Output Layer
             this.Wy = MathEngine.xavierInit(this.V, this.H);
             this.by = MathEngine.zeros(this.V);
 
             // --- Adam Optimizer State ---
             this.adam = {
                 t: 0,
-                m: {}, // First moment vector
-                v: {}  // Second moment vector
+                m: {},
+                v: {}
             };
             
             const paramKeys = ['Wz', 'Uz', 'bz', 'Wr', 'Ur', 'br', 'Wh', 'Uh', 'bh', 'Wy', 'by'];
@@ -753,10 +745,6 @@
             this.lossHistory = [];
         }
 
-        /**
-         * Extracts the column vector from a Weight matrix W (size H x V) for a specific input index x_t.
-         * Equivalent to W * one_hot(x_t).
-         */
         getEmbedding(W, x_t) {
             const res = new Float32Array(this.H);
             for (let i = 0; i < this.H; i++) {
@@ -765,9 +753,6 @@
             return res;
         }
 
-        /**
-         * Matrix-Vector Multiplication (HxH) * (Hx1) -> (Hx1)
-         */
         matVecMul(M, v) {
             const res = MathEngine.zeros(this.H);
             for (let r = 0; r < this.H; r++) {
@@ -780,37 +765,28 @@
             return res;
         }
 
-        /**
-         * Forward Pass for a single time step.
-         * Returns intermediate states required for BPTT.
-         */
         forward(x_t, h_prev) {
             const H = this.H;
 
-            // 1. Update Gate z
             const wz_x = this.getEmbedding(this.Wz, x_t);
             const uz_h = this.matVecMul(this.Uz, h_prev);
             const z = new Float32Array(H);
             for (let i = 0; i < H; i++) z[i] = MathEngine.sigmoid(wz_x[i] + uz_h[i] + this.bz[i]);
 
-            // 2. Reset Gate r
             const wr_x = this.getEmbedding(this.Wr, x_t);
             const ur_h = this.matVecMul(this.Ur, h_prev);
             const r = new Float32Array(H);
             for (let i = 0; i < H; i++) r[i] = MathEngine.sigmoid(wr_x[i] + ur_h[i] + this.br[i]);
 
-            // 3. Candidate Hidden State h_tilde
             const wh_x = this.getEmbedding(this.Wh, x_t);
             const rh = MathEngine.mul(r, h_prev);
             const uh_rh = this.matVecMul(this.Uh, rh);
             const h_tilde = new Float32Array(H);
             for (let i = 0; i < H; i++) h_tilde[i] = MathEngine.tanh(wh_x[i] + uh_rh[i] + this.bh[i]);
 
-            // 4. New Hidden State
             const h_new = new Float32Array(H);
             for (let i = 0; i < H; i++) h_new[i] = (1 - z[i]) * h_prev[i] + z[i] * h_tilde[i];
 
-            // 5. Output Logits
             const logits = new Float32Array(this.V);
             for (let i = 0; i < this.V; i++) {
                 let sum = 0;
@@ -821,13 +797,9 @@
             return { h_new, z, r, h_tilde, h_prev, x_t, logits, rh };
         }
 
-        /**
-         * Training loop for a single sequence using Backpropagation Through Time (BPTT).
-         */
         trainSequence(sequence) {
             if (sequence.length < 2) return 0;
 
-            // Initialize Gradients
             const grads = {
                 Wz: MathEngine.zeros(this.Wz.length),
                 Uz: MathEngine.zeros(this.Uz.length),
@@ -842,7 +814,6 @@
                 by: MathEngine.zeros(this.by.length)
             };
 
-            // FORWARD PASS: Store cache
             let h = MathEngine.zeros(this.H);
             const cache = [];
             
@@ -855,34 +826,29 @@
             let dh_next = MathEngine.zeros(this.H);
             let loss = 0;
 
-            // BACKWARD PASS: Iterate backwards
             for (let t = cache.length - 1; t >= 0; t--) {
                 const c = cache[t];
-                const target = sequence[t + 1]; // Target is next token
+                const target = sequence[t + 1];
 
                 if (t >= sequence.length - 1) continue; 
 
-                // Softmax & Loss Gradient
                 const probs = MathEngine.softmax(c.logits);
                 loss -= Math.log(probs[target] + 1e-12);
 
                 const dy = new Float32Array(probs);
-                dy[target] -= 1; // dL/dy
+                dy[target] -= 1;
 
-                // Grad Output Layer (Wy, by) -> dL/dWy = dy * h^T
                 const dh = MathEngine.zeros(this.H);
                 for (let i = 0; i < this.V; i++) {
                     grads.by[i] += dy[i];
                     for (let j = 0; j < this.H; j++) {
                         grads.Wy[i * this.H + j] += dy[i] * c.h_new[j];
-                        dh[j] += this.Wy[i * this.H + j] * dy[i]; // Backprop into hidden
+                        dh[j] += this.Wy[i * this.H + j] * dy[i];
                     }
                 }
 
-                // Add dh from future step
                 for (let i = 0; i < this.H; i++) dh[i] += dh_next[i];
 
-                // GRU Internal Gradients
                 const H = this.H;
                 
                 const dh_tilde = new Float32Array(H);
@@ -890,16 +856,15 @@
                 const dh_prev = new Float32Array(H);
 
                 for (let i = 0; i < H; i++) {
-                    // h_new = (1-z)*h_prev + z*h_tilde
-                    dh_tilde[i] = dh[i] * c.z[i] * (1 - c.h_tilde[i] * c.h_tilde[i]); // tanh'
-                    dz[i] = dh[i] * (c.h_tilde[i] - c.h_prev[i]) * c.z[i] * (1 - c.z[i]); // sigmoid'
+                    dh_tilde[i] = dh[i] * c.z[i] * (1 - c.h_tilde[i] * c.h_tilde[i]);
+                    dz[i] = dh[i] * (c.h_tilde[i] - c.h_prev[i]) * c.z[i] * (1 - c.z[i]);
                     dh_prev[i] = dh[i] * (1 - c.z[i]);
                 }
 
                 const drh = new Float32Array(H);
                 for (let i = 0; i < H; i++) {
                     grads.bh[i] += dh_tilde[i];
-                    grads.Wh[i * this.V + c.x_t] += dh_tilde[i]; // Wh column update
+                    grads.Wh[i * this.V + c.x_t] += dh_tilde[i];
 
                     for (let j = 0; j < H; j++) {
                         grads.Uh[i * H + j] += dh_tilde[i] * c.rh[j];
@@ -932,7 +897,6 @@
                 dh_next = dh_prev;
             }
 
-            // --- GRADIENT CLIPPING ---
             let gNorm = 0;
             for (const key in grads) gNorm += MathEngine.norm(grads[key]);
             gNorm = Math.sqrt(gNorm);
@@ -944,7 +908,6 @@
                 }
             }
 
-            // --- ADAM UPDATE ---
             this.adam.t++;
             const b1 = 0.9, b2 = 0.999, eps = 1e-8;
             const lr = CONFIG.training.learningRate;
@@ -971,47 +934,50 @@
             return loss;
         }
 
-        /**
-         * Generate sequence based on seed.
-         */
+        // FIXED: Better generation with EOS handling
         generate(seedIds, length = 50) {
-            const output = [];
-            let h = MathEngine.zeros(this.H);
-            
-            // Feed seed
-            for (const id of seedIds) {
-                const c = this.forward(id, h);
-                h = c.h_new;
-            }
-
-            let lastId = seedIds.length ? seedIds[seedIds.length - 1] : 2; // BOS if empty
-            
-            for (let i = 0; i < length; i++) {
-                const c = this.forward(lastId, h);
-                h = c.h_new;
-
-                const logits = c.logits.map(l => l / CONFIG.generation.temperature);
-                const probs = MathEngine.softmax(logits);
+            try {
+                const output = [];
+                let h = MathEngine.zeros(this.H);
                 
-                // Top-K Sampling
-                const sorted = probs.map((p, i) => ({p, i})).sort((a, b) => b.p - a.p);
-                const topK = sorted.slice(0, CONFIG.generation.topK);
-                const sumP = topK.reduce((a, b) => a + b.p, 0);
-                topK.forEach(x => x.p /= sumP);
-
-                let r = Math.random();
-                let nextId = topK[0].i;
-                for (const x of topK) {
-                    r -= x.p;
-                    if (r <= 0) { nextId = x.i; break; }
+                for (const id of seedIds) {
+                    const c = this.forward(id, h);
+                    h = c.h_new;
                 }
 
-                if (nextId === 3) break; // EOS
-                output.push(nextId);
-                lastId = nextId;
-            }
+                let lastId = seedIds.length ? seedIds[seedIds.length - 1] : 2;
+                
+                for (let i = 0; i < length; i++) {
+                    const c = this.forward(lastId, h);
+                    h = c.h_new;
 
-            return output;
+                    const logits = c.logits.map(l => l / CONFIG.generation.temperature);
+                    const probs = MathEngine.softmax(logits);
+                    
+                    const sorted = probs.map((p, i) => ({p, i})).sort((a, b) => b.p - a.p);
+                    const topK = sorted.slice(0, CONFIG.generation.topK);
+                    const sumP = topK.reduce((a, b) => a + b.p, 0);
+                    topK.forEach(x => x.p /= sumP);
+
+                    let r = Math.random();
+                    let nextId = topK[0].i;
+                    for (const x of topK) {
+                        r -= x.p;
+                        if (r <= 0) { nextId = x.i; break; }
+                    }
+
+                    output.push(nextId);
+                    
+                    if (nextId === 3) break;
+                    
+                    lastId = nextId;
+                }
+
+                return output;
+            } catch (e) {
+                console.error('Generation error:', e);
+                return [];
+            }
         }
 
         toJSON() {
@@ -1091,10 +1057,8 @@
             this.dom.progPct.textContent = pct + '%';
         }
 
-        // Fix Input: Only disable Send button
         setInputState(isModelReady) {
             this.dom.send.disabled = !isModelReady;
-            this.dom.input.disabled = false; // ALWAYS ENABLED
         }
 
         _initCanvasBg() {
@@ -1139,7 +1103,7 @@
     }
 
     // ========================================================================
-    // SECTION 6: APPLICATION MAIN
+    // SECTION 6: APPLICATION MAIN (FIXED)
     // ========================================================================
 
     class Application {
@@ -1158,7 +1122,6 @@
         }
 
         _bindEvents() {
-            // Send
             this.ui.dom.send.onclick = () => this._handleSend();
             this.ui.dom.input.onkeydown = e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -1167,11 +1130,9 @@
                 }
             };
 
-            // File
             this.ui.dom.dropZone.onclick = () => this.ui.dom.fileInput.click();
             this.ui.dom.fileInput.onchange = e => e.target.files.length && this._handleFile(e.target.files[0]);
 
-            // Controls
             this.ui.dom.btnPause.onclick = () => this._togglePause();
             this.ui.dom.btnSave.onclick = () => this._saveModel();
             this.ui.dom.btnLoad.onclick = () => {
@@ -1183,28 +1144,52 @@
             this.ui.dom.btnReset.onclick = () => this._reset();
         }
 
+        // FIXED: Better send handling
         _handleSend() {
             const text = this.ui.dom.input.value.trim();
-            if (!text || !this.net) return;
+            
+            if (!text) {
+                this.ui.log("Please enter a message", "warn");
+                return;
+            }
+            
+            if (!this.net || !this.tok) {
+                this.ui.log("Model not ready - load or train first", "warn");
+                return;
+            }
 
             this.ui.addMsg(text, true);
             this.ui.dom.input.value = '';
 
-            const ids = this.tok.encode(text);
-            const genIds = this.net.generate([2, ...ids], 50); // BOS + context
-            const resp = this.tok.decode(genIds);
-            
-            this.ui.addMsg(resp, false);
+            try {
+                const ids = this.tok.encode(text);
+                const genIds = this.net.generate([2, ...ids], 50);
+                
+                if (genIds.length === 0 || (genIds.length === 1 && genIds[0] === 3)) {
+                    this.ui.addMsg("...", false);
+                    this.ui.log("Model generated only EOS token", "warn");
+                } else {
+                    const resp = this.tok.decode(genIds.filter(id => id !== 3));
+                    this.ui.addMsg(resp || "...", false);
+                }
+            } catch (e) {
+                this.ui.addMsg("Error generating response", false);
+                this.ui.log("Generation error: " + e.message, "err");
+            }
         }
 
+        // FIXED: Better file handling
         async _handleFile(file) {
             this.ui.log(`Loading: ${file.name}`, "warn");
             
-            if (file.name.endsWith('.json')) {
-                // Load Model
-                try {
+            try {
+                if (file.name.endsWith('.json')) {
                     const text = await file.text();
                     const data = JSON.parse(text);
+                    
+                    if (!data.tokenizer || !data.network) {
+                        throw new Error('Invalid model file format');
+                    }
                     
                     this.tok = new Tokenizer();
                     this.tok.import(data.tokenizer);
@@ -1215,13 +1200,7 @@
                     this._setReady();
                     this.ui.addMsg("Model loaded successfully. Ready to chat.", false);
                     this.ui.log(`Model Loaded. Vocab: ${this.tok.size}`, "ok");
-                } catch (e) {
-                    this.ui.log("Failed to load model: " + e.message, "err");
-                    this.ui.setStatus("Error", "error");
-                }
-            } else {
-                // Train
-                try {
+                } else {
                     const text = await file.text();
                     
                     this.tok = new Tokenizer();
@@ -1231,36 +1210,41 @@
 
                     this.ui.setStatus("Processing Data...", "processing");
 
-                    // Create dataset sequences
                     const lines = text.split('\n').filter(l => l.trim().length > 10);
                     this.dataset = [];
                     for (const line of lines) {
                         const ids = this.tok.encode(line);
                         if (ids.length > 1) {
-                            this.dataset.push([2, ...ids, 3]); // BOS ... EOS
+                            this.dataset.push([2, ...ids, 3]);
                         }
+                    }
+                    
+                    if (this.dataset.length === 0) {
+                        throw new Error("No valid sequences found");
                     }
                     
                     this.net = new GRULayer(this.tok.size, CONFIG.architecture.hiddenSize);
                     this.trainPtr = 0;
                     this.isPaused = false;
 
-                    this._setReady(); // Enable UI immediately
+                    this._setReady();
                     
                     this.ui.addMsg(`Dataset ready. ${this.dataset.length} sequences found. Starting training...`, false);
                     this.ui.log(`Training started. ${this.dataset.length} sequences.`, "ok");
                     
                     this.isTraining = true;
                     this._runTraining();
-                } catch (e) {
-                    this.ui.addLog("Training Error: " + e.message, "err");
-                    this.ui.setStatus("Error", "error");
                 }
+            } catch (e) {
+                this.ui.log("Error: " + e.message, "err");
+                this.ui.setStatus("Error", "error");
+                this._setReady(); // Reset UI state
             }
         }
 
         async _runTraining() {
             if (!this.isTraining) return;
+            
             if (this.trainPtr >= this.dataset.length) {
                 this.ui.setStatus("Training Complete", "active");
                 this.ui.log("Training finished.", "ok");
@@ -1275,7 +1259,6 @@
                 return;
             }
 
-            // Batch Processing
             const end = Math.min(this.trainPtr + CONFIG.training.batchSize, this.dataset.length);
             let batchLoss = 0;
             
@@ -1285,18 +1268,31 @@
             
             this.trainPtr = end;
             
-            this.ui.updateMetrics(this.tok.size, this.net.globalStep, batchLoss / CONFIG.training.batchSize);
+            const avgLoss = batchLoss / CONFIG.training.batchSize;
+            this.ui.updateMetrics(this.tok.size, this.net.globalStep, avgLoss);
             this.ui.updateProgress(this.trainPtr, this.dataset.length);
             
-            // Yield to UI
             await new Promise(r => setTimeout(r, 0));
             requestAnimationFrame(() => this._runTraining());
         }
 
+        // FIXED: Safe state setting
         _setReady() {
-            this.ui.setStatus("Ready", "active");
-            this.ui.setInputState(true); // Enable Send Button, Unlock Input
-            this.ui.updateMetrics(this.tok.size, this.net ? this.net.globalStep : 0, 0);
+            const isReady = this.net && this.tok && this.tok.size > 0;
+            
+            if (isReady) {
+                this.ui.setStatus("Ready", "active");
+                this.ui.setInputState(true);
+                this.ui.updateMetrics(
+                    this.tok.size, 
+                    this.net.globalStep, 
+                    this.net.lossHistory.length ? this.net.lossHistory[this.net.lossHistory.length-1] : 0
+                );
+            } else {
+                this.ui.setStatus("Idle", "idle");
+                this.ui.setInputState(false);
+                this.ui.updateMetrics(0, 0, 0);
+            }
         }
 
         _togglePause() {
@@ -1306,34 +1302,47 @@
         }
 
         _saveModel() {
-            if (!this.net) return;
-            const data = {
-                tokenizer: this.tok.export(),
-                network: this.net.toJSON()
-            };
-            const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `gru-model-${Date.now()}.json`;
-            a.click();
-            this.ui.log("Model saved.", "ok");
+            if (!this.net || !this.tok) {
+                this.ui.log("No model to save", "warn");
+                return;
+            }
+            
+            try {
+                const data = {
+                    tokenizer: this.tok.export(),
+                    network: this.net.toJSON()
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `gru-model-${Date.now()}.json`;
+                a.click();
+                this.ui.log("Model saved.", "ok");
+            } catch (e) {
+                this.ui.log("Save failed: " + e.message, "err");
+            }
         }
 
         _reset() {
             if (!confirm("Destroy current model and reset?")) return;
-            this.net = null; this.tok = null; this.dataset = [];
+            
+            this.net = null;
+            this.tok = null;
+            this.dataset = [];
             this.isTraining = false;
+            this.isPaused = false;
+            this.trainPtr = 0;
+            
             this.ui.dom.chat.innerHTML = '';
-            this.ui.setStatus("Idle", "idle");
-            this.ui.setInputState(false);
-            this.ui.updateMetrics(0, 0, 0);
+            this.ui.addMsg("Ready. Load .txt to train or .json to load model.", false);
+            this._setReady();
+            this.ui.updateProgress(0, 0);
             this.ui.log("System Reset", "warn");
         }
     }
 
     // Initialize Application
     window.app = new Application();
-
 })();
 </script>
 </body>
