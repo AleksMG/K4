@@ -2855,7 +2855,7 @@
                 tokens[tokens.length - 1],
                 30,
                 CONFIG.TEMPERATURE,
-                true  // Reset state to prevent context leakage
+                false  // Reset state to prevent context leakage
             );
             
             const response = this.tokenizer.decode(generated);
