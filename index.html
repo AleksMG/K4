@@ -3,327 +3,1266 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neural Chat — Real RNN</title>
+    <title>Neural Chat — Production RNN</title>
     <style>
         :root {
-            --bg: #050505;
-            --bg2: #0a0a0a;
-            --text: #00ff99;
-            --muted: #666;
-            --border: #222;
-            --red: #ff3333;
-            --blue: #3399ff;
+            --bg-primary: #050505;
+            --bg-secondary: #0a0a0a;
+            --bg-tertiary: #111111;
+            --text-primary: #00ff99;
+            --text-secondary: #00cc77;
+            --text-muted: #666666;
+            --border-color: #222222;
+            --accent-green: #00ff99;
+            --accent-red: #ff3333;
+            --accent-blue: #3399ff;
+            --accent-yellow: #ffcc00;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Consolas', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 13px;
+            line-height: 1.5;
+            overflow: hidden;
             height: 100vh;
             display: flex;
-            overflow: hidden;
         }
-        .viz {
+
+        .main-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .visualization-panel {
             flex: 1;
-            background: radial-gradient(ellipse at center, #0d0d0d 0%, #000 100%);
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+            background: radial-gradient(ellipse at center, #0d0d0d 0%, #000000 100%);
             position: relative;
         }
-        #canvas { width: 100%; height: 100%; }
-        .overlay {
-            position: absolute; top: 20px; left: 20px;
-            background: rgba(0,0,0,0.7); border: 1px solid var(--border);
-            padding: 15px; border-radius: 4px;
+
+        .controls-panel {
+            width: 500px;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+            overflow: hidden;
         }
-        .stat { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
-        .stat-v { color: var(--text); }
-        .panel {
-            width: 450px; background: var(--bg2);
-            overflow-y: auto; padding: 20px;
+
+        #networkCanvas {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            display: block;
         }
-        h1 { font-size: 16px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
-        .ver { font-size: 11px; color: var(--muted); margin-bottom: 20px; }
-        .sec { margin-bottom: 25px; }
-        .sec-t {
-            font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
-            color: var(--muted); margin-bottom: 12px;
-            padding-bottom: 8px; border-bottom: 1px solid var(--border);
+
+        .canvas-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 4px;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
         }
+
+        .canvas-overlay h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        .stat-value {
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .panel-header h1 {
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .panel-header .version {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
         .btn {
-            background: transparent; border: 1px solid var(--text);
-            color: var(--text); padding: 10px 15px;
-            font-family: inherit; font-size: 12px; cursor: pointer;
-            width: 100%; margin-bottom: 8px; text-transform: uppercase;
+            background: transparent;
+            border: 1px solid var(--text-primary);
+            color: var(--text-primary);
+            padding: 12px 20px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+            margin-bottom: 8px;
+            border-radius: 4px;
         }
-        .btn:hover:not(:disabled) { background: var(--text); color: #000; }
-        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .btn-p { background: var(--text); color: #000; }
-        .btn-g { display: flex; gap: 8px; margin-bottom: 8px; }
-        .btn-g .btn { flex: 1; margin: 0; }
-        .drop {
-            border: 2px dashed var(--border); border-radius: 4px;
-            padding: 20px; text-align: center; cursor: pointer; margin-bottom: 10px;
+
+        .btn:hover:not(:disabled) {
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 255, 153, 0.3);
         }
-        .drop:hover { border-color: var(--text); }
-        .fi { display: none; }
-        .prog { height: 6px; background: #111; border-radius: 3px; overflow: hidden; margin-bottom: 15px; }
-        .prog-f { height: 100%; background: var(--text); width: 0%; transition: width 0.1s; }
-        .chat {
-            background: #000; border: 1px solid var(--border);
-            border-radius: 4px; padding: 15px; height: 200px;
-            overflow-y: auto; margin-bottom: 15px;
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
-        .msg { margin-bottom: 12px; max-width: 85%; }
-        .msg.u { margin-left: auto; text-align: right; }
-        .msg .r { font-size: 9px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-        .msg .c {
-            padding: 8px 12px; border-radius: 6px; display: inline-block;
-            background: rgba(0,255,153,0.1); border: 1px solid rgba(0,255,153,0.3);
+
+        .btn-primary {
+            background: var(--text-primary);
+            color: var(--bg-primary);
         }
-        .msg.u .c { background: rgba(51,153,255,0.15); border-color: rgba(51,153,255,0.3); }
-        .inp-r { display: flex; gap: 8px; margin-bottom: 15px; }
-        .inp-f {
-            flex: 1; background: #000; border: 1px solid var(--border);
-            color: var(--text); padding: 12px; font-family: inherit;
-            outline: none; border-radius: 4px;
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--text-secondary);
         }
-        .inp-f:focus { border-color: var(--text); }
-        .log {
-            background: #000; border: 1px solid var(--border);
-            border-radius: 4px; padding: 12px; height: 100px;
-            overflow-y: auto; font-size: 11px;
+
+        .btn-danger {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
         }
-        .log-e { margin-bottom: 4px; }
-        .log-e.err { color: var(--red); }
-        .log-e.ok { color: var(--text); }
-        .met {
-            background: #000; border: 1px solid var(--border);
-            border-radius: 4px; padding: 12px; margin-bottom: 15px; display: none;
+
+        .btn-danger:hover:not(:disabled) {
+            background: var(--accent-red);
+            color: var(--bg-primary);
         }
-        .met.show { display: block; }
-        .met-r { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; }
-        .err-b {
-            display: none; background: rgba(255,51,51,0.2);
-            border: 1px solid var(--red); color: var(--red);
-            padding: 15px; margin-bottom: 15px; border-radius: 4px;
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
         }
-        .err-b.show { display: block; }
+
+        .btn-group .btn {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .file-drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+            background: var(--bg-primary);
+        }
+
+        .file-drop-zone:hover {
+            border-color: var(--text-primary);
+            background: rgba(0, 255, 153, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .file-drop-zone.dragover {
+            border-color: var(--accent-green);
+            background: rgba(0, 255, 153, 0.1);
+            transform: scale(1.02);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-info {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .progress-container {
+            margin-bottom: 20px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--text-primary), var(--text-secondary));
+            width: 0%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 153, 0.5);
+        }
+
+        .chat-container {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            height: 250px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-message {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-width: 85%;
+            animation: messageSlide 0.3s ease;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .chat-message.snn {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .chat-message .role {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .chat-message.user .role {
+            background: rgba(51, 153, 255, 0.2);
+            color: var(--accent-blue);
+        }
+
+        .chat-message.snn .role {
+            background: rgba(0, 255, 153, 0.2);
+            color: var(--accent-green);
+        }
+
+        .chat-message .content {
+            font-size: 12px;
+            line-height: 1.5;
+            padding: 10px 14px;
+            border-radius: 8px;
+            word-break: break-word;
+        }
+
+        .chat-message.user .content {
+            background: rgba(51, 153, 255, 0.15);
+            border: 1px solid rgba(51, 153, 255, 0.3);
+        }
+
+        .chat-message.snn .content {
+            background: rgba(0, 255, 153, 0.1);
+            border: 1px solid rgba(0, 255, 153, 0.3);
+        }
+
+        .chat-message .timestamp {
+            font-size: 9px;
+            color: var(--text-muted);
+        }
+
+        .vocab-info {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .vocab-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .vocab-info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .vocab-info-label {
+            color: var(--text-muted);
+        }
+
+        .vocab-info-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .vocab-preview {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            max-height: 120px;
+            overflow-y: auto;
+            font-size: 10px;
+            font-family: monospace;
+        }
+
+        .vocab-preview-item {
+            display: inline-block;
+            background: var(--bg-tertiary);
+            padding: 3px 8px;
+            margin: 2px;
+            border-radius: 4px;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .log-container {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            height: 150px;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.6;
+            font-family: 'Consolas', monospace;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            word-break: break-word;
+            padding: 2px 0;
+        }
+
+        .log-entry.info {
+            color: var(--text-primary);
+        }
+
+        .log-entry.success {
+            color: var(--accent-green);
+        }
+
+        .log-entry.warning {
+            color: var(--accent-yellow);
+        }
+
+        .log-entry.error {
+            color: var(--accent-red);
+        }
+
+        .log-entry.system {
+            color: var(--text-muted);
+        }
+
+        .log-entry .timestamp {
+            color: var(--text-muted);
+            margin-right: 8px;
+            font-size: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-field {
+            flex: 1;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s;
+            border-radius: 6px;
+        }
+
+        .input-field:focus {
+            border-color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(0, 255, 153, 0.1);
+        }
+
+        .input-field:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .input-group .btn {
+            width: auto;
+            margin: 0;
+            padding: 12px 24px;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .setting-item {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .setting-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .setting-input {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: 12px;
+            outline: none;
+            border-radius: 4px;
+        }
+
+        .setting-input:focus {
+            border-color: var(--text-primary);
+        }
+
+        .network-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--text-primary);
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .stat-card .label {
+            font-size: 9px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .modal h2 {
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons .btn {
+            flex: 1;
+        }
+
+        .error-banner {
+            display: none;
+            background: rgba(255, 51, 51, 0.15);
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            font-size: 12px;
+            animation: errorShake 0.5s ease;
+        }
+
+        @keyframes errorShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .error-banner.visible {
+            display: block;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--text-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .training-metrics {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .training-metrics.visible {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 11px;
+        }
+
+        .metric-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+        }
+
+        .metric-value {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-family: 'Consolas', monospace;
+        }
+
+        .loss-bar {
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .loss-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-red), var(--accent-yellow), var(--accent-green));
+            width: 100%;
+            transition: width 0.5s ease;
+        }
     </style>
 </head>
 <body>
-    <div class="viz">
-        <canvas id="canvas"></canvas>
-        <div class="overlay">
-            <div class="stat"><span>Нейроны:</span><span class="stat-v" id="sNeurons">0</span></div>
-            <div class="stat"><span>Словарь:</span><span class="stat-v" id="sVocab">0</span></div>
-            <div class="stat"><span>Loss:</span><span class="stat-v" id="sLoss">-</span></div>
-            <div class="stat"><span>Эпоха:</span><span class="stat-v" id="sEpoch">0/0</span></div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Инициализация системы...</div>
+    </div>
+
+    <div class="main-container">
+        <div class="visualization-panel">
+            <canvas id="networkCanvas"></canvas>
+            <div class="canvas-overlay">
+                <h3>Активность нейросети</h3>
+                <div class="stat-row">
+                    <span>Активные нейроны:</span>
+                    <span class="stat-value" id="overlayActive">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>Возбуждающие:</span>
+                    <span class="stat-value" id="overlayExc">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>Тормозные:</span>
+                    <span class="stat-value" id="overlayInh">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>Частота спайков:</span>
+                    <span class="stat-value" id="overlayRate">0 Hz</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-panel">
+            <div class="panel-header">
+                <h1>Neural Chat</h1>
+                <div class="version">Production RNN v2.0 — Word-Level Architecture</div>
+            </div>
+
+            <div class="panel-content">
+                <div class="error-banner" id="errorBanner"></div>
+
+                <div class="section">
+                    <div class="section-title">📊 Статус системы</div>
+                    <div class="network-stats">
+                        <div class="stat-card">
+                            <div class="value" id="statNeurons">128</div>
+                            <div class="label">Нейроны</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value" id="statVocab">0</div>
+                            <div class="label">Словарь</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value" id="statLoss">-</div>
+                            <div class="label">Loss</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">📚 1. Загрузка датасета</div>
+                    <div class="file-drop-zone" id="datasetDropZone">
+                        <div style="font-size: 24px; margin-bottom: 10px;">📁</div>
+                        <div>Перетащите файл или нажмите для загрузки</div>
+                        <div class="file-info">.txt файл с диалогами (макс 10MB)</div>
+                        <input type="file" id="datasetInput" class="file-input" accept=".txt">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">📖 Словарь токенов</div>
+                    <div class="vocab-info">
+                        <div class="vocab-info-row">
+                            <span class="vocab-info-label">Всего токенов:</span>
+                            <span class="vocab-info-value" id="vocabTotal">0</span>
+                        </div>
+                        <div class="vocab-info-row">
+                            <span class="vocab-info-label">Уникальных слов:</span>
+                            <span class="vocab-info-value" id="vocabWords">0</span>
+                        </div>
+                        <div class="vocab-info-row">
+                            <span class="vocab-info-label">N-граммы:</span>
+                            <span class="vocab-info-value" id="vocabNgrams">0</span>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn" onclick="app.saveVocabulary()">💾 Сохранить</button>
+                        <button class="btn" onclick="document.getElementById('vocabInput').click()">📂 Загрузить</button>
+                        <input type="file" id="vocabInput" class="file-input" accept=".json">
+                    </div>
+                    <div class="vocab-preview" id="vocabPreview"></div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🎯 2. Обучение модели</div>
+                    <div class="training-metrics" id="trainingMetrics">
+                        <div class="metric-row">
+                            <span class="metric-label">Эпоха:</span>
+                            <span class="metric-value" id="metricEpoch">0/10</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Loss:</span>
+                            <span class="metric-value" id="metricLoss">0.000</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Точность:</span>
+                            <span class="metric-value" id="metricAcc">0%</span>
+                        </div>
+                        <div class="loss-bar">
+                            <div class="loss-fill" id="lossFill"></div>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Прогресс обучения</span>
+                            <span id="progressText">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressBar"></div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="btnTrain" onclick="app.train()" disabled>🚀 Обучить сеть</button>
+                        <button class="btn" onclick="app.stopTraining()" disabled id="btnStop">⏹ Стоп</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">💬 3. Интерактивный чат</div>
+                    <div class="chat-container" id="chatHistory">
+                        <div class="chat-message snn">
+                            <span class="role">Нейросеть</span>
+                            <span class="content">Система готова. Загрузите датасет для начала обучения.</span>
+                            <span class="timestamp">00:00:00</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" class="input-field" id="userInput" placeholder="Введите сообщение..." onkeydown="if(event.key==='Enter') app.sendMessage()">
+                        <button class="btn btn-primary" onclick="app.sendMessage()">➤</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">⚙️ Настройки модели</div>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <div class="setting-label">Размер скрытого слоя</div>
+                            <input type="number" class="setting-input" id="settingHidden" value="128" min="64" max="512">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">Длина последовательности</div>
+                            <input type="number" class="setting-input" id="settingSeq" value="20" min="10" max="50">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">Скорость обучения</div>
+                            <input type="number" class="setting-input" id="settingLr" value="0.01" step="0.001" min="0.001" max="0.1">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">Температура</div>
+                            <input type="number" class="setting-input" id="settingTemp" value="0.8" step="0.1" min="0.1" max="2.0">
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn" onclick="app.saveModel()">💾 Сохранить модель</button>
+                        <button class="btn" onclick="document.getElementById('modelInput').click()">📂 Загрузить модель</button>
+                        <input type="file" id="modelInput" class="file-input" accept=".json">
+                    </div>
+                    <button class="btn btn-danger" onclick="app.resetNetwork()">🔄 Полный сброс</button>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">📋 Системный лог</div>
+                    <div class="log-container" id="logOutput"></div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="panel">
-        <h1>Neural Chat</h1>
-        <div class="ver">Real RNN — Vanilla JS</div>
-
-        <div class="err-b" id="errB"></div>
-
-        <div class="sec">
-            <div class="sec-t">📚 1. Загрузи датасет</div>
-            <div class="drop" id="drop">
-                📁 Перетащи .txt файл или нажми
-                <div style="font-size:10px;color:#666;margin-top:5px">Формат: текст для обучения</div>
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2 id="modalTitle">Подтверждение</h2>
+            <div id="modalContent"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" id="modalConfirm">Подтвердить</button>
+                <button class="btn" id="modalCancel">Отмена</button>
             </div>
-            <input type="file" id="fi" class="fi" accept=".txt">
-        </div>
-
-        <div class="sec">
-            <div class="sec-t">🎯 2. Обучи сеть</div>
-            <div class="met" id="met">
-                <div class="met-r"><span>Эпоха:</span><span id="mEpoch">0/10</span></div>
-                <div class="met-r"><span>Loss:</span><span id="mLoss">0.000</span></div>
-                <div class="met-r"><span>Токенов:</span><span id="mTok">0</span></div>
-            </div>
-            <div class="prog"><div class="prog-f" id="prog"></div></div>
-            <div class="btn-g">
-                <button class="btn btn-p" id="bTrain" onclick="app.train()" disabled>Обучить</button>
-                <button class="btn" onclick="app.stop()" disabled id="bStop">Стоп</button>
-            </div>
-        </div>
-
-        <div class="sec">
-            <div class="sec-t">💬 3. Общайся</div>
-            <div class="chat" id="chat"></div>
-            <div class="inp-r">
-                <input type="text" class="inp-f" id="inp" placeholder="Введите сообщение..." onkeydown="if(event.key==='Enter')app.send()">
-                <button class="btn btn-p" style="width:auto;margin:0;" onclick="app.send()">➤</button>
-            </div>
-        </div>
-
-        <div class="sec">
-            <div class="sec-t">⚙️ Настройки</div>
-            <div class="btn-g">
-                <button class="btn" onclick="app.save()">💾 Сохранить</button>
-                <button class="btn" onclick="document.getElementById('mFi').click()">📂 Загрузить</button>
-                <input type="file" id="mFi" class="fi" accept=".json">
-            </div>
-            <button class="btn" style="border-color:var(--red);color:var(--red);" onclick="app.reset()">🔄 Сброс</button>
-        </div>
-
-        <div class="sec">
-            <div class="sec-t">📋 Лог</div>
-            <div class="log" id="log"></div>
         </div>
     </div>
 
 <script>
 /**
- * REAL RNN — CHARACTER LEVEL
+ * NEURAL CHAT — PRODUCTION RNN v2.0
  * 
  * Архитектура:
- * - Embedding слой
- * - RNN с Tanh активацией
+ * - Word-level токенизация с n-gram расширением
+ * - Embedding слой с обучаемыми весами
+ * - Vanilla RNN с Tanh активацией
  * - Output слой с Softmax
- * - Backpropagation Through Time
- * - SGD с momentum
+ * - Backpropagation Through Time (BPTT)
+ * - Adam оптимизатор с градиентным клиппингом
  * 
- * БЕЗ внешних библиотек. БЕЗ заглушек.
+ * Профессиональная реализация без упрощений
  */
 
-// ==================== КОНФИГ ====================
-const CFG = {
-    HIDDEN: 128,
-    SEQ: 50,
+// ==================== КОНФИГУРАЦИЯ ====================
+const CONFIG = {
+    HIDDEN_SIZE: 128,
+    SEQ_LENGTH: 20,
     EPOCHS: 10,
-    LR: 0.01,
-    TEMP: 0.8,
-    MOMENTUM: 0.9
+    LEARNING_RATE: 0.01,
+    TEMPERATURE: 0.8,
+    MAX_VOCAB: 2000,
+    MIN_WORD_LENGTH: 2,
+    MAX_WORD_LENGTH: 15,
+    MAX_BIGRAMS: 300,
+    MAX_FILE_SIZE: 10 * 1024 * 1024,
+    UI_UPDATE_INTERVAL: 20,
+    GRADIENT_CLIP: 5.0,
+    ADAM_BETA1: 0.9,
+    ADAM_BETA2: 0.999,
+    ADAM_EPS: 1e-8
 };
 
-// ==================== МАТЕМАТИКА ====================
-const M = {
-    randn() {
+// ==================== УТИЛИТЫ ====================
+const Utils = {
+    randomGaussian() {
         let u = 0, v = 0;
         while(u === 0) u = Math.random();
         while(v === 0) v = Math.random();
         return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     },
-    
-    softmax(a) {
-        const m = Math.max(...a);
-        const e = a.map(v => Math.exp(v - m));
-        const s = e.reduce((a, b) => a + b, 0);
-        return e.map(v => v / s);
+
+    softmax(arr) {
+        const max = Math.max(...arr);
+        const exps = arr.map(v => Math.exp(v - max));
+        const sum = exps.reduce((a, b) => a + b, 0);
+        return exps.map(e => e / sum);
     },
-    
-    sample(probs, temp) {
-        const s = probs.map(p => Math.pow(p, 1.0 / temp));
-        const sum = s.reduce((a, b) => a + b, 0);
-        const n = s.map(p => p / sum);
+
+    sample(probs, temperature) {
+        const scaled = probs.map(p => Math.pow(p, 1.0 / temperature));
+        const sum = scaled.reduce((a, b) => a + b, 0);
+        const normalized = scaled.map(p => p / sum);
+        
         let r = Math.random();
-        for (let i = 0; i < n.length; i++) {
-            r -= n[i];
+        for (let i = 0; i < normalized.length; i++) {
+            r -= normalized[i];
             if (r <= 0) return i;
         }
-        return n.length - 1;
+        return normalized.length - 1;
     },
-    
-    ts() { return new Date().toLocaleTimeString('ru-RU', {hour12: false}); }
+
+    timestamp() {
+        return new Date().toLocaleTimeString('ru-RU', {hour12: false});
+    },
+
+    formatNumber(num) {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toString();
+    },
+
+    debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func(...args), wait);
+        };
+    },
+
+    downloadJSON(data, filename) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    },
+
+    readFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(e);
+            reader.readAsText(file, 'utf-8');
+        });
+    },
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
 };
 
-// ==================== ТОКЕНИЗАТОР ====================
-class Tokenizer {
-    constructor() {
-        this.c2i = new Map();
-        this.i2c = new Map();
+// ==================== ЛОГГЕР ====================
+class Logger {
+    constructor(containerId, maxEntries = 500) {
+        this.containerId = containerId;
+        this.maxEntries = maxEntries;
     }
-    
-    build(text) {
-        const chars = new Set(text.toLowerCase().split(''));
-        let i = 0;
-        for (const c of chars) {
-            this.c2i.set(c, i);
-            this.i2c.set(i, c);
-            i++;
+
+    getContainer() {
+        return document.getElementById(this.containerId);
+    }
+
+    add(message, type = 'info') {
+        const container = this.getContainer();
+        if (!container) return;
+
+        const div = document.createElement('div');
+        div.className = `log-entry ${type}`;
+        div.innerHTML = `<span class="timestamp">[${Utils.timestamp()}]</span>${message}`;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+        
+        while (container.children.length > this.maxEntries) {
+            container.removeChild(container.firstChild);
         }
-        // Добавляем паддинг
-        if (!this.c2i.has('\n')) {
-            this.c2i.set('\n', i);
-            this.i2c.set(i, '\n');
-        }
     }
-    
-    enc(text) {
-        return text.toLowerCase().split('').map(c => this.c2i.get(c)).filter(i => i !== undefined);
-    }
-    
-    dec(arr) {
-        return arr.map(i => this.i2c.get(i) || '').join('');
-    }
-    
-    size() { return this.c2i.size; }
+
+    info(msg) { this.add(msg, 'info'); }
+    success(msg) { this.add(msg, 'success'); }
+    warning(msg) { this.add(msg, 'warning'); }
+    error(msg) { this.add(msg, 'error'); }
+    system(msg) { this.add(msg, 'system'); }
 }
 
-// ==================== RNN ЯЧЕЙКА ====================
-class RNN {
-    constructor(inputSize, hiddenSize, outputSize) {
-        this.inputSize = inputSize;
+// ==================== WORD-LEVEL ТОКЕНИЗАТОР ====================
+class WordTokenizer {
+    constructor(maxVocab = CONFIG.MAX_VOCAB) {
+        this.maxVocab = maxVocab;
+        this.wordToIdx = new Map();
+        this.idxToWord = new Map();
+        this.specialTokens = ['<pad>', '<unk>', '<start>', '<end>'];
+        this.stats = {
+            totalWords: 0,
+            uniqueWords: 0,
+            bigrams: 0,
+            trigrams: 0
+        };
+        this._initSpecialTokens();
+    }
+
+    _initSpecialTokens() {
+        for (let i = 0; i < this.specialTokens.length; i++) {
+            this.wordToIdx.set(this.specialTokens[i], i);
+            this.idxToWord.set(i, this.specialTokens[i]);
+        }
+    }
+
+    build(text) {
+        const normalized = text.toLowerCase().replace(/\s+/g, ' ').trim();
+        
+        // 1. Extract words
+        const wordRegex = new RegExp(`[а-яёa-z0-9]{${CONFIG.MIN_WORD_LENGTH},${CONFIG.MAX_WORD_LENGTH}}`, 'g');
+        const words = normalized.match(wordRegex) || [];
+        
+        this.stats.totalWords = words.length;
+        
+        // 2. Count word frequencies
+        const wordFreq = {};
+        for (const word of words) {
+            wordFreq[word] = (wordFreq[word] || 0) + 1;
+        }
+        
+        // 3. Sort by frequency and add to vocabulary
+        const sortedWords = Object.entries(wordFreq)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, this.maxVocab - this.specialTokens.length - CONFIG.MAX_BIGRAMS);
+        
+        for (const [word] of sortedWords) {
+            if (this.wordToIdx.size < this.maxVocab) {
+                const idx = this.wordToIdx.size;
+                this.wordToIdx.set(word, idx);
+                this.idxToWord.set(idx, word);
+            }
+        }
+        
+        this.stats.uniqueWords = this.wordToIdx.size - this.specialTokens.length;
+        
+        // 4. Add bigrams
+        const bigramFreq = {};
+        for (let i = 0; i < words.length - 1; i++) {
+            const bigram = `${words[i]}_${words[i+1]}`;
+            bigramFreq[bigram] = (bigramFreq[bigram] || 0) + 1;
+        }
+        
+        const sortedBigrams = Object.entries(bigramFreq)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, CONFIG.MAX_BIGRAMS);
+        
+        for (const [bigram] of sortedBigrams) {
+            if (this.wordToIdx.size < this.maxVocab && !this.wordToIdx.has(bigram)) {
+                const idx = this.wordToIdx.size;
+                this.wordToIdx.set(bigram, idx);
+                this.idxToWord.set(idx, bigram);
+                this.stats.bigrams++;
+            }
+        }
+        
+        return this.wordToIdx.size;
+    }
+
+    encode(text) {
+        const normalized = text.toLowerCase().replace(/\s+/g, ' ').trim();
+        const words = normalized.match(/[а-яёa-z0-9]{2,15}/g) || [];
+        
+        const tokens = [];
+        tokens.push(this.wordToIdx.get('<start>') || 2);
+        
+        for (const word of words) {
+            if (this.wordToIdx.has(word)) {
+                tokens.push(this.wordToIdx.get(word));
+            } else {
+                tokens.push(this.wordToIdx.get('<unk>') || 1);
+            }
+        }
+        
+        tokens.push(this.wordToIdx.get('<end>') || 3);
+        return tokens;
+    }
+
+    decode(tokenIds) {
+        if (!Array.isArray(tokenIds)) {
+            tokenIds = tokenIds !== -1 ? [tokenIds] : [];
+        }
+        
+        return tokenIds
+            .map(idx => {
+                const word = this.idxToWord.get(idx);
+                if (word === '<start>' || word === '<end>' || word === '<pad>' || word === '<unk>') {
+                    return '';
+                }
+                return word.replace(/_/g, ' ');
+            })
+            .filter(w => w)
+            .join(' ');
+    }
+
+    size() {
+        return this.wordToIdx.size;
+    }
+
+    getPreview(limit = 50) {
+        const preview = [];
+        let count = 0;
+        for (let i = 0; i < this.idxToWord.size && count < limit; i++) {
+            const word = this.idxToWord.get(i);
+            if (word && !word.startsWith('<')) {
+                preview.push({idx: i, word: word});
+                count++;
+            }
+        }
+        return preview;
+    }
+
+    toJSON() {
+        return {
+            wordToIdx: [...this.wordToIdx.entries()],
+            idxToWord: [...this.idxToWord.entries()],
+            specialTokens: this.specialTokens,
+            stats: {...this.stats},
+            maxVocab: this.maxVocab
+        };
+    }
+
+    fromJSON(data) {
+        this.wordToIdx = new Map(data.wordToIdx);
+        this.idxToWord = new Map(data.idxToWord);
+        this.specialTokens = data.specialTokens || ['<pad>', '<unk>', '<start>', '<end>'];
+        this.stats = data.stats || {totalWords: 0, uniqueWords: 0, bigrams: 0, trigrams: 0};
+        this.maxVocab = data.maxVocab || CONFIG.MAX_VOCAB;
+    }
+}
+
+// ==================== RNN МОДЕЛЬ ====================
+class RNNModel {
+    constructor(vocabSize, hiddenSize = CONFIG.HIDDEN_SIZE) {
+        this.vocabSize = vocabSize;
         this.hiddenSize = hiddenSize;
-        this.outputSize = outputSize;
+        this.inputSize = vocabSize;
+        this.outputSize = vocabSize;
         
-        // Инициализация весов (Xavier)
-        const s1 = Math.sqrt(2.0 / (inputSize + hiddenSize));
-        const s2 = Math.sqrt(2.0 / (hiddenSize + hiddenSize));
-        const s3 = Math.sqrt(2.0 / (hiddenSize + outputSize));
+        // Xavier initialization
+        const s1 = Math.sqrt(2.0 / (this.inputSize + this.hiddenSize));
+        const s2 = Math.sqrt(2.0 / (this.hiddenSize + this.hiddenSize));
+        const s3 = Math.sqrt(2.0 / (this.hiddenSize + this.outputSize));
         
-        // Wxh: input -> hidden
-        this.Wxh = this._mat(inputSize, hiddenSize, s1);
-        // Whh: hidden -> hidden
-        this.Whh = this._mat(hiddenSize, hiddenSize, s2);
-        // Why: hidden -> output
-        this.Why = this._mat(hiddenSize, outputSize, s3);
+        // Weights
+        this.Wxh = this._randomMatrix(this.inputSize, this.hiddenSize, s1);
+        this.Whh = this._randomMatrix(this.hiddenSize, this.hiddenSize, s2);
+        this.Why = this._randomMatrix(this.hiddenSize, this.outputSize, s3);
         
         // Biases
-        this.bh = Array(hiddenSize).fill(0);
-        this.by = Array(outputSize).fill(0);
+        this.bh = Array(this.hiddenSize).fill(0);
+        this.by = Array(this.outputSize).fill(0);
         
-        // Momentum
-        this.mWxh = this._zeros(inputSize, hiddenSize);
-        this.mWhh = this._zeros(hiddenSize, hiddenSize);
-        this.mWhy = this._zeros(hiddenSize, outputSize);
-        this.mbh = Array(hiddenSize).fill(0);
-        this.mby = Array(outputSize).fill(0);
+        // Adam optimizer state
+        this.mWxh = this._zeros(this.inputSize, this.hiddenSize);
+        this.mWhh = this._zeros(this.hiddenSize, this.hiddenSize);
+        this.mWhy = this._zeros(this.hiddenSize, this.outputSize);
+        this.mbh = Array(this.hiddenSize).fill(0);
+        this.mby = Array(this.outputSize).fill(0);
         
-        // Градиенты
-        this.dWxh = this._zeros(inputSize, hiddenSize);
-        this.dWhh = this._zeros(hiddenSize, hiddenSize);
-        this.dWhy = this._zeros(hiddenSize, outputSize);
-        this.dbh = Array(hiddenSize).fill(0);
-        this.dby = Array(outputSize).fill(0);
+        this.vWxh = this._zeros(this.inputSize, this.hiddenSize);
+        this.vWhh = this._zeros(this.hiddenSize, this.hiddenSize);
+        this.vWhy = this._zeros(this.hiddenSize, this.outputSize);
+        this.vbh = Array(this.hiddenSize).fill(0);
+        this.vby = Array(this.outputSize).fill(0);
         
-        this.h = Array(hiddenSize).fill(0);
+        this.hiddenState = Array(this.hiddenSize).fill(0);
+        this.timestep = 0;
     }
-    
-    _mat(r, c, s) {
-        return Array(r).fill(0).map(() => Array(c).fill(0).map(() => M.randn() * s));
+
+    _randomMatrix(rows, cols, scale) {
+        return Array(rows).fill(0).map(() => 
+            Array(cols).fill(0).map(() => Utils.randomGaussian() * scale)
+        );
     }
-    
-    _zeros(r, c) {
-        return Array(r).fill(0).map(() => Array(c).fill(0));
+
+    _zeros(rows, cols) {
+        return Array(rows).fill(0).map(() => Array(cols).fill(0));
     }
-    
-    forward(inputs) {
-        this.inputs = inputs;
+
+    forward(inputSequence) {
+        this.inputSequence = inputSequence;
         this.states = [];
-        let h = [...this.h];
+        let h = [...this.hiddenState];
         
-        for (let t = 0; t < inputs.length; t++) {
-            const x = inputs[t];
+        for (let t = 0; t < inputSequence.length; t++) {
+            const x = inputSequence[t];
             
-            // One-hot
+            // One-hot encoding
             const xVec = Array(this.inputSize).fill(0);
             xVec[x] = 1;
             
-            // Hidden state: h = tanh(Wxh * x + Whh * h_prev + bh)
+            // Hidden state: h = tanh(Wxh @ x + Whh @ h_prev + bh)
             const hNew = Array(this.hiddenSize).fill(0);
             for (let i = 0; i < this.hiddenSize; i++) {
                 let sum = this.bh[i];
@@ -337,7 +1276,7 @@ class RNN {
             }
             h = hNew;
             
-            // Output: y = Why * h + by
+            // Output: y = Why @ h + by
             const y = Array(this.outputSize).fill(0);
             for (let i = 0; i < this.outputSize; i++) {
                 let sum = this.by[i];
@@ -347,44 +1286,51 @@ class RNN {
                 y[i] = sum;
             }
             
-            this.states.push({ x: xVec, h: [...h], y });
+            this.states.push({
+                x: xVec,
+                hPrev: [...this.hiddenState],
+                h: [...h],
+                y: y
+            });
+            
+            this.hiddenState = [...h];
         }
         
-        this.h = [...h];
         return this.states;
     }
-    
-    backward(targets, lr) {
+
+    backward(targetSequence, learningRate) {
+        // Initialize gradients
+        const dWxh = this._zeros(this.inputSize, this.hiddenSize);
+        const dWhh = this._zeros(this.hiddenSize, this.hiddenSize);
+        const dWhy = this._zeros(this.hiddenSize, this.outputSize);
+        const dbh = Array(this.hiddenSize).fill(0);
+        const dby = Array(this.outputSize).fill(0);
+        
         let dhNext = Array(this.hiddenSize).fill(0);
-        let loss = 0;
+        let totalLoss = 0;
         
-        // Обнуляем градиенты
-        this.dWxh = this._zeros(this.inputSize, this.hiddenSize);
-        this.dWhh = this._zeros(this.hiddenSize, this.hiddenSize);
-        this.dWhy = this._zeros(this.hiddenSize, this.outputSize);
-        this.dbh = Array(this.hiddenSize).fill(0);
-        this.dby = Array(this.outputSize).fill(0);
-        
-        // Backprop through time
+        // Backpropagation Through Time (BPTT)
         for (let t = this.states.length - 1; t >= 0; t--) {
-            const s = this.states[t];
-            const target = targets[t];
+            const state = this.states[t];
+            const target = targetSequence[t];
             
-            // Softmax + Cross-entropy
-            const probs = M.softmax(s.y);
+            // Softmax + Cross-entropy gradient
+            const probs = Utils.softmax(state.y);
             const dy = [...probs];
             dy[target] -= 1;
-            loss += -Math.log(Math.max(probs[target], 1e-10));
             
-            // Градиенты output слоя
+            totalLoss += -Math.log(Math.max(probs[target], 1e-10));
+            
+            // Output layer gradients
             for (let i = 0; i < this.outputSize; i++) {
-                this.dby[i] += dy[i];
+                dby[i] += dy[i];
                 for (let j = 0; j < this.hiddenSize; j++) {
-                    this.dWhy[j][i] += dy[i] * s.h[j];
+                    dWhy[j][i] += dy[i] * state.h[j];
                 }
             }
             
-            // Градиент hidden слоя
+            // Hidden state gradient
             const dh = Array(this.hiddenSize).fill(0);
             for (let j = 0; j < this.hiddenSize; j++) {
                 for (let i = 0; i < this.outputSize; i++) {
@@ -394,20 +1340,20 @@ class RNN {
             }
             
             // Backprop through tanh
-            const dtanh = dh.map((v, i) => v * (1 - s.h[i] * s.h[i]));
+            const dtanh = dh.map((v, i) => v * (1 - state.h[i] * state.h[i]));
             
-            // Градиенты hidden слоя
+            // Hidden layer gradients
             for (let i = 0; i < this.hiddenSize; i++) {
-                this.dbh[i] += dtanh[i];
+                dbh[i] += dtanh[i];
                 for (let j = 0; j < this.inputSize; j++) {
-                    this.dWxh[j][i] += dtanh[i] * s.x[j];
+                    dWxh[j][i] += dtanh[i] * state.x[j];
                 }
                 for (let j = 0; j < this.hiddenSize; j++) {
-                    this.dWhh[j][i] += dtanh[i] * s.h[j];
+                    dWhh[j][i] += dtanh[i] * state.hPrev[j];
                 }
             }
             
-            // dhNext для следующего шага
+            // Gradient for previous hidden state
             dhNext = Array(this.hiddenSize).fill(0);
             for (let j = 0; j < this.hiddenSize; j++) {
                 for (let i = 0; i < this.hiddenSize; i++) {
@@ -417,68 +1363,85 @@ class RNN {
         }
         
         // Gradient clipping
-        this._clip(5.0);
+        this._clipGradients(dWxh, dWhh, dWhy, dbh, dby);
         
-        // SGD с momentum
-        this._update(lr);
+        // Adam optimizer update
+        this.timestep++;
+        this._adamUpdate(this.Wxh, dWxh, this.mWxh, this.vWxh, learningRate);
+        this._adamUpdate(this.Whh, dWhh, this.mWhh, this.vWhh, learningRate);
+        this._adamUpdate(this.Why, dWhy, this.mWhy, this.vWhy, learningRate);
+        this._adamUpdate1D(this.bh, dbh, this.mbh, this.vbh, learningRate);
+        this._adamUpdate1D(this.by, dby, this.mby, this.vby, learningRate);
         
-        return loss / this.states.length;
+        return totalLoss / this.states.length;
     }
-    
-    _clip(max) {
-        const grads = [this.dWxh, this.dWhh, this.dWhy];
-        for (const g of grads) {
-            for (let i = 0; i < g.length; i++) {
-                for (let j = 0; j < g[i].length; j++) {
-                    g[i][j] = Math.max(-max, Math.min(max, g[i][j]));
+
+    _clipGradients(dWxh, dWhh, dWhy, dbh, dby) {
+        const maxGrad = CONFIG.GRADIENT_CLIP;
+        
+        const clipMatrix = (mat) => {
+            for (let i = 0; i < mat.length; i++) {
+                for (let j = 0; j < mat[i].length; j++) {
+                    mat[i][j] = Math.max(-maxGrad, Math.min(maxGrad, mat[i][j]));
                 }
             }
-        }
-        for (let i = 0; i < this.dbh.length; i++) {
-            this.dbh[i] = Math.max(-max, Math.min(max, this.dbh[i]));
-            this.dby[i] = Math.max(-max, Math.min(max, this.dby[i]));
+        };
+        
+        const clipArray = (arr) => {
+            for (let i = 0; i < arr.length; i++) {
+                arr[i] = Math.max(-maxGrad, Math.min(maxGrad, arr[i]));
+            }
+        };
+        
+        clipMatrix(dWxh);
+        clipMatrix(dWhh);
+        clipMatrix(dWhy);
+        clipArray(dbh);
+        clipArray(dby);
+    }
+
+    _adamUpdate(W, dW, m, v, lr) {
+        const beta1 = CONFIG.ADAM_BETA1;
+        const beta2 = CONFIG.ADAM_BETA2;
+        const eps = CONFIG.ADAM_EPS;
+        
+        for (let i = 0; i < W.length; i++) {
+            for (let j = 0; j < W[i].length; j++) {
+                m[i][j] = beta1 * m[i][j] + (1 - beta1) * dW[i][j];
+                v[i][j] = beta2 * v[i][j] + (1 - beta2) * dW[i][j] * dW[i][j];
+                
+                const mHat = m[i][j] / (1 - Math.pow(beta1, this.timestep));
+                const vHat = v[i][j] / (1 - Math.pow(beta2, this.timestep));
+                
+                W[i][j] -= lr * mHat / (Math.sqrt(vHat) + eps);
+            }
         }
     }
-    
-    _update(lr) {
-        // Update weights с momentum
-        for (let i = 0; i < this.inputSize; i++) {
-            for (let j = 0; j < this.hiddenSize; j++) {
-                this.mWxh[i][j] = CFG.MOMENTUM * this.mWxh[i][j] - lr * this.dWxh[i][j];
-                this.Wxh[i][j] += this.mWxh[i][j];
-            }
-        }
+
+    _adamUpdate1D(b, db, m, v, lr) {
+        const beta1 = CONFIG.ADAM_BETA1;
+        const beta2 = CONFIG.ADAM_BETA2;
+        const eps = CONFIG.ADAM_EPS;
         
-        for (let i = 0; i < this.hiddenSize; i++) {
-            for (let j = 0; j < this.hiddenSize; j++) {
-                this.mWhh[i][j] = CFG.MOMENTUM * this.mWhh[i][j] - lr * this.dWhh[i][j];
-                this.Whh[i][j] += this.mWhh[i][j];
-            }
-        }
-        
-        for (let i = 0; i < this.hiddenSize; i++) {
-            for (let j = 0; j < this.outputSize; j++) {
-                this.mWhy[i][j] = CFG.MOMENTUM * this.mWhy[i][j] - lr * this.dWhy[i][j];
-                this.Why[i][j] += this.mWhy[i][j];
-            }
-        }
-        
-        for (let i = 0; i < this.hiddenSize; i++) {
-            this.mbh[i] = CFG.MOMENTUM * this.mbh[i] - lr * this.dbh[i];
-            this.bh[i] += this.mbh[i];
-            this.mby[i] = CFG.MOMENTUM * this.mby[i] - lr * this.dby[i];
-            this.by[i] += this.mby[i];
+        for (let i = 0; i < b.length; i++) {
+            m[i] = beta1 * m[i] + (1 - beta1) * db[i];
+            v[i] = beta2 * v[i] + (1 - beta2) * db[i] * db[i];
+            
+            const mHat = m[i] / (1 - Math.pow(beta1, this.timestep));
+            const vHat = v[i] / (1 - Math.pow(beta2, this.timestep));
+            
+            b[i] -= lr * mHat / (Math.sqrt(vHat) + eps);
         }
     }
-    
-    predict(lastIdx, count, temp) {
-        let h = [...this.h];
-        const out = [];
-        let idx = lastIdx;
+
+    predict(lastToken, count, temperature) {
+        let h = [...this.hiddenState];
+        const generated = [];
+        let currentToken = lastToken;
         
         for (let i = 0; i < count; i++) {
             const xVec = Array(this.inputSize).fill(0);
-            xVec[idx] = 1;
+            xVec[currentToken] = 1;
             
             const hNew = Array(this.hiddenSize).fill(0);
             for (let j = 0; j < this.hiddenSize; j++) {
@@ -502,341 +1465,619 @@ class RNN {
                 y[j] = sum;
             }
             
-            const probs = M.softmax(y);
-            idx = M.sample(probs, temp);
-            out.push(idx);
+            const probs = Utils.softmax(y);
+            currentToken = Utils.sample(probs, temperature);
+            generated.push(currentToken);
         }
         
-        this.h = [...h];
-        return out;
+        this.hiddenState = [...h];
+        return generated;
     }
-    
+
     reset() {
-        this.h = Array(this.hiddenSize).fill(0);
+        this.hiddenState = Array(this.hiddenSize).fill(0);
     }
-    
+
     toJSON() {
         return {
-            inputSize: this.inputSize,
+            vocabSize: this.vocabSize,
             hiddenSize: this.hiddenSize,
+            inputSize: this.inputSize,
             outputSize: this.outputSize,
-            Wxh: this.Wxh, Whh: this.Whh, Why: this.Why,
-            bh: this.bh, by: this.by
+            Wxh: this.Wxh,
+            Whh: this.Whh,
+            Why: this.Why,
+            bh: this.bh,
+            by: this.by,
+            timestep: this.timestep
         };
     }
-    
-    fromJSON(d) {
-        this.inputSize = d.inputSize;
-        this.hiddenSize = d.hiddenSize;
-        this.outputSize = d.outputSize;
-        this.Wxh = d.Wxh; this.Whh = d.Whh; this.Why = d.Why;
-        this.bh = d.bh; this.by = d.by;
+
+    fromJSON(data) {
+        this.vocabSize = data.vocabSize;
+        this.hiddenSize = data.hiddenSize;
+        this.inputSize = data.inputSize;
+        this.outputSize = data.outputSize;
+        this.Wxh = data.Wxh;
+        this.Whh = data.Whh;
+        this.Why = data.Why;
+        this.bh = data.bh;
+        this.by = data.by;
+        this.timestep = data.timestep || 0;
+        
+        // Reinitialize Adam state
         this.mWxh = this._zeros(this.inputSize, this.hiddenSize);
         this.mWhh = this._zeros(this.hiddenSize, this.hiddenSize);
         this.mWhy = this._zeros(this.hiddenSize, this.outputSize);
         this.mbh = Array(this.hiddenSize).fill(0);
         this.mby = Array(this.outputSize).fill(0);
+        this.vWxh = this._zeros(this.inputSize, this.hiddenSize);
+        this.vWhh = this._zeros(this.hiddenSize, this.hiddenSize);
+        this.vWhy = this._zeros(this.hiddenSize, this.outputSize);
+        this.vbh = Array(this.hiddenSize).fill(0);
+        this.vby = Array(this.outputSize).fill(0);
+        
         this.reset();
     }
 }
 
 // ==================== ПРИЛОЖЕНИЕ ====================
-class App {
+class NeuralChatApp {
     constructor() {
         this.tokenizer = null;
-        this.rnn = null;
-        this.data = null;
-        this.training = false;
-        this.canvas = document.getElementById('canvas');
+        this.model = null;
+        this.trainingData = null;
+        this.encodedData = null;
+        this.isTraining = false;
+        this.canvas = document.getElementById('networkCanvas');
         this.ctx = this.canvas.getContext('2d');
+        this.logger = new Logger('logOutput');
+        this.neuronPositions = [];
         
-        this._setup();
-        this._draw();
+        this._initialize();
     }
-    
-    _setup() {
+
+    async _initialize() {
+        try {
+            this._setupCanvas();
+            this._setupEventListeners();
+            this._startVisualization();
+            this._startNetworkLoop();
+            
+            this.logger.system('Neural Chat v2.0 инициализирована');
+            this.logger.info('Система готова к работе');
+            
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        } catch (error) {
+            console.error('Initialization error:', error);
+            this._showError(`Ошибка инициализации: ${error.message}`);
+        }
+    }
+
+    _setupCanvas() {
         this.canvas.width = this.canvas.parentElement.clientWidth;
         this.canvas.height = this.canvas.parentElement.clientHeight;
         
-        const drop = document.getElementById('drop');
-        const fi = document.getElementById('fi');
-        
-        drop.onclick = () => fi.click();
-        drop.ondragover = e => { e.preventDefault(); drop.style.borderColor = '#00ff99'; };
-        drop.ondragleave = () => { drop.style.borderColor = '#222'; };
-        drop.ondrop = e => {
-            e.preventDefault();
-            drop.style.borderColor = '#222';
-            if (e.dataTransfer.files[0]) this._load(e.dataTransfer.files[0]);
-        };
-        
-        fi.onchange = e => {
-            if (e.target.files[0]) this._load(e.target.files[0]);
-        };
-        
-        document.getElementById('mFi').onchange = e => {
-            if (e.target.files[0]) this._loadModel(e.target.files[0]);
-        };
-        
-        this._log('Готов. Загрузи файл для начала.', 'ok');
+        window.addEventListener('resize', Utils.debounce(() => {
+            this.canvas.width = this.canvas.parentElement.clientWidth;
+            this.canvas.height = this.canvas.parentElement.clientHeight;
+            this._generateNeuronPositions();
+        }, 200));
     }
-    
-    _draw() {
-        const ctx = this.ctx;
-        const w = this.canvas.width;
-        const h = this.canvas.height;
+
+    _setupEventListeners() {
+        const datasetInput = document.getElementById('datasetInput');
+        const datasetDropZone = document.getElementById('datasetDropZone');
         
-        ctx.fillStyle = 'rgba(5,5,5,0.3)';
-        ctx.fillRect(0, 0, w, h);
+        datasetInput.addEventListener('change', (e) => this._handleDatasetUpload(e.target.files[0]));
         
-        if (this.rnn && this.rnn.h) {
-            const n = this.rnn.hiddenSize;
-            const cx = w / 2;
-            const cy = h / 2;
-            const r = Math.min(w, h) * 0.35;
-            
-            for (let i = 0; i < n; i++) {
-                const a = (i / n) * Math.PI * 2;
-                const x = cx + Math.cos(a) * r;
-                const y = cy + Math.sin(a) * r;
-                const act = Math.abs(this.rnn.h[i]);
-                const b = Math.min(1, act * 2);
-                
-                ctx.beginPath();
-                ctx.arc(x, y, 3, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(0, 255, 153, ${0.3 + b * 0.7})`;
-                ctx.fill();
+        datasetDropZone.addEventListener('click', () => datasetInput.click());
+        datasetDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            datasetDropZone.classList.add('dragover');
+        });
+        datasetDropZone.addEventListener('dragleave', () => {
+            datasetDropZone.classList.remove('dragover');
+        });
+        datasetDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            datasetDropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                this._handleDatasetUpload(e.dataTransfer.files[0]);
             }
+        });
+        
+        document.getElementById('vocabInput').addEventListener('change', (e) => {
+            this._loadVocabulary(e.target.files[0]);
+            e.target.value = '';
+        });
+        
+        document.getElementById('modelInput').addEventListener('change', (e) => {
+            this._loadModel(e.target.files[0]);
+            e.target.value = '';
+        });
+        
+        document.getElementById('settingHidden').addEventListener('change', (e) => {
+            CONFIG.HIDDEN_SIZE = parseInt(e.target.value);
+        });
+        
+        document.getElementById('settingSeq').addEventListener('change', (e) => {
+            CONFIG.SEQ_LENGTH = parseInt(e.target.value);
+        });
+        
+        document.getElementById('settingLr').addEventListener('change', (e) => {
+            CONFIG.LEARNING_RATE = parseFloat(e.target.value);
+        });
+        
+        document.getElementById('settingTemp').addEventListener('change', (e) => {
+            CONFIG.TEMPERATURE = parseFloat(e.target.value);
+        });
+    }
+
+    async _handleDatasetUpload(file) {
+        if (!file) return;
+        
+        if (file.size > CONFIG.MAX_FILE_SIZE) {
+            this._showError(`Файл слишком большой: ${(file.size / 1024 / 1024).toFixed(2)}MB (макс 10MB)`);
+            return;
         }
         
-        requestAnimationFrame(() => this._draw());
-    }
-    
-    async _load(file) {
         try {
-            const text = await file.text();
-            if (text.length < 100) {
-                this._err('Мало данных (минимум 100 символов)');
+            this.logger.info(`Загрузка файла: ${file.name}`);
+            const content = await Utils.readFile(file);
+            
+            if (content.length < 100) {
+                this._showError('Датасет слишком мал (минимум 100 символов)');
                 return;
             }
             
-            this.data = text;
-            this._log(`Загружено: ${file.name}`, 'ok');
-            this._log(`Символов: ${text.length.toLocaleString()}`);
+            this.trainingData = content;
             
-            // Создаём токенизатор ПОСЛЕ загрузки данных
-            this.tokenizer = new Tokenizer();
-            this.tokenizer.build(text);
+            // Create tokenizer and build vocabulary
+            this.tokenizer = new WordTokenizer();
+            const vocabSize = this.tokenizer.build(content);
             
-            // Создаём модель ПОСЛЕ токенизатора
-            const vocabSize = this.tokenizer.size();
-            this.rnn = new RNN(vocabSize, CFG.HIDDEN, vocabSize);
+            this.logger.success(`Словарь создан: ${vocabSize} токенов`);
+            this.logger.info(`Уникальных слов: ${this.tokenizer.stats.uniqueWords}`);
+            this.logger.info(`Биграмм: ${this.tokenizer.stats.bigrams}`);
             
-            this._log(`Словарь: ${vocabSize} символов`, 'ok');
-            this._log(`Нейронов: ${CFG.HIDDEN}`);
+            // Encode dataset once
+            this.encodedData = this.tokenizer.encode(content);
+            this.logger.info(`Закодировано токенов: ${this.encodedData.length}`);
             
-            document.getElementById('sVocab').textContent = vocabSize;
-            document.getElementById('sNeurons').textContent = CFG.HIDDEN;
-            document.getElementById('bTrain').disabled = false;
+            // Create model
+            this.model = new RNNModel(vocabSize, CONFIG.HIDDEN_SIZE);
             
-            this._addChat('system', `Датасет загружен. Словарь: ${vocabSize} символов. Нажми "Обучить".`);
-        } catch (e) {
-            this._err(e.message);
+            // Update UI
+            this._updateVocabStats();
+            this._updateVocabPreview();
+            document.getElementById('statVocab').textContent = vocabSize;
+            document.getElementById('btnTrain').disabled = false;
+            
+            this._addChatMessage('snn', `Датасет загружен. Словарь: ${vocabSize} токенов. Нажмите "Обучить сеть" для начала обучения.`);
+            
+        } catch (error) {
+            this._showError(`Ошибка загрузки: ${error.message}`);
         }
     }
-    
+
     async train() {
-        if (!this.data || !this.rnn) {
-            this._err('Сначала загрузи датасет');
-            return;
-        }
-        if (this.training) {
-            this._err('Обучение уже идёт');
+        if (!this.trainingData || !this.model) {
+            this._showError('Сначала загрузите датасет');
             return;
         }
         
-        this.training = true;
-        document.getElementById('bTrain').disabled = true;
-        document.getElementById('bStop').disabled = false;
-        document.getElementById('met').classList.add('show');
+        if (this.isTraining) {
+            this._showError('Обучение уже выполняется');
+            return;
+        }
         
-        this._log('════════════════════');
-        this._log('🚀 ОБУЧЕНИЕ', 'ok');
-        this._log('════════════════════');
+        this.isTraining = true;
+        document.getElementById('btnTrain').disabled = true;
+        document.getElementById('btnStop').disabled = false;
+        document.getElementById('trainingMetrics').classList.add('visible');
         
-        const tokens = this.tokenizer.enc(this.data);
-        this._log(`Токенов: ${tokens.length.toLocaleString()}`);
+        this.logger.info('═══════════════════════════════════════');
+        this.logger.info('🚀 НАЧАЛО ОБУЧЕНИЯ');
+        this.logger.info('═══════════════════════════════════════');
+        this.logger.info(`Эпох: ${CONFIG.EPOCHS}`);
+        this.logger.info(`Длина последовательности: ${CONFIG.SEQ_LENGTH}`);
+        this.logger.info(`Скорость обучения: ${CONFIG.LEARNING_RATE}`);
+        this.logger.info(`Всего токенов: ${this.encodedData.length}`);
         
         let totalLoss = 0;
-        let steps = 0;
+        let totalSteps = 0;
+        let totalCorrect = 0;
+        let totalPredictions = 0;
         
-        for (let epoch = 0; epoch < CFG.EPOCHS && this.training; epoch++) {
+        for (let epoch = 0; epoch < CONFIG.EPOCHS && this.isTraining; epoch++) {
             let epochLoss = 0;
             let epochSteps = 0;
+            let epochCorrect = 0;
+            let epochPredictions = 0;
             
-            for (let i = 0; i < tokens.length - CFG.SEQ && this.training; i += CFG.SEQ) {
-                const seq = tokens.slice(i, i + CFG.SEQ + 1);
+            // Process sequences
+            for (let i = 0; i < this.encodedData.length - CONFIG.SEQ_LENGTH && this.isTraining; i += CONFIG.SEQ_LENGTH) {
+                const sequence = this.encodedData.slice(i, i + CONFIG.SEQ_LENGTH + 1);
                 
-                this.rnn.reset();
-                this.rnn.forward(seq.slice(0, CFG.SEQ));
-                const loss = this.rnn.backward(seq.slice(1), CFG.LR);
+                this.model.reset();
+                this.model.forward(sequence.slice(0, CONFIG.SEQ_LENGTH));
+                const loss = this.model.backward(sequence.slice(1), CONFIG.LEARNING_RATE);
+                
+                // Calculate accuracy
+                const predictions = this.model.states.map(s => {
+                    const probs = Utils.softmax(s.y);
+                    return probs.indexOf(Math.max(...probs));
+                });
+                
+                for (let j = 0; j < predictions.length; j++) {
+                    if (predictions[j] === sequence[j + 1]) {
+                        epochCorrect++;
+                    }
+                    epochPredictions++;
+                }
                 
                 epochLoss += loss;
                 epochSteps++;
                 totalLoss += loss;
-                steps++;
+                totalSteps++;
                 
-                // UI update
-                if (epochSteps % 20 === 0) {
-                    const avg = epochLoss / epochSteps;
-                    document.getElementById('mEpoch').textContent = `${epoch + 1}/${CFG.EPOCHS}`;
-                    document.getElementById('mLoss').textContent = avg.toFixed(3);
-                    document.getElementById('mTok').textContent = steps.toLocaleString();
-                    document.getElementById('sLoss').textContent = avg.toFixed(3);
-                    document.getElementById('sEpoch').textContent = `${epoch + 1}/${CFG.EPOCHS}`;
-                    document.getElementById('prog').style.width = `${((epoch + 1) / CFG.EPOCHS) * 100}%`;
+                // Update UI periodically
+                if (epochSteps % 10 === 0) {
+                    const avgLoss = epochLoss / epochSteps;
+                    const accuracy = epochPredictions > 0 ? (epochCorrect / epochPredictions * 100) : 0;
                     
-                    await new Promise(r => setTimeout(r, 10));
+                    this._updateTrainingMetrics(epoch + 1, avgLoss, accuracy);
+                    await Utils.sleep(CONFIG.UI_UPDATE_INTERVAL);
                 }
             }
             
-            const avg = epochLoss / Math.max(epochSteps, 1);
-            this._log(`✅ Эпоха ${epoch + 1} | Loss: ${avg.toFixed(3)}`, 'ok');
+            const avgEpochLoss = epochLoss / Math.max(epochSteps, 1);
+            const epochAccuracy = epochPredictions > 0 ? (epochCorrect / epochPredictions * 100) : 0;
+            
+            this.logger.success(`✅ Эпоха ${epoch + 1}/${CONFIG.EPOCHS} | Loss: ${avgEpochLoss.toFixed(3)} | Accuracy: ${epochAccuracy.toFixed(1)}%`);
         }
         
-        this.training = false;
-        document.getElementById('bTrain').disabled = false;
-        document.getElementById('bStop').disabled = true;
+        this.isTraining = false;
+        document.getElementById('btnTrain').disabled = false;
+        document.getElementById('btnStop').disabled = true;
         
-        const avg = totalLoss / Math.max(steps, 1);
-        this._log('════════════════════');
-        this._log(`✅ ГОТОВО | Loss: ${avg.toFixed(3)}`, 'ok');
-        this._log('════════════════════');
+        const finalLoss = totalLoss / Math.max(totalSteps, 1);
+        const finalAccuracy = totalPredictions > 0 ? (totalCorrect / totalPredictions * 100) : 0;
         
-        this._addChat('system', `Обучено! Loss: ${avg.toFixed(3)}. Можешь общаться.`);
+        this.logger.info('═══════════════════════════════════════');
+        this.logger.success('🎉 ОБУЧЕНИЕ ЗАВЕРШЕНО');
+        this.logger.success(`Final Loss: ${finalLoss.toFixed(3)}`);
+        this.logger.success(`Final Accuracy: ${finalAccuracy.toFixed(1)}%`);
+        this.logger.info('═══════════════════════════════════════');
+        
+        document.getElementById('statLoss').textContent = finalLoss.toFixed(3);
+        
+        this._addChatMessage('snn', `Обучение завершено! Loss: ${finalLoss.toFixed(3)}, Accuracy: ${finalAccuracy.toFixed(1)}%. Я готов к общению.`);
     }
-    
-    stop() {
-        if (this.training) {
-            this.training = false;
-            this._log('⏹ Остановлено');
+
+    stopTraining() {
+        if (this.isTraining) {
+            this.isTraining = false;
+            this.logger.warning('⏹ Обучение остановлено пользователем');
+            document.getElementById('btnTrain').disabled = false;
+            document.getElementById('btnStop').disabled = true;
         }
     }
-    
-    async send() {
-        const inp = document.getElementById('inp');
-        const text = inp.value.trim();
-        if (!text || !this.rnn) return;
+
+    async sendMessage() {
+        const input = document.getElementById('userInput');
+        const text = input.value.trim();
         
-        this._addChat('user', text);
-        inp.value = '';
-        
-        const tokens = this.tokenizer.enc(text + '\n');
-        
-        this.rnn.reset();
-        this.rnn.forward(tokens);
-        
-        const gen = this.rnn.predict(tokens[tokens.length - 1], 80, CFG.TEMP);
-        const resp = this.tokenizer.dec(gen);
-        
-        const clean = resp.split('\n')[0].slice(0, 200);
-        this._addChat('snn', clean || '...');
-    }
-    
-    _addChat(role, content) {
-        const box = document.getElementById('chat');
-        const div = document.createElement('div');
-        div.className = `msg ${role === 'user' ? 'u' : ''}`;
-        div.innerHTML = `<div class="r">${role === 'user' ? 'Вы' : 'Нейросеть'}</div><div class="c">${content}</div>`;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
-    }
-    
-    _log(msg, type = '') {
-        const box = document.getElementById('log');
-        const div = document.createElement('div');
-        div.className = `log-e ${type === 'ok' ? 'ok' : ''} ${type === 'err' ? 'err' : ''}`;
-        div.textContent = `[${M.ts()}] ${msg}`;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
-    }
-    
-    _err(msg) {
-        const b = document.getElementById('errB');
-        b.textContent = msg;
-        b.classList.add('show');
-        setTimeout(() => b.classList.remove('show'), 5000);
-        this._log(msg, 'err');
-    }
-    
-    save() {
-        if (!this.rnn) {
-            this._err('Нет модели для сохранения');
+        if (!text || !this.model) {
+            if (!this.model) {
+                this._showError('Сначала обучите модель');
+            }
             return;
         }
-        const d = {
-            rnn: this.rnn.toJSON(),
-            tokenizer: {
-                c2i: [...this.tokenizer.c2i.entries()],
-                i2c: [...this.tokenizer.i2c.entries()]
-            },
-            cfg: CFG
+        
+        this._addChatMessage('user', text);
+        input.value = '';
+        input.disabled = true;
+        
+        const tokens = this.tokenizer.encode(text);
+        
+        this.model.reset();
+        this.model.forward(tokens);
+        
+        const generated = this.model.predict(
+            tokens[tokens.length - 1],
+            30,
+            CONFIG.TEMPERATURE
+        );
+        
+        const response = this.tokenizer.decode(generated);
+        
+        this._addChatMessage('snn', response || '...');
+        input.disabled = false;
+        input.focus();
+    }
+
+    _updateTrainingMetrics(epoch, loss, accuracy) {
+        document.getElementById('metricEpoch').textContent = `${epoch}/${CONFIG.EPOCHS}`;
+        document.getElementById('metricLoss').textContent = loss.toFixed(3);
+        document.getElementById('metricAcc').textContent = `${accuracy.toFixed(1)}%`;
+        document.getElementById('sEpoch').textContent = `${epoch}/${CONFIG.EPOCHS}`;
+        document.getElementById('sLoss').textContent = loss.toFixed(3);
+        
+        const progress = (epoch / CONFIG.EPOCHS) * 100;
+        document.getElementById('progressBar').style.width = `${progress}%`;
+        document.getElementById('progressText').textContent = `${progress.toFixed(1)}%`;
+        
+        const lossPercent = Math.min(100, Math.max(0, (loss / 10) * 100));
+        document.getElementById('lossFill').style.width = `${100 - lossPercent}%`;
+    }
+
+    _updateVocabStats() {
+        const stats = this.tokenizer.stats;
+        document.getElementById('vocabTotal').textContent = this.tokenizer.size();
+        document.getElementById('vocabWords').textContent = stats.uniqueWords;
+        document.getElementById('vocabNgrams').textContent = stats.bigrams;
+    }
+
+    _updateVocabPreview() {
+        const preview = this.tokenizer.getPreview(30);
+        const container = document.getElementById('vocabPreview');
+        container.innerHTML = preview
+            .map(item => `<span class="vocab-preview-item">#${item.idx}:"${item.word}"</span>`)
+            .join('');
+    }
+
+    _addChatMessage(role, content) {
+        const container = document.getElementById('chatHistory');
+        const div = document.createElement('div');
+        div.className = `chat-message ${role}`;
+        
+        const timestamp = Utils.timestamp();
+        div.innerHTML = `
+            <span class="role">${role === 'user' ? 'Вы' : 'Нейросеть'}</span>
+            <span class="content">${content}</span>
+            <span class="timestamp">${timestamp}</span>
+        `;
+        
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+        
+        while (container.children.length > 100) {
+            container.removeChild(container.firstChild);
+        }
+    }
+
+    _showError(message) {
+        const banner = document.getElementById('errorBanner');
+        banner.textContent = message;
+        banner.classList.add('visible');
+        
+        setTimeout(() => {
+            banner.classList.remove('visible');
+        }, 5000);
+        
+        this.logger.error(message);
+    }
+
+    saveVocabulary() {
+        if (!this.tokenizer) {
+            this._showError('Нет словаря для сохранения');
+            return;
+        }
+        
+        const data = this.tokenizer.toJSON();
+        Utils.downloadJSON(data, `vocab_${new Date().toISOString().slice(0,10)}.json`);
+        this.logger.success('Словарь сохранён');
+    }
+
+    _loadVocabulary(file) {
+        if (!file) return;
+        
+        Utils.readFile(file)
+            .then(content => {
+                const data = JSON.parse(content);
+                this.tokenizer = new WordTokenizer();
+                this.tokenizer.fromJSON(data);
+                
+                this.logger.success(`Словарь загружен: ${this.tokenizer.size()} токенов`);
+                this._updateVocabStats();
+                this._updateVocabPreview();
+                document.getElementById('statVocab').textContent = this.tokenizer.size();
+            })
+            .catch(error => {
+                this._showError(`Ошибка загрузки словаря: ${error.message}`);
+            });
+    }
+
+    saveModel() {
+        if (!this.model || !this.tokenizer) {
+            this._showError('Нет модели для сохранения');
+            return;
+        }
+        
+        const data = {
+            model: this.model.toJSON(),
+            tokenizer: this.tokenizer.toJSON(),
+            config: {
+                HIDDEN_SIZE: CONFIG.HIDDEN_SIZE,
+                SEQ_LENGTH: CONFIG.SEQ_LENGTH,
+                LEARNING_RATE: CONFIG.LEARNING_RATE,
+                TEMPERATURE: CONFIG.TEMPERATURE
+            }
         };
-        const blob = new Blob([JSON.stringify(d)], {type: 'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `model_${new Date().toISOString().slice(0,10)}.json`;
-        a.click();
-        this._log('Модель сохранена', 'ok');
+        
+        Utils.downloadJSON(data, `model_${new Date().toISOString().slice(0,10)}.json`);
+        this.logger.success('Модель сохранена');
     }
-    
-    async _loadModel(file) {
-        try {
-            const text = await file.text();
-            const d = JSON.parse(text);
-            
-            this.tokenizer = new Tokenizer();
-            this.tokenizer.c2i = new Map(d.tokenizer.c2i);
-            this.tokenizer.i2c = new Map(d.tokenizer.i2c);
-            
-            this.rnn = new RNN(0, 0, 0);
-            this.rnn.fromJSON(d.rnn);
-            
-            Object.assign(CFG, d.cfg);
-            
-            this._log('Модель загружена', 'ok');
-            this._log(`Словарь: ${this.tokenizer.size()} символов`);
-            
-            document.getElementById('sVocab').textContent = this.tokenizer.size();
-            document.getElementById('sNeurons').textContent = CFG.HIDDEN;
-            document.getElementById('bTrain').disabled = false;
-            document.getElementById('sLoss').textContent = '-';
-            document.getElementById('sEpoch').textContent = '0/0';
-            
-            this._addChat('system', 'Модель загружена. Можешь общаться.');
-        } catch (e) {
-            this._err(e.message);
+
+    _loadModel(file) {
+        if (!file) return;
+        
+        Utils.readFile(file)
+            .then(content => {
+                const data = JSON.parse(content);
+                
+                this.tokenizer = new WordTokenizer();
+                this.tokenizer.fromJSON(data.tokenizer);
+                
+                this.model = new RNNModel(0, 0);
+                this.model.fromJSON(data.model);
+                
+                if (data.config) {
+                    CONFIG.HIDDEN_SIZE = data.config.HIDDEN_SIZE || CONFIG.HIDDEN_SIZE;
+                    CONFIG.SEQ_LENGTH = data.config.SEQ_LENGTH || CONFIG.SEQ_LENGTH;
+                    CONFIG.LEARNING_RATE = data.config.LEARNING_RATE || CONFIG.LEARNING_RATE;
+                    CONFIG.TEMPERATURE = data.config.TEMPERATURE || CONFIG.TEMPERATURE;
+                }
+                
+                this.logger.success('Модель загружена');
+                this.logger.info(`Словарь: ${this.tokenizer.size()} токенов`);
+                this.logger.info(`Нейронов: ${this.model.hiddenSize}`);
+                
+                this._updateVocabStats();
+                this._updateVocabPreview();
+                document.getElementById('statVocab').textContent = this.tokenizer.size();
+                document.getElementById('statNeurons').textContent = this.model.hiddenSize;
+                document.getElementById('btnTrain').disabled = false;
+                
+                this._addChatMessage('snn', 'Модель загружена. Я готов к общению.');
+            })
+            .catch(error => {
+                this._showError(`Ошибка загрузки модели: ${error.message}`);
+            });
+    }
+
+    resetNetwork() {
+        this._showModal(
+            'Сброс системы',
+            'Все данные будут удалены. Продолжить?',
+            () => {
+                this.model = null;
+                this.tokenizer = null;
+                this.trainingData = null;
+                this.encodedData = null;
+                
+                document.getElementById('btnTrain').disabled = true;
+                document.getElementById('statVocab').textContent = '0';
+                document.getElementById('statLoss').textContent = '-';
+                document.getElementById('vocabPreview').innerHTML = '';
+                document.getElementById('trainingMetrics').classList.remove('visible');
+                document.getElementById('progressBar').style.width = '0%';
+                
+                this.logger.info('Система сброшена');
+                this._addChatMessage('snn', 'Система сброшена. Загрузите новый датасет.');
+                
+                this._hideModal();
+            }
+        );
+    }
+
+    _showModal(title, content, onConfirm) {
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalContent').textContent = content;
+        document.getElementById('modalOverlay').classList.add('active');
+        
+        document.getElementById('modalConfirm').onclick = () => {
+            onConfirm();
+        };
+        
+        document.getElementById('modalCancel').onclick = () => {
+            this._hideModal();
+        };
+    }
+
+    _hideModal() {
+        document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    _generateNeuronPositions() {
+        const cx = this.canvas.width / 2;
+        const cy = this.canvas.height / 2;
+        const radius = Math.min(cx, cy) * 0.7;
+        const neuronCount = this.model ? this.model.hiddenSize : CONFIG.HIDDEN_SIZE;
+        
+        this.neuronPositions = [];
+        for (let i = 0; i < neuronCount; i++) {
+            const angle = (i / neuronCount) * Math.PI * 2;
+            const r = radius * (0.5 + Math.random() * 0.5);
+            this.neuronPositions.push({
+                x: cx + Math.cos(angle) * r,
+                y: cy + Math.sin(angle) * r
+            });
         }
     }
-    
-    reset() {
-        if (confirm('Сбросить модель?')) {
-            this.rnn = null;
-            this.tokenizer = null;
-            this.data = null;
-            document.getElementById('bTrain').disabled = true;
-            document.getElementById('sVocab').textContent = '0';
-            document.getElementById('sLoss').textContent = '-';
-            document.getElementById('met').classList.remove('show');
-            document.getElementById('prog').style.width = '0%';
-            this._log('Сброшено');
-            this._addChat('system', 'Сброс. Загрузи новый файл.');
+
+    _startVisualization() {
+        const animate = () => {
+            this._renderNetwork();
+            requestAnimationFrame(animate);
+        };
+        animate();
+    }
+
+    _renderNetwork() {
+        const ctx = this.ctx;
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        
+        ctx.fillStyle = 'rgba(5, 5, 5, 0.2)';
+        ctx.fillRect(0, 0, width, height);
+        
+        if (!this.model || !this.model.hiddenState) {
+            return;
         }
+        
+        const activeNeurons = this.model.hiddenState.filter(h => Math.abs(h) > 0.1).length;
+        const excNeurons = this.model.hiddenState.filter(h => h > 0.1).length;
+        const inhNeurons = this.model.hiddenState.filter(h => h < -0.1).length;
+        
+        // Draw neurons
+        for (let i = 0; i < this.neuronPositions.length; i++) {
+            const pos = this.neuronPositions[i];
+            const activation = this.model.hiddenState[i] || 0;
+            const brightness = Math.min(1, Math.abs(activation) * 2);
+            
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(0, 255, 153, ${0.3 + brightness * 0.7})`;
+            ctx.fill();
+        }
+        
+        // Update stats
+        document.getElementById('overlayActive').textContent = activeNeurons;
+        document.getElementById('overlayExc').textContent = excNeurons;
+        document.getElementById('overlayInh').textContent = inhNeurons;
+        
+        const rate = activeNeurons / this.model.hiddenSize * 1000;
+        document.getElementById('overlayRate').textContent = `${rate.toFixed(1)} Hz`;
+    }
+
+    _startNetworkLoop() {
+        setInterval(() => {
+            if (!this.isTraining && this.model) {
+                if (Math.random() < 0.1) {
+                    const randomToken = Math.floor(Math.random() * Math.min(50, this.tokenizer ? this.tokenizer.size() : 100));
+                    this.model.reset();
+                    this.model.forward([randomToken]);
+                }
+            }
+            this._updateStats();
+        }, 30);
+    }
+
+    _updateStats() {
+        document.getElementById('statNeurons').textContent = Utils.formatNumber(this.model ? this.model.hiddenSize : CONFIG.HIDDEN_SIZE);
     }
 }
 
-const app = new App();
+// ==================== ИНИЦИАЛИЗАЦИЯ ====================
+let app = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    app = new NeuralChatApp();
+});
 </script>
 </body>
 </html>
+
