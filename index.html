@@ -2761,7 +2761,7 @@
                         const seq = sequence.slice(i, i + CONFIG.SEQ_LENGTH + 1);
                         
                         this.model.forward(seq.slice(0, CONFIG.SEQ_LENGTH));
-                        const loss = this.model.backward(seq.slice(1), CONFIG.LEARNING_RATE);
+                        const loss = this.model.backward(seq.slice(1, seq.length), CONFIG.LEARNING_RATE);
                         
                         // Calculate accuracy for monitoring
                         const predictions = this.model.states.map(s => {
