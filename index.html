@@ -3,26 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neural Chat — Production RNN</title>
+    <title>Neural Chat — Professional RNN Implementation</title>
     <style>
+        /* ============================================
+           CSS VARIABLES & THEME CONFIGURATION
+           ============================================ */
         :root {
             --bg-primary: #050505;
             --bg-secondary: #0a0a0a;
             --bg-tertiary: #111111;
+            --bg-quaternary: #1a1a1a;
             --text-primary: #00ff99;
             --text-secondary: #00cc77;
             --text-muted: #666666;
+            --text-disabled: #444444;
             --border-color: #222222;
+            --border-light: #333333;
             --accent-green: #00ff99;
             --accent-red: #ff3333;
             --accent-blue: #3399ff;
             --accent-yellow: #ffcc00;
+            --accent-purple: #cc66ff;
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.3s ease;
+            --transition-slow: 0.5s ease;
         }
 
+        /* ============================================
+           RESET & BASE STYLES
+           ============================================ */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
         }
 
         body {
@@ -31,11 +58,34 @@
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 13px;
             line-height: 1.5;
-            overflow: hidden;
-            height: 100vh;
             display: flex;
+            overflow: hidden;
         }
 
+        /* ============================================
+           SCROLLBAR STYLING
+           ============================================ */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: var(--radius-sm);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* ============================================
+           MAIN LAYOUT
+           ============================================ */
         .main-container {
             display: flex;
             width: 100%;
@@ -49,6 +99,7 @@
             border-right: 1px solid var(--border-color);
             background: radial-gradient(ellipse at center, #0d0d0d 0%, #000000 100%);
             position: relative;
+            overflow: hidden;
         }
 
         .controls-panel {
@@ -57,8 +108,12 @@
             flex-direction: column;
             background: var(--bg-secondary);
             overflow: hidden;
+            border-left: 1px solid var(--border-color);
         }
 
+        /* ============================================
+           CANVAS & VISUALIZATION
+           ============================================ */
         #networkCanvas {
             flex: 1;
             width: 100%;
@@ -70,64 +125,17 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             border: 1px solid var(--border-color);
             padding: 15px;
-            border-radius: 4px;
+            border-radius: var(--radius-md);
             pointer-events: none;
             backdrop-filter: blur(4px);
+            min-width: 200px;
+            box-shadow: var(--shadow-md);
         }
 
         .canvas-overlay h3 {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            font-size: 12px;
-        }
-
-        .stat-value {
-            color: var(--accent-green);
-            font-weight: bold;
-        }
-
-        .panel-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
-            background: var(--bg-tertiary);
-        }
-
-        .panel-header h1 {
-            font-size: 18px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--text-primary);
-            margin-bottom: 5px;
-        }
-
-        .panel-header .version {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .panel-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-        }
-
-        .section {
-            margin-bottom: 25px;
-        }
-
-        .section-title {
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -137,6 +145,78 @@
             border-bottom: 1px solid var(--border-color);
         }
 
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-value {
+            color: var(--accent-green);
+            font-weight: 600;
+            font-family: 'Consolas', monospace;
+        }
+
+        /* ============================================
+           PANEL HEADER
+           ============================================ */
+        .panel-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .panel-header h1 {
+            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .panel-header .version {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: 'Consolas', monospace;
+        }
+
+        /* ============================================
+           PANEL CONTENT
+           ============================================ */
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+        }
+
+        /* ============================================
+           BUTTONS
+           ============================================ */
         .btn {
             background: transparent;
             border: 1px solid var(--text-primary);
@@ -146,12 +226,14 @@
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all var(--transition-normal);
             text-transform: uppercase;
             letter-spacing: 1px;
             width: 100%;
             margin-bottom: 8px;
-            border-radius: 4px;
+            border-radius: var(--radius-md);
+            position: relative;
+            overflow: hidden;
         }
 
         .btn:hover:not(:disabled) {
@@ -161,9 +243,14 @@
             box-shadow: 0 4px 12px rgba(0, 255, 153, 0.3);
         }
 
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
         .btn:disabled {
             opacity: 0.4;
             cursor: not-allowed;
+            pointer-events: none;
         }
 
         .btn-primary {
@@ -173,6 +260,7 @@
 
         .btn-primary:hover:not(:disabled) {
             background: var(--text-secondary);
+            border-color: var(--text-secondary);
         }
 
         .btn-danger {
@@ -187,8 +275,8 @@
 
         .btn-group {
             display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
         .btn-group .btn {
@@ -196,20 +284,23 @@
             margin-bottom: 0;
         }
 
+        /* ============================================
+           FILE DROP ZONE
+           ============================================ */
         .file-drop-zone {
             border: 2px dashed var(--border-color);
-            border-radius: 8px;
-            padding: 30px 20px;
+            border-radius: var(--radius-lg);
+            padding: 40px 20px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all var(--transition-normal);
             margin-bottom: 15px;
             background: var(--bg-primary);
         }
 
         .file-drop-zone:hover {
             border-color: var(--text-primary);
-            background: rgba(0, 255, 153, 0.05);
+            background: rgba(0, 255, 153, 0.03);
             transform: translateY(-2px);
         }
 
@@ -219,16 +310,30 @@
             transform: scale(1.02);
         }
 
+        .file-drop-zone .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .file-drop-zone .title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .file-drop-zone .description {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
         .file-input {
             display: none;
         }
 
-        .file-info {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 8px;
-        }
-
+        /* ============================================
+           PROGRESS BAR
+           ============================================ */
         .progress-container {
             margin-bottom: 20px;
         }
@@ -244,25 +349,28 @@
         .progress-bar {
             height: 8px;
             background: var(--bg-tertiary);
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             overflow: hidden;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, var(--text-primary), var(--text-secondary));
             width: 0%;
-            transition: width 0.3s ease;
+            transition: width var(--transition-normal);
             box-shadow: 0 0 10px rgba(0, 255, 153, 0.5);
         }
 
+        /* ============================================
+           CHAT CONTAINER
+           ============================================ */
         .chat-container {
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             padding: 15px;
-            height: 250px;
+            height: 280px;
             overflow-y: auto;
             margin-bottom: 15px;
             display: flex;
@@ -304,7 +412,7 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             padding: 2px 8px;
-            border-radius: 3px;
+            border-radius: var(--radius-sm);
             font-weight: 600;
         }
 
@@ -322,7 +430,7 @@
             font-size: 12px;
             line-height: 1.5;
             padding: 10px 14px;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             word-break: break-word;
         }
 
@@ -341,10 +449,55 @@
             color: var(--text-muted);
         }
 
+        /* ============================================
+           INPUT FIELD
+           ============================================ */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-field {
+            flex: 1;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            transition: all var(--transition-fast);
+            border-radius: var(--radius-md);
+        }
+
+        .input-field:focus {
+            border-color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(0, 255, 153, 0.1);
+        }
+
+        .input-field:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .input-field::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-group .btn {
+            width: auto;
+            margin: 0;
+            padding: 12px 24px;
+        }
+
+        /* ============================================
+           VOCABULARY INFO
+           ============================================ */
         .vocab-info {
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             padding: 15px;
             margin-bottom: 15px;
         }
@@ -367,18 +520,19 @@
         .vocab-info-value {
             color: var(--text-primary);
             font-weight: 600;
+            font-family: 'Consolas', monospace;
         }
 
         .vocab-preview {
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             padding: 12px;
             margin-top: 10px;
             max-height: 120px;
             overflow-y: auto;
             font-size: 10px;
-            font-family: monospace;
+            font-family: 'Consolas', monospace;
         }
 
         .vocab-preview-item {
@@ -386,15 +540,18 @@
             background: var(--bg-tertiary);
             padding: 3px 8px;
             margin: 2px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             color: var(--text-secondary);
             border: 1px solid var(--border-color);
         }
 
+        /* ============================================
+           LOG CONTAINER
+           ============================================ */
         .log-container {
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             padding: 12px;
             height: 150px;
             overflow-y: auto;
@@ -435,41 +592,9 @@
             font-size: 10px;
         }
 
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .input-field {
-            flex: 1;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 12px 16px;
-            font-family: inherit;
-            font-size: 13px;
-            outline: none;
-            transition: all 0.2s;
-            border-radius: 6px;
-        }
-
-        .input-field:focus {
-            border-color: var(--text-primary);
-            box-shadow: 0 0 0 3px rgba(0, 255, 153, 0.1);
-        }
-
-        .input-field:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .input-group .btn {
-            width: auto;
-            margin: 0;
-            padding: 12px 24px;
-        }
-
+        /* ============================================
+           SETTINGS GRID
+           ============================================ */
         .settings-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -480,7 +605,7 @@
         .setting-item {
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             padding: 12px;
         }
 
@@ -501,13 +626,16 @@
             font-family: inherit;
             font-size: 12px;
             outline: none;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
         }
 
         .setting-input:focus {
             border-color: var(--text-primary);
         }
 
+        /* ============================================
+           NETWORK STATS
+           ============================================ */
         .network-stats {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -518,10 +646,10 @@
         .stat-card {
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             padding: 15px;
             text-align: center;
-            transition: transform 0.2s;
+            transition: all var(--transition-fast);
         }
 
         .stat-card:hover {
@@ -533,7 +661,8 @@
             font-size: 24px;
             color: var(--text-primary);
             margin-bottom: 5px;
-            font-weight: bold;
+            font-weight: 700;
+            font-family: 'Consolas', monospace;
         }
 
         .stat-card .label {
@@ -543,72 +672,73 @@
             letter-spacing: 0.5px;
         }
 
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
+        /* ============================================
+           TRAINING METRICS
+           ============================================ */
+        .training-metrics {
             background: var(--bg-primary);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            backdrop-filter: blur(4px);
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal {
-            background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        }
-
-        .modal h2 {
-            font-size: 16px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            border-radius: var(--radius-md);
+            padding: 15px;
             margin-bottom: 20px;
-            color: var(--text-primary);
+            display: none;
         }
 
-        .modal-buttons {
+        .training-metrics.visible {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .metric-row {
             display: flex;
-            gap: 10px;
-            margin-top: 20px;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 11px;
         }
 
-        .modal-buttons .btn {
-            flex: 1;
+        .metric-row:last-child {
+            margin-bottom: 0;
         }
 
+        .metric-label {
+            color: var(--text-muted);
+        }
+
+        .metric-value {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-family: 'Consolas', monospace;
+        }
+
+        .loss-bar {
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .loss-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-red), var(--accent-yellow), var(--accent-green));
+            width: 100%;
+            transition: width 0.5s ease;
+        }
+
+        /* ============================================
+           ERROR BANNER
+           ============================================ */
         .error-banner {
             display: none;
             background: rgba(255, 51, 51, 0.15);
@@ -616,21 +746,30 @@
             color: var(--accent-red);
             padding: 15px;
             margin-bottom: 20px;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             font-size: 12px;
             animation: errorShake 0.5s ease;
         }
 
         @keyframes errorShake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
+            0%, 100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-5px);
+            }
+            75% {
+                transform: translateX(5px);
+            }
         }
 
         .error-banner.visible {
             display: block;
         }
 
+        /* ============================================
+           LOADING OVERLAY
+           ============================================ */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -660,7 +799,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .loading-text {
@@ -670,69 +811,99 @@
             letter-spacing: 2px;
         }
 
-        .training-metrics {
+        /* ============================================
+           MODAL
+           ============================================ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal h2 {
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons .btn {
+            flex: 1;
+        }
+
+        /* ============================================
+           DATASET INFO
+           ============================================ */
+        .dataset-info {
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             padding: 15px;
-            margin-bottom: 20px;
-            display: none;
+            margin-bottom: 15px;
         }
 
-        .training-metrics.visible {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .metric-row {
+        .info-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             font-size: 11px;
         }
 
-        .metric-row:last-child {
+        .info-row:last-child {
             margin-bottom: 0;
         }
 
-        .metric-label {
+        .info-label {
             color: var(--text-muted);
         }
 
-        .metric-value {
+        .info-value {
             color: var(--text-primary);
             font-weight: 600;
-            font-family: 'Consolas', monospace;
-        }
-
-        .loss-bar {
-            height: 6px;
-            background: var(--bg-tertiary);
-            border-radius: 3px;
-            margin-top: 6px;
-            overflow: hidden;
-        }
-
-        .loss-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent-red), var(--accent-yellow), var(--accent-green));
-            width: 100%;
-            transition: width 0.5s ease;
         }
     </style>
 </head>
 <body>
+    <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
         <div class="loading-text">Инициализация системы...</div>
     </div>
 
+    <!-- Main Container -->
     <div class="main-container">
+        <!-- Visualization Panel -->
         <div class="visualization-panel">
             <canvas id="networkCanvas"></canvas>
             <div class="canvas-overlay">
@@ -756,15 +927,18 @@
             </div>
         </div>
 
+        <!-- Controls Panel -->
         <div class="controls-panel">
             <div class="panel-header">
                 <h1>Neural Chat</h1>
-                <div class="version">Production RNN v2.0 — Word-Level Architecture</div>
+                <div class="version">Professional RNN v3.0 — Full Implementation</div>
             </div>
 
             <div class="panel-content">
+                <!-- Error Banner -->
                 <div class="error-banner" id="errorBanner"></div>
 
+                <!-- Network Stats -->
                 <div class="section">
                     <div class="section-title">📊 Статус системы</div>
                     <div class="network-stats">
@@ -783,16 +957,28 @@
                     </div>
                 </div>
 
+                <!-- Dataset Section -->
                 <div class="section">
-                    <div class="section-title">📚 1. Загрузка датасета</div>
+                    <div class="section-title">📚 1. Загрузка датасета (JSON)</div>
                     <div class="file-drop-zone" id="datasetDropZone">
-                        <div style="font-size: 24px; margin-bottom: 10px;">📁</div>
-                        <div>Перетащите файл или нажмите для загрузки</div>
-                        <div class="file-info">.txt файл с диалогами (макс 10MB)</div>
-                        <input type="file" id="datasetInput" class="file-input" accept=".txt">
+                        <span class="icon">📄</span>
+                        <div class="title">Перетащите JSON файл или нажмите</div>
+                        <div class="description">Формат: [{"input":"текст","output":"ответ"}, ...]</div>
+                        <input type="file" id="datasetInput" class="file-input" accept=".json">
+                    </div>
+                    <div class="dataset-info" id="datasetInfo" style="display:none;">
+                        <div class="info-row">
+                            <span class="info-label">Диалогов:</span>
+                            <span class="info-value" id="infoDialogs">0</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Слов в словаре:</span>
+                            <span class="info-value" id="infoVocab">0</span>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Vocabulary Section -->
                 <div class="section">
                     <div class="section-title">📖 Словарь токенов</div>
                     <div class="vocab-info">
@@ -804,10 +990,6 @@
                             <span class="vocab-info-label">Уникальных слов:</span>
                             <span class="vocab-info-value" id="vocabWords">0</span>
                         </div>
-                        <div class="vocab-info-row">
-                            <span class="vocab-info-label">N-граммы:</span>
-                            <span class="vocab-info-value" id="vocabNgrams">0</span>
-                        </div>
                     </div>
                     <div class="btn-group">
                         <button class="btn" onclick="app.saveVocabulary()">💾 Сохранить</button>
@@ -817,6 +999,7 @@
                     <div class="vocab-preview" id="vocabPreview"></div>
                 </div>
 
+                <!-- Training Section -->
                 <div class="section">
                     <div class="section-title">🎯 2. Обучение модели</div>
                     <div class="training-metrics" id="trainingMetrics">
@@ -851,12 +1034,13 @@
                     </div>
                 </div>
 
+                <!-- Chat Section -->
                 <div class="section">
                     <div class="section-title">💬 3. Интерактивный чат</div>
                     <div class="chat-container" id="chatHistory">
                         <div class="chat-message snn">
                             <span class="role">Нейросеть</span>
-                            <span class="content">Система готова. Загрузите датасет для начала обучения.</span>
+                            <span class="content">Система готова. Загрузите JSON файл с диалогами для начала обучения.</span>
                             <span class="timestamp">00:00:00</span>
                         </div>
                     </div>
@@ -866,6 +1050,7 @@
                     </div>
                 </div>
 
+                <!-- Settings Section -->
                 <div class="section">
                     <div class="section-title">⚙️ Настройки модели</div>
                     <div class="settings-grid">
@@ -875,7 +1060,7 @@
                         </div>
                         <div class="setting-item">
                             <div class="setting-label">Длина последовательности</div>
-                            <input type="number" class="setting-input" id="settingSeq" value="20" min="10" max="50">
+                            <input type="number" class="setting-input" id="settingSeq" value="15" min="10" max="50">
                         </div>
                         <div class="setting-item">
                             <div class="setting-label">Скорость обучения</div>
@@ -894,6 +1079,7 @@
                     <button class="btn btn-danger" onclick="app.resetNetwork()">🔄 Полный сброс</button>
                 </div>
 
+                <!-- Log Section -->
                 <div class="section">
                     <div class="section-title">📋 Системный лог</div>
                     <div class="log-container" id="logOutput"></div>
@@ -902,6 +1088,7 @@
         </div>
     </div>
 
+    <!-- Modal -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <h2 id="modalTitle">Подтверждение</h2>
@@ -915,55 +1102,96 @@
 
 <script>
 /**
- * NEURAL CHAT — PRODUCTION RNN v2.0
+ * ============================================================================
+ * NEURAL CHAT — PROFESSIONAL RNN IMPLEMENTATION v3.0
+ * ============================================================================
+ * 
+ * Полная реализация рекуррентной нейронной сети на чистом JavaScript
  * 
  * Архитектура:
- * - Word-level токенизация с n-gram расширением
- * - Embedding слой с обучаемыми весами
+ * - Word-level токенизация
  * - Vanilla RNN с Tanh активацией
+ * - Embedding слой через one-hot encoding
  * - Output слой с Softmax
  * - Backpropagation Through Time (BPTT)
  * - Adam оптимизатор с градиентным клиппингом
  * 
- * Профессиональная реализация без упрощений
+ * Особенности:
+ * - Обучение на JSON датасетах с диалогами
+ * - Визуализация активности нейронов
+ * - Сохранение/загрузка моделей
+ * - Интерактивный чат
+ * 
+ * Совместимость:
+ * - GitHub Pages
+ * - Все современные браузеры
+ * - Без внешних зависимостей
+ * 
+ * ============================================================================
  */
 
-// ==================== КОНФИГУРАЦИЯ ====================
+// ============================================================================
+// КОНФИГУРАЦИЯ
+// ============================================================================
 const CONFIG = {
+    // Архитектура сети
     HIDDEN_SIZE: 128,
-    SEQ_LENGTH: 20,
+    SEQ_LENGTH: 15,
+    
+    // Обучение
     EPOCHS: 10,
     LEARNING_RATE: 0.01,
+    
+    // Генерация
     TEMPERATURE: 0.8,
-    MAX_VOCAB: 2000,
+    
+    // Словарь
+    MAX_VOCAB_SIZE: 3000,
     MIN_WORD_LENGTH: 2,
-    MAX_WORD_LENGTH: 15,
-    MAX_BIGRAMS: 300,
+    
+    // Файлы
     MAX_FILE_SIZE: 10 * 1024 * 1024,
-    UI_UPDATE_INTERVAL: 20,
+    
+    // UI
+    UI_UPDATE_INTERVAL: 50,
+    
+    // Оптимизатор Adam
     GRADIENT_CLIP: 5.0,
     ADAM_BETA1: 0.9,
     ADAM_BETA2: 0.999,
-    ADAM_EPS: 1e-8
+    ADAM_EPSILON: 1e-8
 };
 
-// ==================== УТИЛИТЫ ====================
-const Utils = {
-    randomGaussian() {
+// ============================================================================
+// МАТЕМАТИЧЕСКИЕ УТИЛИТЫ
+// ============================================================================
+const MathUtils = {
+    /**
+     * Генерация случайного числа из нормального распределения
+     * Использует преобразование Бокса-Мюллера
+     */
+    randomGaussian(mean = 0, std = 1) {
         let u = 0, v = 0;
-        while(u === 0) u = Math.random();
-        while(v === 0) v = Math.random();
-        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        while (u === 0) u = Math.random();
+        while (v === 0) v = Math.random();
+        const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        return z * std + mean;
     },
 
-    softmax(arr) {
-        const max = Math.max(...arr);
-        const exps = arr.map(v => Math.exp(v - max));
+    /**
+     * Функция softmax для преобразования логитов в вероятности
+     */
+    softmax(logits) {
+        const max = Math.max(...logits);
+        const exps = logits.map(v => Math.exp(v - max));
         const sum = exps.reduce((a, b) => a + b, 0);
         return exps.map(e => e / sum);
     },
 
-    sample(probs, temperature) {
+    /**
+     * Сэмплирование из распределения вероятностей с температурой
+     */
+    sample(probs, temperature = 1.0) {
         const scaled = probs.map(p => Math.pow(p, 1.0 / temperature));
         const sum = scaled.reduce((a, b) => a + b, 0);
         const normalized = scaled.map(p => p / sum);
@@ -976,51 +1204,44 @@ const Utils = {
         return normalized.length - 1;
     },
 
+    /**
+     * Форматирование временной метки
+     */
     timestamp() {
-        return new Date().toLocaleTimeString('ru-RU', {hour12: false});
+        return new Date().toLocaleTimeString('ru-RU', { hour12: false });
     },
 
+    /**
+     * Форматирование больших чисел
+     */
     formatNumber(num) {
         if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
         if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
         return num.toString();
     },
 
+    /**
+     * Debounce для обработки событий
+     */
     debounce(func, wait) {
         let timeout;
         return function(...args) {
             clearTimeout(timeout);
-            timeout = setTimeout(() => func(...args), wait);
+            timeout = setTimeout(() => func.apply(this, args), wait);
         };
     },
 
-    downloadJSON(data, filename) {
-        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    },
-
-    readFile(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(e);
-            reader.readAsText(file, 'utf-8');
-        });
-    },
-
+    /**
+     * Асинхронная задержка
+     */
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 };
 
-// ==================== ЛОГГЕР ====================
+// ============================================================================
+// СИСТЕМА ЛОГГИРОВАНИЯ
+// ============================================================================
 class Logger {
     constructor(containerId, maxEntries = 500) {
         this.containerId = containerId;
@@ -1037,7 +1258,7 @@ class Logger {
 
         const div = document.createElement('div');
         div.className = `log-entry ${type}`;
-        div.innerHTML = `<span class="timestamp">[${Utils.timestamp()}]</span>${message}`;
+        div.innerHTML = `<span class="timestamp">[${MathUtils.timestamp()}]</span>${message}`;
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
         
@@ -1053,22 +1274,25 @@ class Logger {
     system(msg) { this.add(msg, 'system'); }
 }
 
-// ==================== WORD-LEVEL ТОКЕНИЗАТОР ====================
+// ============================================================================
+// WORD-LEVEL ТОКЕНИЗАТОР
+// ============================================================================
 class WordTokenizer {
-    constructor(maxVocab = CONFIG.MAX_VOCAB) {
+    constructor(maxVocab = CONFIG.MAX_VOCAB_SIZE) {
         this.maxVocab = maxVocab;
         this.wordToIdx = new Map();
         this.idxToWord = new Map();
         this.specialTokens = ['<pad>', '<unk>', '<start>', '<end>'];
         this.stats = {
             totalWords: 0,
-            uniqueWords: 0,
-            bigrams: 0,
-            trigrams: 0
+            uniqueWords: 0
         };
         this._initSpecialTokens();
     }
 
+    /**
+     * Инициализация специальных токенов
+     */
     _initSpecialTokens() {
         for (let i = 0; i < this.specialTokens.length; i++) {
             this.wordToIdx.set(this.specialTokens[i], i);
@@ -1076,78 +1300,58 @@ class WordTokenizer {
         }
     }
 
-    build(text) {
-        const normalized = text.toLowerCase().replace(/\s+/g, ' ').trim();
+    /**
+     * Построение словаря из текстов
+     */
+    build(texts) {
+        const words = new Set();
         
-        // 1. Extract words
-        const wordRegex = new RegExp(`[а-яёa-z0-9]{${CONFIG.MIN_WORD_LENGTH},${CONFIG.MAX_WORD_LENGTH}}`, 'g');
-        const words = normalized.match(wordRegex) || [];
+        texts.forEach(text => {
+            const extracted = text.toLowerCase().split(/\s+/);
+            extracted.forEach(word => {
+                const clean = word.replace(/[^а-яёa-z0-9]/g, '');
+                if (clean.length >= CONFIG.MIN_WORD_LENGTH) {
+                    words.add(clean);
+                }
+            });
+        });
         
-        this.stats.totalWords = words.length;
+        this.stats.totalWords = words.size;
         
-        // 2. Count word frequencies
-        const wordFreq = {};
-        for (const word of words) {
-            wordFreq[word] = (wordFreq[word] || 0) + 1;
-        }
+        // Сортировка и ограничение размера словаря
+        const sorted = Array.from(words).sort().slice(0, this.maxVocab - this.specialTokens.length);
         
-        // 3. Sort by frequency and add to vocabulary
-        const sortedWords = Object.entries(wordFreq)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, this.maxVocab - this.specialTokens.length - CONFIG.MAX_BIGRAMS);
-        
-        for (const [word] of sortedWords) {
-            if (this.wordToIdx.size < this.maxVocab) {
-                const idx = this.wordToIdx.size;
-                this.wordToIdx.set(word, idx);
-                this.idxToWord.set(idx, word);
-            }
-        }
+        sorted.forEach(word => {
+            const idx = this.wordToIdx.size;
+            this.wordToIdx.set(word, idx);
+            this.idxToWord.set(idx, word);
+        });
         
         this.stats.uniqueWords = this.wordToIdx.size - this.specialTokens.length;
-        
-        // 4. Add bigrams
-        const bigramFreq = {};
-        for (let i = 0; i < words.length - 1; i++) {
-            const bigram = `${words[i]}_${words[i+1]}`;
-            bigramFreq[bigram] = (bigramFreq[bigram] || 0) + 1;
-        }
-        
-        const sortedBigrams = Object.entries(bigramFreq)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, CONFIG.MAX_BIGRAMS);
-        
-        for (const [bigram] of sortedBigrams) {
-            if (this.wordToIdx.size < this.maxVocab && !this.wordToIdx.has(bigram)) {
-                const idx = this.wordToIdx.size;
-                this.wordToIdx.set(bigram, idx);
-                this.idxToWord.set(idx, bigram);
-                this.stats.bigrams++;
-            }
-        }
-        
         return this.wordToIdx.size;
     }
 
+    /**
+     * Кодирование текста в последовательность токенов
+     */
     encode(text) {
-        const normalized = text.toLowerCase().replace(/\s+/g, ' ').trim();
-        const words = normalized.match(/[а-яёa-z0-9]{2,15}/g) || [];
+        const tokens = [this.wordToIdx.get('<start>') || 2];
         
-        const tokens = [];
-        tokens.push(this.wordToIdx.get('<start>') || 2);
-        
-        for (const word of words) {
-            if (this.wordToIdx.has(word)) {
-                tokens.push(this.wordToIdx.get(word));
-            } else {
-                tokens.push(this.wordToIdx.get('<unk>') || 1);
+        const words = text.toLowerCase().split(/\s+/);
+        words.forEach(word => {
+            const clean = word.replace(/[^а-яёa-z0-9]/g, '');
+            if (clean.length >= CONFIG.MIN_WORD_LENGTH) {
+                tokens.push(this.wordToIdx.get(clean) || this.wordToIdx.get('<unk>') || 1);
             }
-        }
+        });
         
         tokens.push(this.wordToIdx.get('<end>') || 3);
         return tokens;
     }
 
+    /**
+     * Декодирование последовательности токенов в текст
+     */
     decode(tokenIds) {
         if (!Array.isArray(tokenIds)) {
             tokenIds = tokenIds !== -1 ? [tokenIds] : [];
@@ -1156,52 +1360,68 @@ class WordTokenizer {
         return tokenIds
             .map(idx => {
                 const word = this.idxToWord.get(idx);
-                if (word === '<start>' || word === '<end>' || word === '<pad>' || word === '<unk>') {
+                if (['<start>', '<end>', '<pad>', '<unk>'].includes(word)) {
                     return '';
                 }
-                return word.replace(/_/g, ' ');
+                return word;
             })
             .filter(w => w)
             .join(' ');
     }
 
+    /**
+     * Размер словаря
+     */
     size() {
         return this.wordToIdx.size;
     }
 
+    /**
+     * Превью словаря
+     */
     getPreview(limit = 50) {
         const preview = [];
         let count = 0;
+        
         for (let i = 0; i < this.idxToWord.size && count < limit; i++) {
             const word = this.idxToWord.get(i);
             if (word && !word.startsWith('<')) {
-                preview.push({idx: i, word: word});
+                preview.push({ idx: i, word: word });
                 count++;
             }
         }
+        
         return preview;
     }
 
+    /**
+     * Сериализация в JSON
+     */
     toJSON() {
         return {
             wordToIdx: [...this.wordToIdx.entries()],
             idxToWord: [...this.idxToWord.entries()],
             specialTokens: this.specialTokens,
-            stats: {...this.stats},
+            stats: { ...this.stats },
             maxVocab: this.maxVocab
         };
     }
 
+    /**
+     * Десериализация из JSON
+     */
     fromJSON(data) {
         this.wordToIdx = new Map(data.wordToIdx);
         this.idxToWord = new Map(data.idxToWord);
         this.specialTokens = data.specialTokens || ['<pad>', '<unk>', '<start>', '<end>'];
-        this.stats = data.stats || {totalWords: 0, uniqueWords: 0, bigrams: 0, trigrams: 0};
-        this.maxVocab = data.maxVocab || CONFIG.MAX_VOCAB;
+        this.stats = data.stats || { totalWords: 0, uniqueWords: 0 };
+        this.maxVocab = data.maxVocab || CONFIG.MAX_VOCAB_SIZE;
     }
 }
 
-// ==================== RNN МОДЕЛЬ ====================
+// ============================================================================
+// RNN МОДЕЛЬ
+// ============================================================================
 class RNNModel {
     constructor(vocabSize, hiddenSize = CONFIG.HIDDEN_SIZE) {
         this.vocabSize = vocabSize;
@@ -1209,21 +1429,21 @@ class RNNModel {
         this.inputSize = vocabSize;
         this.outputSize = vocabSize;
         
-        // Xavier initialization
-        const s1 = Math.sqrt(2.0 / (this.inputSize + this.hiddenSize));
-        const s2 = Math.sqrt(2.0 / (this.hiddenSize + this.hiddenSize));
-        const s3 = Math.sqrt(2.0 / (this.hiddenSize + this.outputSize));
+        // Инициализация весов (Xavier/Glorot)
+        const scale1 = Math.sqrt(2.0 / (this.inputSize + this.hiddenSize));
+        const scale2 = Math.sqrt(2.0 / (this.hiddenSize + this.hiddenSize));
+        const scale3 = Math.sqrt(2.0 / (this.hiddenSize + this.outputSize));
         
-        // Weights
-        this.Wxh = this._randomMatrix(this.inputSize, this.hiddenSize, s1);
-        this.Whh = this._randomMatrix(this.hiddenSize, this.hiddenSize, s2);
-        this.Why = this._randomMatrix(this.hiddenSize, this.outputSize, s3);
+        // Веса
+        this.Wxh = this._randomMatrix(this.inputSize, this.hiddenSize, scale1);
+        this.Whh = this._randomMatrix(this.hiddenSize, this.hiddenSize, scale2);
+        this.Why = this._randomMatrix(this.hiddenSize, this.outputSize, scale3);
         
-        // Biases
+        // Смещения
         this.bh = Array(this.hiddenSize).fill(0);
         this.by = Array(this.outputSize).fill(0);
         
-        // Adam optimizer state
+        // Состояние оптимизатора Adam
         this.mWxh = this._zeros(this.inputSize, this.hiddenSize);
         this.mWhh = this._zeros(this.hiddenSize, this.hiddenSize);
         this.mWhy = this._zeros(this.hiddenSize, this.outputSize);
@@ -1240,16 +1460,25 @@ class RNNModel {
         this.timestep = 0;
     }
 
+    /**
+     * Генерация случайной матрицы
+     */
     _randomMatrix(rows, cols, scale) {
         return Array(rows).fill(0).map(() => 
-            Array(cols).fill(0).map(() => Utils.randomGaussian() * scale)
+            Array(cols).fill(0).map(() => MathUtils.randomGaussian() * scale)
         );
     }
 
+    /**
+     * Создание нулевой матрицы
+     */
     _zeros(rows, cols) {
         return Array(rows).fill(0).map(() => Array(cols).fill(0));
     }
 
+    /**
+     * Прямой проход через сеть
+     */
     forward(inputSequence) {
         this.inputSequence = inputSequence;
         this.states = [];
@@ -1262,7 +1491,7 @@ class RNNModel {
             const xVec = Array(this.inputSize).fill(0);
             xVec[x] = 1;
             
-            // Hidden state: h = tanh(Wxh @ x + Whh @ h_prev + bh)
+            // Вычисление скрытого состояния: h = tanh(Wxh @ x + Whh @ h_prev + bh)
             const hNew = Array(this.hiddenSize).fill(0);
             for (let i = 0; i < this.hiddenSize; i++) {
                 let sum = this.bh[i];
@@ -1276,7 +1505,7 @@ class RNNModel {
             }
             h = hNew;
             
-            // Output: y = Why @ h + by
+            // Вычисление выхода: y = Why @ h + by
             const y = Array(this.outputSize).fill(0);
             for (let i = 0; i < this.outputSize; i++) {
                 let sum = this.by[i];
@@ -1299,8 +1528,11 @@ class RNNModel {
         return this.states;
     }
 
+    /**
+     * Обратный проход (BPTT)
+     */
     backward(targetSequence, learningRate) {
-        // Initialize gradients
+        // Инициализация градиентов
         const dWxh = this._zeros(this.inputSize, this.hiddenSize);
         const dWhh = this._zeros(this.hiddenSize, this.hiddenSize);
         const dWhy = this._zeros(this.hiddenSize, this.outputSize);
@@ -1310,19 +1542,19 @@ class RNNModel {
         let dhNext = Array(this.hiddenSize).fill(0);
         let totalLoss = 0;
         
-        // Backpropagation Through Time (BPTT)
+        // Backpropagation Through Time
         for (let t = this.states.length - 1; t >= 0; t--) {
             const state = this.states[t];
             const target = targetSequence[t];
             
             // Softmax + Cross-entropy gradient
-            const probs = Utils.softmax(state.y);
+            const probs = MathUtils.softmax(state.y);
             const dy = [...probs];
             dy[target] -= 1;
             
             totalLoss += -Math.log(Math.max(probs[target], 1e-10));
             
-            // Output layer gradients
+            // Градиенты выходного слоя
             for (let i = 0; i < this.outputSize; i++) {
                 dby[i] += dy[i];
                 for (let j = 0; j < this.hiddenSize; j++) {
@@ -1330,7 +1562,7 @@ class RNNModel {
                 }
             }
             
-            // Hidden state gradient
+            // Градиент скрытого состояния
             const dh = Array(this.hiddenSize).fill(0);
             for (let j = 0; j < this.hiddenSize; j++) {
                 for (let i = 0; i < this.outputSize; i++) {
@@ -1339,10 +1571,10 @@ class RNNModel {
                 dh[j] += dhNext[j];
             }
             
-            // Backprop through tanh
+            // Backprop через tanh
             const dtanh = dh.map((v, i) => v * (1 - state.h[i] * state.h[i]));
             
-            // Hidden layer gradients
+            // Градиенты скрытого слоя
             for (let i = 0; i < this.hiddenSize; i++) {
                 dbh[i] += dtanh[i];
                 for (let j = 0; j < this.inputSize; j++) {
@@ -1353,7 +1585,7 @@ class RNNModel {
                 }
             }
             
-            // Gradient for previous hidden state
+            // Градиент для предыдущего скрытого состояния
             dhNext = Array(this.hiddenSize).fill(0);
             for (let j = 0; j < this.hiddenSize; j++) {
                 for (let i = 0; i < this.hiddenSize; i++) {
@@ -1376,6 +1608,9 @@ class RNNModel {
         return totalLoss / this.states.length;
     }
 
+    /**
+     * Gradient clipping для предотвращения exploding gradients
+     */
     _clipGradients(dWxh, dWhh, dWhy, dbh, dby) {
         const maxGrad = CONFIG.GRADIENT_CLIP;
         
@@ -1400,10 +1635,13 @@ class RNNModel {
         clipArray(dby);
     }
 
+    /**
+     * Adam optimizer для матриц
+     */
     _adamUpdate(W, dW, m, v, lr) {
         const beta1 = CONFIG.ADAM_BETA1;
         const beta2 = CONFIG.ADAM_BETA2;
-        const eps = CONFIG.ADAM_EPS;
+        const eps = CONFIG.ADAM_EPSILON;
         
         for (let i = 0; i < W.length; i++) {
             for (let j = 0; j < W[i].length; j++) {
@@ -1418,10 +1656,13 @@ class RNNModel {
         }
     }
 
+    /**
+     * Adam optimizer для векторов
+     */
     _adamUpdate1D(b, db, m, v, lr) {
         const beta1 = CONFIG.ADAM_BETA1;
         const beta2 = CONFIG.ADAM_BETA2;
-        const eps = CONFIG.ADAM_EPS;
+        const eps = CONFIG.ADAM_EPSILON;
         
         for (let i = 0; i < b.length; i++) {
             m[i] = beta1 * m[i] + (1 - beta1) * db[i];
@@ -1434,6 +1675,9 @@ class RNNModel {
         }
     }
 
+    /**
+     * Генерация последовательности
+     */
     predict(lastToken, count, temperature) {
         let h = [...this.hiddenState];
         const generated = [];
@@ -1465,8 +1709,8 @@ class RNNModel {
                 y[j] = sum;
             }
             
-            const probs = Utils.softmax(y);
-            currentToken = Utils.sample(probs, temperature);
+            const probs = MathUtils.softmax(y);
+            currentToken = MathUtils.sample(probs, temperature);
             generated.push(currentToken);
         }
         
@@ -1474,10 +1718,16 @@ class RNNModel {
         return generated;
     }
 
+    /**
+     * Сброс скрытого состояния
+     */
     reset() {
         this.hiddenState = Array(this.hiddenSize).fill(0);
     }
 
+    /**
+     * Сериализация модели
+     */
     toJSON() {
         return {
             vocabSize: this.vocabSize,
@@ -1493,6 +1743,9 @@ class RNNModel {
         };
     }
 
+    /**
+     * Десериализация модели
+     */
     fromJSON(data) {
         this.vocabSize = data.vocabSize;
         this.hiddenSize = data.hiddenSize;
@@ -1521,13 +1774,14 @@ class RNNModel {
     }
 }
 
-// ==================== ПРИЛОЖЕНИЕ ====================
+// ============================================================================
+// ПРИЛОЖЕНИЕ
+// ============================================================================
 class NeuralChatApp {
     constructor() {
         this.tokenizer = null;
         this.model = null;
         this.trainingData = null;
-        this.encodedData = null;
         this.isTraining = false;
         this.canvas = document.getElementById('networkCanvas');
         this.ctx = this.canvas.getContext('2d');
@@ -1537,6 +1791,9 @@ class NeuralChatApp {
         this._initialize();
     }
 
+    /**
+     * Инициализация приложения
+     */
     async _initialize() {
         try {
             this._setupCanvas();
@@ -1544,7 +1801,7 @@ class NeuralChatApp {
             this._startVisualization();
             this._startNetworkLoop();
             
-            this.logger.system('Neural Chat v2.0 инициализирована');
+            this.logger.system('Neural Chat v3.0 инициализирована');
             this.logger.info('Система готова к работе');
             
             document.getElementById('loadingOverlay').classList.add('hidden');
@@ -1554,17 +1811,23 @@ class NeuralChatApp {
         }
     }
 
+    /**
+     * Настройка canvas
+     */
     _setupCanvas() {
         this.canvas.width = this.canvas.parentElement.clientWidth;
         this.canvas.height = this.canvas.parentElement.clientHeight;
         
-        window.addEventListener('resize', Utils.debounce(() => {
+        window.addEventListener('resize', MathUtils.debounce(() => {
             this.canvas.width = this.canvas.parentElement.clientWidth;
             this.canvas.height = this.canvas.parentElement.clientHeight;
             this._generateNeuronPositions();
         }, 200));
     }
 
+    /**
+     * Настройка обработчиков событий
+     */
     _setupEventListeners() {
         const datasetInput = document.getElementById('datasetInput');
         const datasetDropZone = document.getElementById('datasetDropZone');
@@ -1614,6 +1877,9 @@ class NeuralChatApp {
         });
     }
 
+    /**
+     * Обработка загрузки датасета
+     */
     async _handleDatasetUpload(file) {
         if (!file) return;
         
@@ -1624,26 +1890,24 @@ class NeuralChatApp {
         
         try {
             this.logger.info(`Загрузка файла: ${file.name}`);
-            const content = await Utils.readFile(file);
+            const content = await MathUtils.readFile(file);
+            const data = JSON.parse(content);
             
-            if (content.length < 100) {
-                this._showError('Датасет слишком мал (минимум 100 символов)');
-                return;
+            if (!Array.isArray(data) || data.length === 0) {
+                throw new Error('Неверный формат JSON. Ожидается массив диалогов');
             }
             
-            this.trainingData = content;
+            this.trainingData = data;
             
-            // Create tokenizer and build vocabulary
+            this.logger.success(`Загружено диалогов: ${data.length}`);
+            
+            // Build vocabulary
+            const allText = data.flatMap(d => [d.input, d.output]);
             this.tokenizer = new WordTokenizer();
-            const vocabSize = this.tokenizer.build(content);
+            const vocabSize = this.tokenizer.build(allText);
             
             this.logger.success(`Словарь создан: ${vocabSize} токенов`);
             this.logger.info(`Уникальных слов: ${this.tokenizer.stats.uniqueWords}`);
-            this.logger.info(`Биграмм: ${this.tokenizer.stats.bigrams}`);
-            
-            // Encode dataset once
-            this.encodedData = this.tokenizer.encode(content);
-            this.logger.info(`Закодировано токенов: ${this.encodedData.length}`);
             
             // Create model
             this.model = new RNNModel(vocabSize, CONFIG.HIDDEN_SIZE);
@@ -1652,15 +1916,21 @@ class NeuralChatApp {
             this._updateVocabStats();
             this._updateVocabPreview();
             document.getElementById('statVocab').textContent = vocabSize;
+            document.getElementById('infoDialogs').textContent = data.length;
+            document.getElementById('infoVocab').textContent = vocabSize;
+            document.getElementById('datasetInfo').style.display = 'block';
             document.getElementById('btnTrain').disabled = false;
             
-            this._addChatMessage('snn', `Датасет загружен. Словарь: ${vocabSize} токенов. Нажмите "Обучить сеть" для начала обучения.`);
+            this._addChatMessage('snn', `Загружено ${data.length} диалогов. Словарь: ${vocabSize} токенов. Нажмите "Обучить сеть".`);
             
         } catch (error) {
             this._showError(`Ошибка загрузки: ${error.message}`);
         }
     }
 
+    /**
+     * Обучение модели
+     */
     async train() {
         if (!this.trainingData || !this.model) {
             this._showError('Сначала загрузите датасет');
@@ -1683,7 +1953,6 @@ class NeuralChatApp {
         this.logger.info(`Эпох: ${CONFIG.EPOCHS}`);
         this.logger.info(`Длина последовательности: ${CONFIG.SEQ_LENGTH}`);
         this.logger.info(`Скорость обучения: ${CONFIG.LEARNING_RATE}`);
-        this.logger.info(`Всего токенов: ${this.encodedData.length}`);
         
         let totalLoss = 0;
         let totalSteps = 0;
@@ -1696,46 +1965,51 @@ class NeuralChatApp {
             let epochCorrect = 0;
             let epochPredictions = 0;
             
-            // Process sequences
-            for (let i = 0; i < this.encodedData.length - CONFIG.SEQ_LENGTH && this.isTraining; i += CONFIG.SEQ_LENGTH) {
-                const sequence = this.encodedData.slice(i, i + CONFIG.SEQ_LENGTH + 1);
+            // Train on each dialogue
+            for (let d = 0; d < this.trainingData.length && this.isTraining; d++) {
+                const dialogue = this.trainingData[d];
+                const inputTokens = this.tokenizer.encode(dialogue.input);
+                const outputTokens = this.tokenizer.encode(dialogue.output);
+                
+                // Combine for sequence learning
+                const sequence = [...inputTokens, ...outputTokens];
+                
+                if (sequence.length < 2) continue;
                 
                 this.model.reset();
-                this.model.forward(sequence.slice(0, CONFIG.SEQ_LENGTH));
-                const loss = this.model.backward(sequence.slice(1), CONFIG.LEARNING_RATE);
                 
-                // Calculate accuracy
-                const predictions = this.model.states.map(s => {
-                    const probs = Utils.softmax(s.y);
-                    return probs.indexOf(Math.max(...probs));
-                });
-                
-                for (let j = 0; j < predictions.length; j++) {
-                    if (predictions[j] === sequence[j + 1]) {
-                        epochCorrect++;
-                    }
-                    epochPredictions++;
-                }
-                
-                epochLoss += loss;
-                epochSteps++;
-                totalLoss += loss;
-                totalSteps++;
-                
-                // Update UI periodically
-                if (epochSteps % 10 === 0) {
-                    const avgLoss = epochLoss / epochSteps;
-                    const accuracy = epochPredictions > 0 ? (epochCorrect / epochPredictions * 100) : 0;
+                // Train on sequences
+                for (let i = 0; i < sequence.length - CONFIG.SEQ_LENGTH && this.isTraining; i += CONFIG.SEQ_LENGTH) {
+                    const seq = sequence.slice(i, i + CONFIG.SEQ_LENGTH + 1);
                     
-                    this._updateTrainingMetrics(epoch + 1, avgLoss, accuracy);
-                    await Utils.sleep(CONFIG.UI_UPDATE_INTERVAL);
+                    this.model.forward(seq.slice(0, CONFIG.SEQ_LENGTH));
+                    const loss = this.model.backward(seq.slice(1), CONFIG.LEARNING_RATE);
+                    
+                    // Calculate accuracy
+                    const predictions = this.model.states.map(s => {
+                        const probs = MathUtils.softmax(s.y);
+                        return probs.indexOf(Math.max(...probs));
+                    });
+                    
+                    for (let j = 0; j < predictions.length; j++) {
+                        if (predictions[j] === seq[j + 1]) epochCorrect++;
+                        epochPredictions++;
+                    }
+                    
+                    epochLoss += loss;
+                    epochSteps++;
+                    totalLoss += loss;
+                    totalSteps++;
                 }
             }
             
-            const avgEpochLoss = epochLoss / Math.max(epochSteps, 1);
-            const epochAccuracy = epochPredictions > 0 ? (epochCorrect / epochPredictions * 100) : 0;
+            const avgLoss = epochLoss / Math.max(epochSteps, 1);
+            const accuracy = epochPredictions > 0 ? (epochCorrect / epochPredictions * 100) : 0;
             
-            this.logger.success(`✅ Эпоха ${epoch + 1}/${CONFIG.EPOCHS} | Loss: ${avgEpochLoss.toFixed(3)} | Accuracy: ${epochAccuracy.toFixed(1)}%`);
+            this._updateTrainingMetrics(epoch + 1, avgLoss, accuracy);
+            this.logger.success(`✅ Эпоха ${epoch + 1}/${CONFIG.EPOCHS} | Loss: ${avgLoss.toFixed(3)} | Accuracy: ${accuracy.toFixed(1)}%`);
+            
+            await MathUtils.sleep(CONFIG.UI_UPDATE_INTERVAL);
         }
         
         this.isTraining = false;
@@ -1756,6 +2030,9 @@ class NeuralChatApp {
         this._addChatMessage('snn', `Обучение завершено! Loss: ${finalLoss.toFixed(3)}, Accuracy: ${finalAccuracy.toFixed(1)}%. Я готов к общению.`);
     }
 
+    /**
+     * Остановка обучения
+     */
     stopTraining() {
         if (this.isTraining) {
             this.isTraining = false;
@@ -1765,6 +2042,9 @@ class NeuralChatApp {
         }
     }
 
+    /**
+     * Отправка сообщения
+     */
     async sendMessage() {
         const input = document.getElementById('userInput');
         const text = input.value.trim();
@@ -1798,6 +2078,9 @@ class NeuralChatApp {
         input.focus();
     }
 
+    /**
+     * Обновление метрик обучения
+     */
     _updateTrainingMetrics(epoch, loss, accuracy) {
         document.getElementById('metricEpoch').textContent = `${epoch}/${CONFIG.EPOCHS}`;
         document.getElementById('metricLoss').textContent = loss.toFixed(3);
@@ -1813,13 +2096,18 @@ class NeuralChatApp {
         document.getElementById('lossFill').style.width = `${100 - lossPercent}%`;
     }
 
+    /**
+     * Обновление статистики словаря
+     */
     _updateVocabStats() {
         const stats = this.tokenizer.stats;
         document.getElementById('vocabTotal').textContent = this.tokenizer.size();
         document.getElementById('vocabWords').textContent = stats.uniqueWords;
-        document.getElementById('vocabNgrams').textContent = stats.bigrams;
     }
 
+    /**
+     * Обновление превью словаря
+     */
     _updateVocabPreview() {
         const preview = this.tokenizer.getPreview(30);
         const container = document.getElementById('vocabPreview');
@@ -1828,12 +2116,15 @@ class NeuralChatApp {
             .join('');
     }
 
+    /**
+     * Добавление сообщения в чат
+     */
     _addChatMessage(role, content) {
         const container = document.getElementById('chatHistory');
         const div = document.createElement('div');
         div.className = `chat-message ${role}`;
         
-        const timestamp = Utils.timestamp();
+        const timestamp = MathUtils.timestamp();
         div.innerHTML = `
             <span class="role">${role === 'user' ? 'Вы' : 'Нейросеть'}</span>
             <span class="content">${content}</span>
@@ -1848,6 +2139,9 @@ class NeuralChatApp {
         }
     }
 
+    /**
+     * Показ ошибки
+     */
     _showError(message) {
         const banner = document.getElementById('errorBanner');
         banner.textContent = message;
@@ -1860,6 +2154,9 @@ class NeuralChatApp {
         this.logger.error(message);
     }
 
+    /**
+     * Сохранение словаря
+     */
     saveVocabulary() {
         if (!this.tokenizer) {
             this._showError('Нет словаря для сохранения');
@@ -1867,16 +2164,20 @@ class NeuralChatApp {
         }
         
         const data = this.tokenizer.toJSON();
-        Utils.downloadJSON(data, `vocab_${new Date().toISOString().slice(0,10)}.json`);
+        MathUtils.downloadJSON(data, `vocab_${new Date().toISOString().slice(0, 10)}.json`);
         this.logger.success('Словарь сохранён');
     }
 
+    /**
+     * Загрузка словаря
+     */
     _loadVocabulary(file) {
         if (!file) return;
         
-        Utils.readFile(file)
-            .then(content => {
-                const data = JSON.parse(content);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
                 this.tokenizer = new WordTokenizer();
                 this.tokenizer.fromJSON(data);
                 
@@ -1884,12 +2185,16 @@ class NeuralChatApp {
                 this._updateVocabStats();
                 this._updateVocabPreview();
                 document.getElementById('statVocab').textContent = this.tokenizer.size();
-            })
-            .catch(error => {
+            } catch (error) {
                 this._showError(`Ошибка загрузки словаря: ${error.message}`);
-            });
+            }
+        };
+        reader.readAsText(file);
     }
 
+    /**
+     * Сохранение модели
+     */
     saveModel() {
         if (!this.model || !this.tokenizer) {
             this._showError('Нет модели для сохранения');
@@ -1907,16 +2212,20 @@ class NeuralChatApp {
             }
         };
         
-        Utils.downloadJSON(data, `model_${new Date().toISOString().slice(0,10)}.json`);
+        MathUtils.downloadJSON(data, `model_${new Date().toISOString().slice(0, 10)}.json`);
         this.logger.success('Модель сохранена');
     }
 
+    /**
+     * Загрузка модели
+     */
     _loadModel(file) {
         if (!file) return;
         
-        Utils.readFile(file)
-            .then(content => {
-                const data = JSON.parse(content);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
                 
                 this.tokenizer = new WordTokenizer();
                 this.tokenizer.fromJSON(data.tokenizer);
@@ -1942,12 +2251,16 @@ class NeuralChatApp {
                 document.getElementById('btnTrain').disabled = false;
                 
                 this._addChatMessage('snn', 'Модель загружена. Я готов к общению.');
-            })
-            .catch(error => {
+            } catch (error) {
                 this._showError(`Ошибка загрузки модели: ${error.message}`);
-            });
+            }
+        };
+        reader.readAsText(file);
     }
 
+    /**
+     * Сброс сети
+     */
     resetNetwork() {
         this._showModal(
             'Сброс системы',
@@ -1956,7 +2269,6 @@ class NeuralChatApp {
                 this.model = null;
                 this.tokenizer = null;
                 this.trainingData = null;
-                this.encodedData = null;
                 
                 document.getElementById('btnTrain').disabled = true;
                 document.getElementById('statVocab').textContent = '0';
@@ -1964,6 +2276,7 @@ class NeuralChatApp {
                 document.getElementById('vocabPreview').innerHTML = '';
                 document.getElementById('trainingMetrics').classList.remove('visible');
                 document.getElementById('progressBar').style.width = '0%';
+                document.getElementById('datasetInfo').style.display = 'none';
                 
                 this.logger.info('Система сброшена');
                 this._addChatMessage('snn', 'Система сброшена. Загрузите новый датасет.');
@@ -1973,6 +2286,9 @@ class NeuralChatApp {
         );
     }
 
+    /**
+     * Показ модального окна
+     */
     _showModal(title, content, onConfirm) {
         document.getElementById('modalTitle').textContent = title;
         document.getElementById('modalContent').textContent = content;
@@ -1987,10 +2303,16 @@ class NeuralChatApp {
         };
     }
 
+    /**
+     * Скрытие модального окна
+     */
     _hideModal() {
         document.getElementById('modalOverlay').classList.remove('active');
     }
 
+    /**
+     * Генерация позиций нейронов
+     */
     _generateNeuronPositions() {
         const cx = this.canvas.width / 2;
         const cy = this.canvas.height / 2;
@@ -2008,7 +2330,11 @@ class NeuralChatApp {
         }
     }
 
+    /**
+     * Запуск визуализации
+     */
     _startVisualization() {
+        this._generateNeuronPositions();
         const animate = () => {
             this._renderNetwork();
             requestAnimationFrame(animate);
@@ -2016,6 +2342,9 @@ class NeuralChatApp {
         animate();
     }
 
+    /**
+     * Отрисовка сети
+     */
     _renderNetwork() {
         const ctx = this.ctx;
         const width = this.canvas.width;
@@ -2032,7 +2361,7 @@ class NeuralChatApp {
         const excNeurons = this.model.hiddenState.filter(h => h > 0.1).length;
         const inhNeurons = this.model.hiddenState.filter(h => h < -0.1).length;
         
-        // Draw neurons
+        // Отрисовка нейронов
         for (let i = 0; i < this.neuronPositions.length; i++) {
             const pos = this.neuronPositions[i];
             const activation = this.model.hiddenState[i] || 0;
@@ -2044,7 +2373,7 @@ class NeuralChatApp {
             ctx.fill();
         }
         
-        // Update stats
+        // Обновление статистики
         document.getElementById('overlayActive').textContent = activeNeurons;
         document.getElementById('overlayExc').textContent = excNeurons;
         document.getElementById('overlayInh').textContent = inhNeurons;
@@ -2053,6 +2382,9 @@ class NeuralChatApp {
         document.getElementById('overlayRate').textContent = `${rate.toFixed(1)} Hz`;
     }
 
+    /**
+     * Сетевой цикл
+     */
     _startNetworkLoop() {
         setInterval(() => {
             if (!this.isTraining && this.model) {
@@ -2066,12 +2398,43 @@ class NeuralChatApp {
         }, 30);
     }
 
+    /**
+     * Обновление статистики
+     */
     _updateStats() {
-        document.getElementById('statNeurons').textContent = Utils.formatNumber(this.model ? this.model.hiddenSize : CONFIG.HIDDEN_SIZE);
+        document.getElementById('statNeurons').textContent = MathUtils.formatNumber(
+            this.model ? this.model.hiddenSize : CONFIG.HIDDEN_SIZE
+        );
     }
 }
 
-// ==================== ИНИЦИАЛИЗАЦИЯ ====================
+// ============================================================================
+// УТИЛИТЫ ДЛЯ РАБОТЫ С ФАЙЛАМИ
+// ============================================================================
+MathUtils.downloadJSON = function(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
+MathUtils.readFile = function(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(e);
+        reader.readAsText(file, 'utf-8');
+    });
+};
+
+// ============================================================================
+// ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
+// ============================================================================
 let app = null;
 
 document.addEventListener('DOMContentLoaded', () => {
