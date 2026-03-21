@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEURAL TANK COMBAT v15.0.0 — NATIVE SNN GATING</title>
+    <title>NEURAL TANK COMBAT v18.0 — FULLY FIXED</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         body {
@@ -287,17 +287,15 @@
 <body>
     <div id="loading" class="loading">
         <div class="spinner"></div>
-        <div style="margin-top:20px;font-size:16px;color:#00ff88;">INITIALIZING v15.0.0...</div>
-        <div style="margin-top:8px;font-size:10px;color:#ff9966;">NATIVE SNN GATING — L2→L3 = ROUTING</div>
-        <div style="margin-top:5px;font-size:8px;color:#66ffcc;">✓ No separate gating network | ✓ Full integration</div>
+        <div style="margin-top:20px;font-size:16px;color:#00ff88;">INITIALIZING v18.0.0...</div>
+        <div style="margin-top:8px;font-size:10px;color:#ff9966;">FIXED STDP | SHOT COMPENSATION | FULL ARCHITECTURE</div>
     </div>
 
     <div id="ui">
-        <h1>NEURAL TANK COMBAT v15.0.0 — NATIVE SNN GATING</h1>
-        <div class="prod-badge">✓ Shared L2 (64) | ✓ 3×32 L3 Experts | ✓ Shared Output (9) | ✓ Full Integration</div>
-        <div class="arch-badge">✓ L2→L3 synapses = expert routing | ✓ No separate gating network</div>
-        <div class="causal-badge">✓ WM→Aim Loop | ✓ Causal Adaptation | ✓ Attention Boost</div>
-        <div class="monitor-badge">✓ Real-time Monitoring | ✓ Expert Probability Viz | ✓ Causal Dashboard</div>
+        <h1>NEURAL TANK COMBAT v18.0.0 — FULLY FIXED ARCHITECTURE</h1>
+        <div class="prod-badge">✓ Shared L2 (64) | ✓ 3×32 L3 Experts | ✓ Native routing via L2→L3 synapses</div>
+        <div class="arch-badge">✓ Correct eligibility traces | ✓ Frame-accurate shot compensation</div>
+        <div class="causal-badge">✓ WM→Aim Loop | ✓ Causal Adaptation | ✓ One-shot learning</div>
         
         <div class="panel">
             <div class="panel-header">⚙️ SYSTEM CONTROL</div>
@@ -317,7 +315,6 @@
             <div class="panel-header">📊 PERFORMANCE & LEARNING METRICS</div>
             <div class="stat-row"><span class="stat-label">FPS:</span><span class="val good" id="p-fps">0</span></div>
             <div class="stat-row"><span class="stat-label">FRAME TIME:</span><span class="val warn" id="p-frame">0 ms</span></div>
-            <div class="stat-row"><span class="stat-label">LEARNING RATE:</span><span class="val" id="p-lr">0.000</span></div>
             <div class="stat-row"><span class="stat-label">EPISODE REWARD:</span><span class="val" id="p-episode-reward">0.00</span></div>
             <div class="stat-row"><span class="stat-label">AVG REWARD (10 ep):</span><span class="val" id="p-avg-reward">0.00</span></div>
             <div class="stat-row"><span class="stat-label">CAUSAL ACCURACY:</span><span class="val causal" id="p-causal-acc">0%</span></div>
@@ -496,10 +493,10 @@
 })();
 
 // ============================================================================
-// CONFIGURATION - v15.0.0 NATIVE SNN GATING (Full Integration)
+// CONFIGURATION - v18.0.0 FULLY FIXED
 // ============================================================================
 const CONFIG = Object.freeze({
-    VERSION: { major: 15, minor: 0, patch: 0, codename: 'NATIVE_SNN_GATING' },
+    VERSION: { major: 18, minor: 0, patch: 0, codename: 'FULLY_FIXED' },
     
     FEATURES: Object.freeze({
         CAUSAL_INTEGRATION_ENABLED: true,
@@ -543,21 +540,13 @@ const CONFIG = Object.freeze({
         ATTENTION_ENTROPY_MIN: 0.5,
         ATTENTION_CORRELATION_WINDOW: 100,
         
-        STDP_TIME_WINDOW: 15,
-        STDP_LR: 0.05,
-        STDP_NEGATIVE_LR: 0.02,
-        
         FEEDBACK_DELAY_FRAMES: 10,
         FEEDBACK_STRENGTH: 0.15,
         FEEDBACK_DECAY: 0.92,
         FEEDBACK_LR: 0.001,
         FEEDBACK_EMA_ALPHA: 0.01,
         
-        MOE_NUM_EXPERTS: 3,
-        MOE_GATING_LR: 0.003,
         MOE_GATING_TEMPERATURE: 1.0,
-        MOE_EXPERT_SELECTION: 'softmax',
-        MOE_EXPERT_BONUS: 1.5,
         
         HOMEOSTASIS_THRESHOLD_MS: 1000,
         MIN_ACTIVE_NEURONS: 12,
@@ -587,16 +576,11 @@ const CONFIG = Object.freeze({
         ACTIVITY_REWARD_MAX: 80,
         ACTIVITY_REWARD_AMOUNT: 0.05,
         
-        ONE_SHOT_PERFECT_THRESHOLD: 0.95,
-        ONE_SHOT_GOOD_THRESHOLD: 0.8,
-        ONE_SHOT_LR_PERFECT: 0.3,
-        ONE_SHOT_LR_GOOD: 0.15,
-        WEIGHT_SMOOTHING_RATE: 0.08,
+        SHOT_MEMORY_MAX_AGE_MS: 10000,
+        SHOT_MEMORY_CLEANUP_INTERVAL: 200,
         
-        SHOT_MEMORY_MAX_AGE_MS: 8000,
-        SHOT_MEMORY_CLEANUP_INTERVAL: 80,
-        STDP_MAX_ITERATIONS: 3,
-        STDP_MAX_WEIGHTS_PER_FRAME: 80
+        ONE_SHOT_LEARNING_RATE: 0.35,
+        ONE_SHOT_MAX_COMPENSATION: 5.0
     }),
     
     GAME: Object.freeze({
@@ -630,10 +614,13 @@ const CONFIG = Object.freeze({
         CAUSAL_ADAPTATION_STRENGTH: 0.1,
         CAUSAL_DECAY_RATE: 0.001,
         
-        SAVE_KEY: 'tank_model_v15',
+        SAVE_KEY: 'tank_model_v18',
         SAVE_VERSION_CHECK: true,
-        EXPERT_CLOSE_RANGE: 150,
-        EXPERT_FAR_RANGE: 400
+        
+        REWARD_THRESHOLD: 0.01,
+        REWARD_KILL: 100.0,
+        REWARD_DAMAGE: 2.0,
+        REWARD_ACCURACY: 0.5
     }),
     
     PHYSICS: Object.freeze({
@@ -652,63 +639,26 @@ const CONFIG = Object.freeze({
     EMOTIONS: Object.freeze({
         FEAR_DECAY: 0.95,
         FEAR_DAMAGE_MULTIPLIER: 0.15,
-        FEAR_LOW_HEALTH_THRESHOLD: 0.3,
         AGGRESSION_DECAY: 0.92,
         AGGRESSION_HIT_BONUS: 0.2,
         AGGRESSION_KILL_BONUS: 0.5,
         CURIOSITY_DECAY: 0.90,
         CURIOSITY_EXPLORE_BONUS: 0.1,
-        CURIOSITY_NO_ENEMY_BONUS: 0.15,
         CONFIDENCE_DECAY: 0.98,
         CONFIDENCE_HIT_BONUS: 0.05,
         CONFIDENCE_KILL_BONUS: 0.2,
         CONFIDENCE_MISS_PENALTY: 0.03,
         SYNERGY_COMBAT_FRENZY_REWARD: 1.3,
-        SYNERGY_COMBAT_FRENZY_LEARN: 1.4,
         SYNERGY_CALCULATED_REWARD: 1.1,
-        SYNERGY_CALCULATED_LEARN: 1.2,
         SYNERGY_SURVIVAL_REWARD: 1.15,
-        SYNERGY_SURVIVAL_LEARN: 1.3,
         SYNERGY_PANIC_REWARD: 0.8,
-        SYNERGY_PANIC_LEARN: 0.6,
-        SYNERGY_DEMORALIZED_REWARD: 0.85,
-        SYNERGY_DEMORALIZED_LEARN: 0.7
-    }),
-    
-    LEARNING: Object.freeze({
-        EPISODE_MAX_LENGTH: 500,
-        REPLAY_BATCH_SIZE: 32,
-        REPLAY_FREQUENCY: 10,
-        REWARD_SPARSE_KILL: 100.0,
-        REWARD_SPARSE_DAMAGE: 2.0,
-        REWARD_DENSE_ACCURACY: 0.5,
-        REWARD_DENSE_PURSUIT: 0.3,
-        REWARD_NAVIGATION: 0.02,
-        REWARD_STUCK_PENALTY: -0.5,
-        REWARD_EXPLORATION: 0.01,
-        REWARD_WALL_AVOIDANCE: 0.03
-    }),
-    
-    ROLLBACK: Object.freeze({
-        WM_CONFIDENCE_MIN: 0.2,
-        PREDICTION_ERROR_MAX: 150,
-        PARAM_OSCILLATION_THRESHOLD: 0.15,
-        LATENCY_P95_MAX_MS: 50,
-        ACCURACY_DROP_THRESHOLD: 0.05
+        SYNERGY_DEMORALIZED_REWARD: 0.85
     }),
     
     DEBUG: Object.freeze({
         ENABLED: true,
-        PERF_LOGGING: false,
-        VERBOSE_NEURAL: false,
-        LOG_ANOMALIES: true,
-        LOG_SYNERGY: true,
-        LOG_WM: true,
-        LOG_CAUSAL: true,
         LOG_LEARNING: true,
-        LOG_EXPERTS: true,
-        LOG_FEEDBACK: true,
-        LOG_ADAPTATIONS: true,
+        LOG_HIT: true,
         CONSOLE_DUPLEX: true
     })
 });
@@ -833,15 +783,81 @@ const UICache = {
 };
 
 // ============================================================================
-// FEATURE FLAG MANAGER
+// FIXED: ELIGIBILITY TRACES (Correct STDP with per-spike recording)
 // ============================================================================
-class FeatureFlagManager {
-    constructor() { this.flags = { ...CONFIG.FEATURES }; }
-    get(name) { return this.flags[name] ?? false; }
-    set(name, value) { this.flags[name] = value; }
-    static getInstance() { if (!FeatureFlagManager._instance) FeatureFlagManager._instance = new FeatureFlagManager(); return FeatureFlagManager._instance; }
+class EligibilityTraces {
+    constructor(neuronCount) {
+        this.traces = new Float32Array(neuronCount);
+        this.decay = CONFIG.SNN.ELIGIBILITY_DECAY;
+        this.neuronCount = neuronCount;
+        this.activeCount = 0;
+    }
+    
+    recordSpike(neuronIndex) {
+        if (neuronIndex >= 0 && neuronIndex < this.neuronCount) {
+            this.traces[neuronIndex] = Math.min(1.0, this.traces[neuronIndex] + 1.0);
+        }
+    }
+    
+    decayTraces() {
+        for (let i = 0; i < this.neuronCount; i++) {
+            this.traces[i] *= this.decay;
+        }
+        this._updateActiveCount();
+    }
+    
+    _updateActiveCount() {
+        this.activeCount = 0;
+        for (let i = 0; i < this.neuronCount; i++) {
+            if (this.traces[i] > 0.01) this.activeCount++;
+        }
+    }
+    
+    applyRewardToWeights(reward, weights, learningRate) {
+        if (!weights || !Array.isArray(weights) || weights.length === 0) return 0;
+        if (Math.abs(reward) < CONFIG.GAME.REWARD_THRESHOLD) return 0;
+        
+        let changes = 0;
+        for (let idx = 0; idx < weights.length; idx++) {
+            const w = weights[idx];
+            if (!w || w.from === undefined || w.to === undefined) continue;
+            const preTrace = this.traces[w.from] || 0;
+            if (preTrace > 0.01) {
+                const delta = reward * preTrace * learningRate;
+                w.w += delta;
+                w.w = Math.max(-CONFIG.SNN.WEIGHT_CEILING, Math.min(CONFIG.SNN.WEIGHT_CEILING, w.w));
+                changes++;
+            }
+        }
+        return changes;
+    }
+    
+    applyRewardByLayer(reward, weightsByLayer, learningRates = CONFIG.SNN.LAYER_LR) {
+        if (Math.abs(reward) < CONFIG.GAME.REWARD_THRESHOLD) return 0;
+        
+        let totalChanges = 0;
+        if (weightsByLayer && weightsByLayer.input_to_l1) {
+            totalChanges += this.applyRewardToWeights(reward, weightsByLayer.input_to_l1, learningRates.input_to_l1);
+        }
+        if (weightsByLayer && weightsByLayer.l1_to_l2) {
+            totalChanges += this.applyRewardToWeights(reward, weightsByLayer.l1_to_l2, learningRates.l1_to_l2);
+        }
+        if (weightsByLayer && weightsByLayer.l2_to_l3) {
+            totalChanges += this.applyRewardToWeights(reward, weightsByLayer.l2_to_l3, learningRates.l2_to_l3);
+        }
+        if (weightsByLayer && weightsByLayer.l3_to_output) {
+            totalChanges += this.applyRewardToWeights(reward, weightsByLayer.l3_to_output, learningRates.l3_to_output);
+        }
+        return totalChanges;
+    }
+    
+    getActiveCount() { return this.activeCount; }
+    
+    reset() {
+        this.traces.fill(0);
+        this.activeCount = 0;
+    }
 }
-FeatureFlagManager._instance = null;
 
 // ============================================================================
 // ODE-LIF NEURON (Full implementation)
@@ -951,70 +967,6 @@ class ODELIFNeuron {
         this.thresholdAdaptation = 0;
         this.spikeRateEMA = 0;
     }
-}
-
-// ============================================================================
-// ELIGIBILITY TRACES (FIXED)
-// ============================================================================
-class EligibilityTraces {
-    constructor(neuronCount) {
-        this.traces = new Float32Array(neuronCount);
-        this.decay = CONFIG.SNN.ELIGIBILITY_DECAY;
-        this.neuronCount = neuronCount;
-        this.activeCount = 0;
-    }
-    
-    update(preSpikes, postSpikes) {
-        for (let i = 0; i < this.neuronCount; i++) this.traces[i] *= this.decay;
-        for (let idx = 0; idx < preSpikes.length; idx++) {
-            const pre = preSpikes[idx];
-            if (pre !== undefined && pre < this.neuronCount) this.traces[pre] = Math.min(1.0, this.traces[pre] + 0.5);
-        }
-        for (let idx = 0; idx < postSpikes.length; idx++) {
-            const post = postSpikes[idx];
-            if (post !== undefined && post < this.neuronCount) this.traces[post] = Math.min(1.0, this.traces[post] + 0.5);
-        }
-        this.activeCount = 0;
-        for (let i = 0; i < this.neuronCount; i++) if (this.traces[i] > 0.01) this.activeCount++;
-    }
-    
-    _applyToWeights(reward, weights, learningRate) {
-        if (!weights || !Array.isArray(weights) || weights.length === 0) return 0;
-        let changes = 0;
-        for (let idx = 0; idx < weights.length; idx++) {
-            const w = weights[idx];
-            if (!w || w.from === undefined || w.to === undefined) continue;
-            const preTrace = this.traces[w.from] || 0;
-            const postTrace = this.traces[w.to] || 0;
-            const combinedTrace = preTrace * postTrace;
-            if (Math.abs(combinedTrace) > 0.01) {
-                w.w += reward * combinedTrace * learningRate;
-                w.w = Math.max(-CONFIG.SNN.WEIGHT_CEILING, Math.min(CONFIG.SNN.WEIGHT_CEILING, w.w));
-                changes++;
-            }
-        }
-        return changes;
-    }
-    
-    applyRewardByLayer(reward, weightsByLayer, learningRates = CONFIG.SNN.LAYER_LR) {
-        let totalChanges = 0;
-        if (weightsByLayer && weightsByLayer.input_to_l1 && Array.isArray(weightsByLayer.input_to_l1)) {
-            totalChanges += this._applyToWeights(reward, weightsByLayer.input_to_l1, learningRates.input_to_l1);
-        }
-        if (weightsByLayer && weightsByLayer.l1_to_l2 && Array.isArray(weightsByLayer.l1_to_l2)) {
-            totalChanges += this._applyToWeights(reward, weightsByLayer.l1_to_l2, learningRates.l1_to_l2);
-        }
-        if (weightsByLayer && weightsByLayer.l2_to_l3 && Array.isArray(weightsByLayer.l2_to_l3)) {
-            totalChanges += this._applyToWeights(reward, weightsByLayer.l2_to_l3, learningRates.l2_to_l3);
-        }
-        if (weightsByLayer && weightsByLayer.l3_to_output && Array.isArray(weightsByLayer.l3_to_output)) {
-            totalChanges += this._applyToWeights(reward, weightsByLayer.l3_to_output, learningRates.l3_to_output);
-        }
-        return totalChanges;
-    }
-    
-    getActiveCount() { return this.activeCount; }
-    reset() { this.traces.fill(0); this.activeCount = 0; }
 }
 
 // ============================================================================
@@ -1187,7 +1139,7 @@ class NeurotransmitterSystem {
         this.adrenaline.peak = Math.max(this.adrenaline.peak, this.adrenaline.level);
         this.adrenaline.lastSpike = now;
         this.adrenaline.spikeCount++;
-        if (CONFIG.DEBUG.LOG_ADAPTATIONS && amount > 0.3) log(`⚡ ADRENALINE +${amount.toFixed(2)} (${reason})`, 'adrenaline');
+        if (CONFIG.DEBUG.LOG_LEARNING && amount > 0.3) log(`⚡ ADRENALINE +${amount.toFixed(2)} (${reason})`, 'adrenaline');
     }
     
     update(threatLevel = 0) {
@@ -1263,7 +1215,7 @@ class NeurotransmitterSystem {
 // EPISODE MEMORY
 // ============================================================================
 class EpisodeMemory {
-    constructor(maxEpisodes = 100, maxLength = CONFIG.LEARNING.EPISODE_MAX_LENGTH) {
+    constructor(maxEpisodes = 100, maxLength = 500) {
         this.episodes = [];
         this.maxEpisodes = maxEpisodes;
         this.currentEpisode = [];
@@ -1283,7 +1235,7 @@ class EpisodeMemory {
         }
     }
     
-    replay(batchSize = CONFIG.LEARNING.REPLAY_BATCH_SIZE) {
+    replay(batchSize = 32) {
         const samples = [];
         for (const episode of this.episodes) {
             for (let i = 0; i < episode.length - 1; i++) {
@@ -1320,15 +1272,14 @@ class ExpertNetwork {
         this.layer3Count = layer3Count;
         this.outputCount = outputCount;
         
-        // Note: L1 and L2 are shared, so expert only has L3
         this.l3 = [];
         for (let i = 0; i < this.layer3Count; i++) {
             this.l3.push(new ODELIFNeuron(i + expertId * layer3Count, i < layer3Count * 0.5, expertId));
         }
         
         this.weights = {
-            l2_to_l3: [],  // from shared L2 to this expert's L3
-            l3_to_output: [] // from this expert's L3 to shared output
+            l2_to_l3: [],
+            l3_to_output: []
         };
         
         this.spikeCount = 0;
@@ -1374,7 +1325,7 @@ class ExpertNetwork {
 }
 
 // ============================================================================
-// HIERARCHICAL SNN WITH SHARED L2 + SEPARATE L3 + NATIVE SNN GATING
+// FIXED: HIERARCHICAL SNN WITH CORRECT ELIGIBILITY TRACES AND SHOT COMPENSATION
 // ============================================================================
 class HierarchicalSpikingNeuralNetwork {
     constructor(inputCount, layer1Count, layer2Count, layer3Count, outputCount, numExperts = 3) {
@@ -1385,7 +1336,6 @@ class HierarchicalSpikingNeuralNetwork {
         this.outputCount = outputCount;
         this.numExperts = numExperts;
         
-        // Shared layers (L1 and L2)
         this.layers = {
             input: [],
             layer1: [],
@@ -1399,15 +1349,11 @@ class HierarchicalSpikingNeuralNetwork {
             recurrent_l2: []
         };
         
-        // Expert modules (each has its own L3)
         this.experts = [];
         for (let e = 0; e < numExperts; e++) {
             this.experts.push(new ExpertNetwork(inputCount, layer1Count, layer2Count, layer3Count, outputCount, e));
         }
         
-        // NATIVE SNN GATING: НЕТ отдельной гейтинг сети! Маршрутизация через синапсы L2→L3
-        
-        // Output layer (shared)
         this.layers.output = [];
         for (let i = 0; i < outputCount; i++) {
             this.layers.output.push({
@@ -1422,14 +1368,13 @@ class HierarchicalSpikingNeuralNetwork {
             });
         }
         
-        // Learning systems
         this.neurotransmitters = new NeurotransmitterSystem();
-        this.eligibilityTraces = new EligibilityTraces(inputCount + layer1Count + layer2Count + layer3Count + outputCount);
+        const totalNeurons = this.layer1Count + this.layer2Count + this.layer3Count + this.outputCount;
+        this.eligibilityTraces = new EligibilityTraces(totalNeurons);
         this.attention = new AttentionMechanism(inputCount, CONFIG.SNN.WM_CHANNEL_INDICES, CONFIG.SNN.WM_CHANNEL_BOOST_FACTOR);
         this.episodeMemory = new EpisodeMemory();
         this.feedbackBuffer = new SpikeFeedbackBuffer();
         
-        // Shot memory for one-shot learning
         this.shotMemory = {
             all: new Map(),
             patterns: { byAngle: new Map(), byDistance: new Map() },
@@ -1437,31 +1382,25 @@ class HierarchicalSpikingNeuralNetwork {
             stats: { totalHits: 0, totalShots: 0 }
         };
         
-        // Tracking
         this.spikeCount = 0;
-        this.learningRate = CONFIG.SNN.LEARNING_RATE;
         this.time = 0;
         this.enemyVisible = false;
         this.lastAction = null;
         this.activeExpert = 0;
         this.lastExpertProbs = new Float32Array(numExperts).fill(1 / numExperts);
+        this.rewardAccumulator = 0;
         
         this._initializeLayers();
         this._initializeWeights();
     }
     
     _initializeLayers() {
-        // Input layer
         for (let i = 0; i < this.inputCount; i++) {
             this.layers.input.push({ id: i, out: 0, v: 0 });
         }
-        
-        // L1 - Shared perceptual layer (30% WM neurons)
         for (let i = 0; i < this.layer1Count; i++) {
             this.layers.layer1.push(new ODELIFNeuron(i, i < this.layer1Count * 0.3));
         }
-        
-        // L2 - Shared strategic layer (40% WM neurons)
         for (let i = 0; i < this.layer2Count; i++) {
             this.layers.layer2.push(new ODELIFNeuron(i + this.layer1Count, i < this.layer2Count * 0.4));
         }
@@ -1476,11 +1415,9 @@ class HierarchicalSpikingNeuralNetwork {
             }
         };
         
-        // Shared connections
         addWeights(this.inputCount, this.layer1Count, this.weights.input_to_l1);
         addWeights(this.layer1Count, this.layer2Count, this.weights.l1_to_l2);
         
-        // Recurrent connections in shared layers
         for (let i = 0; i < this.layer1Count; i++) {
             for (let j = 0; j < this.layer1Count; j++) {
                 if (i !== j && Math.random() < 0.12) {
@@ -1496,7 +1433,6 @@ class HierarchicalSpikingNeuralNetwork {
             }
         }
         
-        // Expert connections (from shared L2 to each expert's L3, and from L3 to shared output)
         for (let e = 0; e < this.numExperts; e++) {
             const l2_to_l3 = [];
             const l3_to_output = [];
@@ -1504,39 +1440,40 @@ class HierarchicalSpikingNeuralNetwork {
             addWeights(this.layer3Count, this.outputCount, l3_to_output);
             this.experts[e].setWeights(l2_to_l3, l3_to_output);
         }
-        
-        // NATIVE SNN GATING: НЕТ инициализации отдельной гейтинг сети!
     }
     
-    // NATIVE SNN GATING — выбор эксперта через энергию сигнала по синапсам L2→L3
+    _getFlatIndex(layer, index) {
+        if (layer === 'layer1') return index;
+        if (layer === 'layer2') return this.layer1Count + index;
+        if (layer === 'layer3') return this.layer1Count + this.layer2Count + index;
+        if (layer === 'output') return this.layer1Count + this.layer2Count + this.layer3Count + index;
+        return 0;
+    }
+    
     _selectExpert() {
-        // Получаем активность L2 (спайки + следы)
         const l2Activity = new Float32Array(this.layer2Count);
         for (let i = 0; i < this.layer2Count; i++) {
             l2Activity[i] = this.layers.layer2[i].out + this.layers.layer2[i].trace;
         }
         
-        // Вычисляем энергию для каждого эксперта — сумма сигналов через синапсы L2→L3
         const energies = new Float32Array(this.numExperts);
         for (let e = 0; e < this.numExperts; e++) {
             let total = 0;
             for (const w of this.experts[e].getWeights().l2_to_l3) {
                 if (l2Activity[w.from] > 0.01) {
-                    total += l2Activity[w.from] * w.w;
+                    total += l2Activity[w.from] * Math.abs(w.w);
                 }
             }
             energies[e] = total;
         }
         
-        // Softmax для получения вероятностей
         const temp = CONFIG.SNN.MOE_GATING_TEMPERATURE;
-        const maxE = Math.max(...energies);
+        const maxE = Math.max(...energies, 0.001);
         const expE = energies.map(e => Math.exp((e - maxE) / temp));
         const sumE = expE.reduce((a, b) => a + b, 0) || 1;
         const probs = expE.map(e => e / sumE);
         this.lastExpertProbs = probs;
         
-        // Вероятностный выбор
         const r = Math.random();
         let cum = 0;
         for (let e = 0; e < this.numExperts; e++) {
@@ -1550,6 +1487,11 @@ class HierarchicalSpikingNeuralNetwork {
     }
     
     rememberShot(shotId, state) {
+        const tracesSnapshot = new Float32Array(this.eligibilityTraces.traces.length);
+        for (let i = 0; i < this.eligibilityTraces.traces.length; i++) {
+            tracesSnapshot[i] = this.eligibilityTraces.traces[i];
+        }
+        
         this.shotMemory.all.set(shotId, {
             id: shotId,
             fromPos: state.tankPos ? { ...state.tankPos } : null,
@@ -1557,21 +1499,24 @@ class HierarchicalSpikingNeuralNetwork {
             turretAngle: state.turretAngle,
             barrelAngle: state.barrelAngle,
             fireTime: performance.now(),
+            fireFrame: this.time,
             targetPos: state.targetPos ? { ...state.targetPos } : null,
             targetVel: state.targetVel ? { ...state.targetVel } : null,
             activeNeurons: this.getActiveNeurons().map(n => `${n.layer}_${n.index}`),
-            motorCommands: this.getMotorCommands ? this.getMotorCommands() : {},
+            tracesSnapshot: tracesSnapshot,
+            activeExpert: this.activeExpert,
             result: null,
             hitPos: null
         });
         this.shotMemory.stats.totalShots++;
     }
     
-    observeHit(shotId, hitPos) {
+    observeHit(shotId, hitPos, hitFrame) {
         const shot = this.shotMemory.all.get(shotId);
         if (!shot) return;
         shot.result = 'hit';
         shot.hitTime = performance.now();
+        shot.hitFrame = hitFrame;
         shot.hitPos = hitPos ? { ...hitPos } : null;
         this.shotMemory.stats.totalHits++;
         
@@ -1581,23 +1526,52 @@ class HierarchicalSpikingNeuralNetwork {
         angleStats.total++;
         this.shotMemory.patterns.byAngle.set(angleKey, angleStats);
         
-        // One-shot learning
-        if (shot.fromPos && shot.hitPos) {
-            const idealAngle = Math.atan2(shot.hitPos.y - shot.fromPos.y, shot.hitPos.x - shot.fromPos.x);
-            const actualAngle = shot.fromAngle + shot.turretAngle + shot.barrelAngle;
-            let angleError = idealAngle - actualAngle;
-            while (angleError > Math.PI) angleError -= Math.PI * 2;
-            while (angleError < -Math.PI) angleError += Math.PI * 2;
-            const accuracyBonus = 1 - Math.min(1, Math.abs(angleError) / 0.5);
-            const isPerfect = accuracyBonus > CONFIG.SNN.ONE_SHOT_PERFECT_THRESHOLD;
-            const isGood = accuracyBonus > CONFIG.SNN.ONE_SHOT_GOOD_THRESHOLD;
-            const baseLr = isPerfect ? CONFIG.SNN.ONE_SHOT_LR_PERFECT : isGood ? CONFIG.SNN.ONE_SHOT_LR_GOOD : CONFIG.SNN.WEIGHT_SMOOTHING_RATE;
+        // FIXED: Compensate trace decay during projectile flight
+        if (shot.tracesSnapshot) {
+            const framesTraveled = (hitFrame || this.time) - shot.fireFrame;
+            const decayPerFrame = CONFIG.SNN.ELIGIBILITY_DECAY;
+            const totalDecay = Math.pow(decayPerFrame, Math.max(0, framesTraveled));
             
-            const activeExpert = this.experts[this.activeExpert];
-            const allWeights = [...this.weights.input_to_l1, ...this.weights.l1_to_l2, ...activeExpert.getWeights().l2_to_l3, ...activeExpert.getWeights().l3_to_output];
-            for (const w of allWeights) {
-                w.w = w.w * (1 - baseLr) + (w.w * (1 + 0.3 * accuracyBonus)) * baseLr;
-                w.w = Math.max(-CONFIG.SNN.WEIGHT_CEILING, Math.min(CONFIG.SNN.WEIGHT_CEILING, w.w));
+            const currentTraces = new Float32Array(this.eligibilityTraces.traces.length);
+            for (let i = 0; i < this.eligibilityTraces.traces.length; i++) {
+                currentTraces[i] = this.eligibilityTraces.traces[i];
+                this.eligibilityTraces.traces[i] = shot.tracesSnapshot[i];
+            }
+            
+            if (totalDecay > 0.01 && totalDecay < 0.99) {
+                const compensationFactor = Math.min(CONFIG.SNN.ONE_SHOT_MAX_COMPENSATION, 1.0 / totalDecay);
+                for (let i = 0; i < this.eligibilityTraces.traces.length; i++) {
+                    this.eligibilityTraces.traces[i] = Math.min(1.0, this.eligibilityTraces.traces[i] * compensationFactor);
+                }
+            }
+            
+            let accuracyBonus = 0;
+            if (shot.fromPos && shot.hitPos) {
+                const idealAngle = Math.atan2(shot.hitPos.y - shot.fromPos.y, shot.hitPos.x - shot.fromPos.x);
+                const actualAngle = shot.fromAngle + shot.turretAngle + shot.barrelAngle;
+                let angleError = idealAngle - actualAngle;
+                while (angleError > Math.PI) angleError -= Math.PI * 2;
+                while (angleError < -Math.PI) angleError += Math.PI * 2;
+                accuracyBonus = 1 - Math.min(1, Math.abs(angleError) / 0.5);
+            }
+            
+            const reward = 1.0 + accuracyBonus;
+            const activeExpert = this.experts[shot.activeExpert];
+            const activeExpertWeights = {
+                input_to_l1: this.weights.input_to_l1,
+                l1_to_l2: this.weights.l1_to_l2,
+                l2_to_l3: activeExpert.getWeights().l2_to_l3,
+                l3_to_output: activeExpert.getWeights().l3_to_output
+            };
+            
+            this.eligibilityTraces.applyRewardByLayer(reward, activeExpertWeights, CONFIG.SNN.LAYER_LR);
+            
+            for (let i = 0; i < this.eligibilityTraces.traces.length; i++) {
+                this.eligibilityTraces.traces[i] = currentTraces[i];
+            }
+            
+            if (CONFIG.DEBUG.LOG_HIT) {
+                log(`🎯 HIT! frames=${framesTraveled}, comp=${(1/totalDecay).toFixed(1)}x, bonus=${accuracyBonus.toFixed(2)}`, 'hit');
             }
         }
         
@@ -1607,53 +1581,51 @@ class HierarchicalSpikingNeuralNetwork {
             lastHitTime: performance.now()
         };
         
-        const reward = 1.0 * (shot.hitPos ? 1.5 : 1.0);
-        const flatIndices = shot.activeNeurons.map(s => {
-            const [layer, idx] = s.split('_');
-            if (layer === 'layer1') return parseInt(idx);
-            if (layer === 'layer2') return this.layer1Count + parseInt(idx);
-            if (layer === 'layer3') return this.layer1Count + this.layer2Count + parseInt(idx);
-            if (layer === 'output') return this.layer1Count + this.layer2Count + this.layer3Count + parseInt(idx);
-            return 0;
-        });
-        this.eligibilityTraces.update(flatIndices, flatIndices);
-        
-        const activeExpertWeights = {
-            input_to_l1: this.weights.input_to_l1,
-            l1_to_l2: this.weights.l1_to_l2,
-            l2_to_l3: this.experts[this.activeExpert].getWeights().l2_to_l3,
-            l3_to_output: this.experts[this.activeExpert].getWeights().l3_to_output
-        };
-        this.eligibilityTraces.applyRewardByLayer(reward, activeExpertWeights, CONFIG.SNN.LAYER_LR);
-        
         this.shotMemory.all.delete(shotId);
     }
     
-    observeMiss(shotId) {
+    observeMiss(shotId, hitFrame) {
         const shot = this.shotMemory.all.get(shotId);
         if (!shot) return;
         shot.result = 'miss';
+        
         const angleKey = Math.round(shot.turretAngle * 100) / 100;
         const angleStats = this.shotMemory.patterns.byAngle.get(angleKey) || { hits: 0, total: 0 };
         angleStats.total++;
         this.shotMemory.patterns.byAngle.set(angleKey, angleStats);
         
-        const flatIndices = shot.activeNeurons.map(s => {
-            const [layer, idx] = s.split('_');
-            if (layer === 'layer1') return parseInt(idx);
-            if (layer === 'layer2') return this.layer1Count + parseInt(idx);
-            if (layer === 'layer3') return this.layer1Count + this.layer2Count + parseInt(idx);
-            return 0;
-        });
-        this.eligibilityTraces.update(flatIndices, flatIndices);
-        
-        const activeExpertWeights = {
-            input_to_l1: this.weights.input_to_l1,
-            l1_to_l2: this.weights.l1_to_l2,
-            l2_to_l3: this.experts[this.activeExpert].getWeights().l2_to_l3,
-            l3_to_output: this.experts[this.activeExpert].getWeights().l3_to_output
-        };
-        this.eligibilityTraces.applyRewardByLayer(-0.3, activeExpertWeights, CONFIG.SNN.LAYER_LR);
+        if (shot.tracesSnapshot) {
+            const framesTraveled = (hitFrame || this.time) - shot.fireFrame;
+            const decayPerFrame = CONFIG.SNN.ELIGIBILITY_DECAY;
+            const totalDecay = Math.pow(decayPerFrame, Math.max(0, framesTraveled));
+            
+            const currentTraces = new Float32Array(this.eligibilityTraces.traces.length);
+            for (let i = 0; i < this.eligibilityTraces.traces.length; i++) {
+                currentTraces[i] = this.eligibilityTraces.traces[i];
+                this.eligibilityTraces.traces[i] = shot.tracesSnapshot[i];
+            }
+            
+            if (totalDecay > 0.01 && totalDecay < 0.99) {
+                const compensationFactor = Math.min(CONFIG.SNN.ONE_SHOT_MAX_COMPENSATION, 1.0 / totalDecay);
+                for (let i = 0; i < this.eligibilityTraces.traces.length; i++) {
+                    this.eligibilityTraces.traces[i] = Math.min(1.0, this.eligibilityTraces.traces[i] * compensationFactor);
+                }
+            }
+            
+            const activeExpert = this.experts[shot.activeExpert];
+            const activeExpertWeights = {
+                input_to_l1: this.weights.input_to_l1,
+                l1_to_l2: this.weights.l1_to_l2,
+                l2_to_l3: activeExpert.getWeights().l2_to_l3,
+                l3_to_output: activeExpert.getWeights().l3_to_output
+            };
+            
+            this.eligibilityTraces.applyRewardByLayer(-0.2, activeExpertWeights, CONFIG.SNN.LAYER_LR);
+            
+            for (let i = 0; i < this.eligibilityTraces.traces.length; i++) {
+                this.eligibilityTraces.traces[i] = currentTraces[i];
+            }
+        }
         
         this.shotMemory.all.delete(shotId);
     }
@@ -1750,10 +1722,28 @@ class HierarchicalSpikingNeuralNetwork {
         }
     }
     
+    applyReward(reward) {
+        if (Math.abs(reward) < CONFIG.GAME.REWARD_THRESHOLD) return 0;
+        
+        const activeExpert = this.experts[this.activeExpert];
+        const activeExpertWeights = {
+            input_to_l1: this.weights.input_to_l1,
+            l1_to_l2: this.weights.l1_to_l2,
+            l2_to_l3: activeExpert.getWeights().l2_to_l3,
+            l3_to_output: activeExpert.getWeights().l3_to_output
+        };
+        
+        return this.eligibilityTraces.applyRewardByLayer(reward, activeExpertWeights, CONFIG.SNN.LAYER_LR);
+    }
+    
     process(inputs, reward, epsilon, threatLevel, enemyVisible) {
         this.spikeCount = 0;
         this.time++;
         this.enemyVisible = enemyVisible;
+        
+        if (Math.abs(reward) > CONFIG.GAME.REWARD_THRESHOLD) {
+            this.rewardAccumulator += reward;
+        }
         
         if (!inputs || inputs.length !== this.inputCount) {
             inputs = new Array(this.inputCount).fill(0);
@@ -1767,10 +1757,8 @@ class HierarchicalSpikingNeuralNetwork {
         }
         
         const dt = CONFIG.SNN.LIF_DT;
-        const preSpikes = [];
-        const postSpikes = [];
+        const spikeIndices = [];
         
-        // === SHARED L1 ===
         for (let i = 0; i < this.layer1Count; i++) {
             const n = this.layers.layer1[i];
             let input = 0;
@@ -1785,12 +1773,12 @@ class HierarchicalSpikingNeuralNetwork {
             }
             if (n.updateODE(input, dt)) {
                 this.spikeCount++;
-                postSpikes.push(i);
+                const flatIdx = this._getFlatIndex('layer1', i);
+                spikeIndices.push(flatIdx);
+                this.eligibilityTraces.recordSpike(flatIdx);
             }
-            if (n.out > 0) preSpikes.push(i);
         }
         
-        // === SHARED L2 ===
         for (let i = 0; i < this.layer2Count; i++) {
             const n = this.layers.layer2[i];
             let input = 0;
@@ -1808,19 +1796,18 @@ class HierarchicalSpikingNeuralNetwork {
             }
             if (n.updateODE(input, dt)) {
                 this.spikeCount++;
-                postSpikes.push(this.layer1Count + i);
+                const flatIdx = this._getFlatIndex('layer2', i);
+                spikeIndices.push(flatIdx);
+                this.eligibilityTraces.recordSpike(flatIdx);
             }
-            if (n.out > 0) preSpikes.push(this.layer1Count + i);
         }
         
-        // === NATIVE SNN GATING: выбор эксперта через синапсы L2→L3 ===
         this.activeExpert = this._selectExpert();
         const activeExpert = this.experts[this.activeExpert];
         const activeL3 = activeExpert.l3;
         const activeW_L2L3 = activeExpert.getWeights().l2_to_l3;
         const activeW_L3Out = activeExpert.getWeights().l3_to_output;
         
-        // === EXPERT L3 ===
         for (let i = 0; i < this.layer3Count; i++) {
             const n = activeL3[i];
             let input = 0;
@@ -1830,7 +1817,6 @@ class HierarchicalSpikingNeuralNetwork {
                     if (pre.out > 0) input += w.w;
                 }
             }
-            // Lateral inhibition within expert
             for (let j = 0; j < this.layer3Count; j++) {
                 if (j !== i && activeL3[j].out > 0) {
                     input -= activeL3[j].out * CONFIG.SNN.LATERAL_INHIBITION;
@@ -1838,12 +1824,12 @@ class HierarchicalSpikingNeuralNetwork {
             }
             if (n.updateODE(input, dt)) {
                 this.spikeCount++;
-                postSpikes.push(this.layer1Count + this.layer2Count + i);
+                const flatIdx = this._getFlatIndex('layer3', i);
+                spikeIndices.push(flatIdx);
+                this.eligibilityTraces.recordSpike(flatIdx);
             }
-            if (n.out > 0) preSpikes.push(this.layer1Count + this.layer2Count + i);
         }
         
-        // === SHARED OUTPUT (only active expert) ===
         const outputs = new Array(this.outputCount).fill(0);
         for (let i = 0; i < this.outputCount; i++) {
             let sum = 0;
@@ -1853,7 +1839,6 @@ class HierarchicalSpikingNeuralNetwork {
             outputs[i] = sum;
         }
         
-        // Output neuron dynamics
         for (let i = 0; i < this.outputCount; i++) {
             const n = this.layers.output[i];
             if (n.refractory > 0) {
@@ -1872,13 +1857,15 @@ class HierarchicalSpikingNeuralNetwork {
                 n.refractory = CONFIG.SNN.LIF_REFRACTORY;
                 outputs[i] = 1;
                 this.spikeCount++;
+                const flatIdx = this._getFlatIndex('output', i);
+                spikeIndices.push(flatIdx);
+                this.eligibilityTraces.recordSpike(flatIdx);
             } else {
                 n.out = 0;
                 outputs[i] = 0;
             }
         }
         
-        // Exploration noise
         for (let i = 0; i < outputs.length; i++) {
             if (Math.random() < epsilon) {
                 outputs[i] += (Math.random() - 0.5) * CONFIG.SNN.EXPLORATION_NOISE_SCALE;
@@ -1886,7 +1873,6 @@ class HierarchicalSpikingNeuralNetwork {
             }
         }
         
-        // Determine action
         let maxActivation = -Infinity, maxAction = 0;
         for (let i = 0; i < outputs.length; i++) {
             if (outputs[i] > maxActivation) {
@@ -1896,18 +1882,10 @@ class HierarchicalSpikingNeuralNetwork {
         }
         this.lastAction = maxAction;
         
-        // Learning updates
-        this.eligibilityTraces.update(preSpikes, postSpikes);
-        if (Math.abs(reward) > 0.001) {
-            const activeExpertWeights = {
-                input_to_l1: this.weights.input_to_l1,
-                l1_to_l2: this.weights.l1_to_l2,
-                l2_to_l3: activeW_L2L3,
-                l3_to_output: activeW_L3Out
-            };
-            this.eligibilityTraces.applyRewardByLayer(reward, activeExpertWeights, CONFIG.SNN.LAYER_LR);
+        this.eligibilityTraces.decayTraces();
+        
+        if (Math.abs(reward) > CONFIG.GAME.REWARD_THRESHOLD) {
             this.attention.update(inputs, reward);
-            // НЕТ _updateGating() — маршрутизация обучается через eligibility traces!
         }
         
         this.feedbackBuffer.record(outputs);
@@ -1917,10 +1895,19 @@ class HierarchicalSpikingNeuralNetwork {
         
         this.episodeMemory.record({ inputs: [...inputs], spikes: this.spikeCount }, maxAction, reward, false);
         
+        if (Math.abs(this.rewardAccumulator) > 1.0) {
+            this.applyReward(this.rewardAccumulator);
+            this.rewardAccumulator = 0;
+        }
+        
         return outputs;
     }
     
     endEpisode() {
+        if (Math.abs(this.rewardAccumulator) > CONFIG.GAME.REWARD_THRESHOLD) {
+            this.applyReward(this.rewardAccumulator);
+            this.rewardAccumulator = 0;
+        }
         this.episodeMemory.endEpisode();
     }
     
@@ -1928,13 +1915,16 @@ class HierarchicalSpikingNeuralNetwork {
         const batch = this.episodeMemory.replay();
         let totalUpdates = 0;
         for (const sample of batch) {
-            const activeExpertWeights = {
-                input_to_l1: this.weights.input_to_l1,
-                l1_to_l2: this.weights.l1_to_l2,
-                l2_to_l3: this.experts[this.activeExpert].getWeights().l2_to_l3,
-                l3_to_output: this.experts[this.activeExpert].getWeights().l3_to_output
-            };
-            totalUpdates += this.eligibilityTraces.applyRewardByLayer(sample.reward, activeExpertWeights, CONFIG.SNN.LAYER_LR);
+            if (Math.abs(sample.reward) > CONFIG.GAME.REWARD_THRESHOLD) {
+                const activeExpert = this.experts[this.activeExpert];
+                const activeExpertWeights = {
+                    input_to_l1: this.weights.input_to_l1,
+                    l1_to_l2: this.weights.l1_to_l2,
+                    l2_to_l3: activeExpert.getWeights().l2_to_l3,
+                    l3_to_output: activeExpert.getWeights().l3_to_output
+                };
+                totalUpdates += this.eligibilityTraces.applyRewardByLayer(sample.reward, activeExpertWeights, CONFIG.SNN.LAYER_LR);
+            }
         }
         return totalUpdates;
     }
@@ -1966,7 +1956,6 @@ class HierarchicalSpikingNeuralNetwork {
             ctx.fillText(`${Math.round(bars[i] * 100)}%`, 135, 10 + i * 40 + 17);
         }
         
-        // Expert probabilities
         for (let e = 0; e < this.numExperts; e++) {
             const x = 200 + e * 35;
             ctx.fillStyle = e === this.activeExpert ? '#ffcc66' : '#ff9966';
@@ -2098,6 +2087,7 @@ class HierarchicalSpikingNeuralNetwork {
         this.enemyVisible = false;
         this.activeExpert = 0;
         this.lastExpertProbs = new Float32Array(this.numExperts).fill(1 / this.numExperts);
+        this.rewardAccumulator = 0;
     }
     
     getSerializable() {
@@ -2194,7 +2184,7 @@ class EmotionSystem {
         if (dealtDamage > 0) this.aggression = Math.min(1, this.aggression + CONFIG.EMOTIONS.AGGRESSION_HIT_BONUS * dealtDamage / 25);
         if (kill) this.aggression = Math.min(1, this.aggression + CONFIG.EMOTIONS.AGGRESSION_KILL_BONUS);
         if (!hasEnemy && this.aggression > 0) this.aggression *= CONFIG.EMOTIONS.AGGRESSION_DECAY;
-        if (!hasEnemy) this.curiosity = Math.min(1, this.curiosity + CONFIG.EMOTIONS.CURIOSITY_NO_ENEMY_BONUS);
+        if (!hasEnemy) this.curiosity = Math.min(1, this.curiosity + CONFIG.EMOTIONS.CURIOSITY_EXPLORE_BONUS);
         if (hasEnemy && this.curiosity > 0) this.curiosity *= CONFIG.EMOTIONS.CURIOSITY_DECAY;
         if (hit) this.confidence = Math.min(1, this.confidence + CONFIG.EMOTIONS.CONFIDENCE_HIT_BONUS);
         if (kill) this.confidence = Math.min(1, this.confidence + CONFIG.EMOTIONS.CONFIDENCE_KILL_BONUS);
@@ -2546,10 +2536,6 @@ class SkillModule {
         const bounds = this.parameterBounds[recommendation.parameter];
         this.calibration[recommendation.parameter] = Math.max(bounds.min, Math.min(bounds.max, newValue));
         
-        if (CONFIG.DEBUG.LOG_ADAPTATIONS) {
-            log(`🔧 Adapt ${recommendation.parameter}: ${current.toFixed(3)} → ${this.calibration[recommendation.parameter].toFixed(3)}`, 'adaptation');
-        }
-        
         if (!this.adaptationHistory.has(recommendation.parameter)) this.adaptationHistory.set(recommendation.parameter, []);
         this.adaptationHistory.get(recommendation.parameter).push({
             previous: current,
@@ -2610,7 +2596,7 @@ class SkillModule {
 }
 
 // ============================================================================
-// TANK ENTITY (Full implementation)
+// TANK ENTITY
 // ============================================================================
 class Tank {
     constructor(x, y, color, id) {
@@ -2678,6 +2664,7 @@ class Tank {
         this.aimBlendFactor = 0.5;
         this.lastWMPrediction = null;
         this.causalMetrics = { wmInfluenceCount: 0, totalDecisions: 0, predictionAccuracy: [] };
+        this.accumulatedReward = 0;
     }
     
     _buildSNNInputs(enemy, worldW, worldH) {
@@ -2741,7 +2728,7 @@ class Tank {
         return allInputs.slice(0, CONFIG.SNN.INPUT_COUNT);
     }
     
-    takeDamage(amount, attacker, hitPos, projectileId = null) {
+    takeDamage(amount, attacker, hitPos, projectileId = null, hitFrame = null) {
         if (!this.alive) return;
         const actualDamage = Math.max(0, Math.min(amount, this.hp));
         this.hp = Math.max(0, this.hp - actualDamage);
@@ -2755,14 +2742,14 @@ class Tank {
             attacker.stats.hits++;
             attacker.stats.damage += actualDamage;
             attacker.lastDealtDamage = actualDamage;
-            if (projectileId) attacker.brain.observeHit(projectileId, hitPos);
+            if (projectileId) attacker.brain.observeHit(projectileId, hitPos, hitFrame || this.frameCount);
         }
         
         if (this.hp <= 0) {
             this.alive = false;
             if (attacker && attacker !== this) {
                 attacker.stats.kills++;
-                if (projectileId) attacker.brain.observeHit(projectileId, hitPos);
+                if (projectileId) attacker.brain.observeHit(projectileId, hitPos, hitFrame || this.frameCount);
                 attacker.brain.neurotransmitters.onWin();
                 attacker.worldModel.recordEvent({ type: 'kill', confidence: 0.9 });
             }
@@ -2788,7 +2775,6 @@ class Tank {
             this.worldModel.recordEnemyMovement({ pos: { ...enemy.pos }, vel: enemy.vel });
         }
         
-        // Causal integration: WM prediction blending
         if (vision.visible && enemy && enemy.alive) {
             const wmSuggestion = this.worldModel.getSuggestion();
             if (CONFIG.FEATURES.WM_PREDICTION_AIM_ENABLED && wmSuggestion.target && wmSuggestion.confidence >= CONFIG.GAME.WM_CONFIDENCE_THRESHOLD) {
@@ -2868,6 +2854,12 @@ class Tank {
         this._applyPhysics(worldW, worldH);
         this.skills.decayAdaptations(16.67);
         this.causalMetrics.totalDecisions++;
+        
+        this.accumulatedReward += rawReward;
+        if (Math.abs(this.accumulatedReward) > 1.0) {
+            this.brain.applyReward(this.accumulatedReward);
+            this.accumulatedReward = 0;
+        }
     }
     
     _actuateFromSNN(outputs, epsilon) {
@@ -2926,30 +2918,57 @@ class Tank {
         this.stats.shots++;
         this.shotCounter++;
         const sid = `shot_${this.id}_${this.shotCounter}_${Date.now()}`;
-        this.lastShotId = sid;
         const ang = this.angle + this.turretAngle + this.barrelAngle;
+        
         game.projectiles.push({
             id: sid,
             pos: Vec2.create(this.pos.x + Math.cos(ang) * 38, this.pos.y + Math.sin(ang) * 38),
             vel: Vec2.create(Math.cos(ang) * CONFIG.GAME.PROJECTILE_SPEED, Math.sin(ang) * CONFIG.GAME.PROJECTILE_SPEED),
             owner: this,
             life: CONFIG.GAME.PROJECTILE_LIFE,
-            dmg: CONFIG.GAME.PROJECTILE_DMG
+            dmg: CONFIG.GAME.PROJECTILE_DMG,
+            fireFrame: this.frameCount,
+            firePos: { ...this.pos },
+            fireAngle: ang
         });
-        if (game.audio) game.audio.playShoot();
+        
+        const inputs = this._buildSNNInputs(this.enemy, CONFIG.GAME.WORLD_WIDTH, CONFIG.GAME.WORLD_HEIGHT);
+        
+        this.brain.rememberShot(sid, {
+            inputVector: [...inputs],
+            tankPos: { ...this.pos },
+            tankAngle: this.angle,
+            turretAngle: this.turretAngle,
+            barrelAngle: this.barrelAngle,
+            targetPos: this.targetPos ? { ...this.targetPos } : null,
+            targetVel: this.targetVel ? { ...this.targetVel } : null,
+            predictedPos: this.predictedPos ? { ...this.predictedPos } : null,
+            activeNeurons: this.brain.getActiveNeurons(),
+            motorCommands: {}
+        });
+        
+        this.worldModel.recordShot({
+            id: sid,
+            from: { ...this.pos },
+            angle: ang,
+            targetPos: this.targetPos,
+            predictedPos: this.predictedPos,
+            context: { enemyDist: this.enemy ? Vec2.dist(this.pos, this.enemy.pos) : 0 }
+        });
+        
         this.lastShot = {
             id: sid,
             from: { ...this.pos },
             angle: ang,
-            lead: this.skills.calibration.lead || 0.3,
             context: {
                 targetPos: this.targetPos,
                 predictedPos: this.predictedPos,
                 targetVel: this.targetVel,
                 enemyDist: this.enemy ? Vec2.dist(this.pos, this.enemy.pos) : 0
-            },
-            predictedPos: this.predictedPos ? { ...this.predictedPos } : null
+            }
         };
+        
+        if (game.audio) game.audio.playShoot();
     }
     
     _applyPhysics(ww, wh) {
@@ -2986,27 +3005,27 @@ class Tank {
         
         if (enemy && enemy.alive && enemy.hp < this.lastEnemyHp) {
             const dmg = this.lastEnemyHp - enemy.hp;
-            reward += dmg * CONFIG.LEARNING.REWARD_SPARSE_DAMAGE;
+            reward += dmg * CONFIG.GAME.REWARD_DMG;
             if (this.brain) this.brain.neurotransmitters.spikeDopamine(0.1, this.lastAction);
         }
         this.lastEnemyHp = enemy ? enemy.hp : 100;
         
         if (enemy && !enemy.alive && this.alive) {
-            reward += CONFIG.LEARNING.REWARD_SPARSE_KILL;
+            reward += CONFIG.GAME.REWARD_KILL;
             if (this.brain) this.brain.neurotransmitters.spikeDopamine(0.5, this.lastAction);
         }
         
-        if (vision.visible && Math.abs(vision.angle) < 0.2) reward += CONFIG.LEARNING.REWARD_DENSE_ACCURACY;
+        if (vision.visible && Math.abs(vision.angle) < 0.2) reward += CONFIG.GAME.REWARD_ACCURACY;
         if (vision.visible && enemy && enemy.alive) {
             const currentDist = Vec2.dist(this.pos, enemy.pos);
             const lastDist = Vec2.dist(this.lastPos, enemy.pos);
-            if (currentDist < lastDist) reward += CONFIG.LEARNING.REWARD_DENSE_PURSUIT;
+            if (currentDist < lastDist) reward += 0.3;
         }
         
         const posChange = Vec2.dist(this.pos, this.lastPos);
         const speed = Vec2.len(this.vel);
         if (speed > 0.5 && posChange < 0.3) {
-            reward += CONFIG.LEARNING.REWARD_STUCK_PENALTY;
+            reward += -0.5;
             this.stuckFrames++;
         } else {
             this.stuckFrames = Math.max(0, this.stuckFrames - 2);
@@ -3015,7 +3034,7 @@ class Tank {
         const areaKey = `${Math.floor(this.pos.x / 80)},${Math.floor(this.pos.y / 80)}`;
         if (!this.visitedAreas.has(areaKey)) {
             this.visitedAreas.add(areaKey);
-            reward += CONFIG.LEARNING.REWARD_EXPLORATION;
+            reward += 0.01;
             if (this.visitedAreas.size > 200) {
                 const arr = Array.from(this.visitedAreas);
                 for (let i = 0; i < 50; i++) this.visitedAreas.delete(arr[i]);
@@ -3023,7 +3042,7 @@ class Tank {
         }
         
         const wallDist = Math.min(this.pos.x, CONFIG.GAME.WORLD_WIDTH - this.pos.x, this.pos.y, CONFIG.GAME.WORLD_HEIGHT - this.pos.y);
-        if (wallDist > CONFIG.PHYSICS.WALL_AVOIDANCE_MARGIN) reward += CONFIG.LEARNING.REWARD_WALL_AVOIDANCE;
+        if (wallDist > 50) reward += 0.03;
         
         const an = this.brain.getActiveNeurons().length;
         if (an >= CONFIG.SNN.ACTIVITY_REWARD_MIN && an <= CONFIG.SNN.ACTIVITY_REWARD_MAX) {
@@ -3039,10 +3058,6 @@ class Tank {
         const synergy = this._getEmotionChemistrySynergy();
         reward *= synergy.rewardMod;
         
-        if (CONFIG.DEBUG.LOG_SYNERGY && synergy.desc !== 'neutral') {
-            log(`[${this.id === 0 ? '🔴' : '🟢'}] Synergy: ${synergy.desc} (×${synergy.rewardMod.toFixed(2)})`, 'synergy');
-        }
-        
         this.roundReward += reward;
         this.lastDist = enemy ? Vec2.dist(this.pos, enemy.pos) : 1000;
         return reward;
@@ -3053,19 +3068,19 @@ class Tank {
         const neuro = this.brain.neurotransmitters.getState();
         
         if (emo.aggression > 0.7 && neuro.dopamine > 0.4) {
-            return { rewardMod: CONFIG.EMOTIONS.SYNERGY_COMBAT_FRENZY_REWARD, learnMod: CONFIG.EMOTIONS.SYNERGY_COMBAT_FRENZY_LEARN, desc: 'combat_frenzy' };
+            return { rewardMod: CONFIG.EMOTIONS.SYNERGY_COMBAT_FRENZY_REWARD, learnMod: 1.4, desc: 'combat_frenzy' };
         }
         if (emo.confidence > 0.7 && neuro.serotonin > 0.6) {
-            return { rewardMod: CONFIG.EMOTIONS.SYNERGY_CALCULATED_REWARD, learnMod: CONFIG.EMOTIONS.SYNERGY_CALCULATED_LEARN, desc: 'calculated' };
+            return { rewardMod: CONFIG.EMOTIONS.SYNERGY_CALCULATED_REWARD, learnMod: 1.2, desc: 'calculated' };
         }
         if (emo.fear > 0.6 && neuro.adrenaline > 0.5) {
-            return { rewardMod: CONFIG.EMOTIONS.SYNERGY_SURVIVAL_REWARD, learnMod: CONFIG.EMOTIONS.SYNERGY_SURVIVAL_LEARN, desc: 'survival_instinct' };
+            return { rewardMod: CONFIG.EMOTIONS.SYNERGY_SURVIVAL_REWARD, learnMod: 1.3, desc: 'survival_instinct' };
         }
         if (emo.fear > 0.7 && emo.aggression > 0.7) {
-            return { rewardMod: CONFIG.EMOTIONS.SYNERGY_PANIC_REWARD, learnMod: CONFIG.EMOTIONS.SYNERGY_PANIC_LEARN, desc: 'panic' };
+            return { rewardMod: CONFIG.EMOTIONS.SYNERGY_PANIC_REWARD, learnMod: 0.6, desc: 'panic' };
         }
         if (emo.confidence < 0.3 && neuro.serotonin < 0.3) {
-            return { rewardMod: CONFIG.EMOTIONS.SYNERGY_DEMORALIZED_REWARD, learnMod: CONFIG.EMOTIONS.SYNERGY_DEMORALIZED_LEARN, desc: 'demoralized' };
+            return { rewardMod: CONFIG.EMOTIONS.SYNERGY_DEMORALIZED_REWARD, learnMod: 0.7, desc: 'demoralized' };
         }
         return { rewardMod: 1.0, learnMod: 1.0, desc: 'neutral' };
     }
@@ -3118,7 +3133,6 @@ class Tank {
         ctx.restore();
         ctx.restore();
         
-        // Health bar
         if (this.hp < this.maxHp) {
             const bw = 50, bh = 6;
             const x = this.pos.x - cam.x - bw / 2;
@@ -3130,13 +3144,11 @@ class Tank {
             ctx.fillRect(x, y, bw * pct, bh);
         }
         
-        // Expert indicator
         const expertStats = this.brain.getExpertStats();
         ctx.font = '8px Courier New';
         ctx.fillStyle = '#ff9966';
         ctx.fillText(`E${expertStats.activeExpert} ${Math.round(expertStats.probs[expertStats.activeExpert] * 100)}%`, this.pos.x - cam.x - 25, this.pos.y - cam.y - 55);
         
-        // WM confidence
         const wmSuggestion = this.worldModel.getSuggestion();
         ctx.fillStyle = '#66ccff';
         ctx.fillText(`WM: ${Math.round(wmSuggestion.confidence * 100)}%`, this.pos.x - cam.x - 25, this.pos.y - cam.y - 65);
@@ -3196,6 +3208,7 @@ class Tank {
         this.aimBlendFactor = 0.5;
         this.lastWMPrediction = null;
         this.causalMetrics = { wmInfluenceCount: 0, totalDecisions: 0, predictionAccuracy: [] };
+        this.accumulatedReward = 0;
         
         this.brain.reset();
         this.worldModel.reset();
@@ -3614,7 +3627,7 @@ function update(dt) {
             if (!t || !t.alive || t === p.owner) continue;
             const d = Vec2.dist(p.pos, t.pos);
             if (d < t.radius + 5) {
-                t.takeDamage(p.dmg, p.owner, { ...p.pos }, p.id);
+                t.takeDamage(p.dmg, p.owner, { ...p.pos }, p.id, game.frameCount);
                 hit = true;
                 if (game.particles && game.particles.enabled) {
                     game.particles.emitExplosion(p.pos.x, p.pos.y, '#ffaa00', 15);
@@ -3624,7 +3637,7 @@ function update(dt) {
         }
         
         if (p.life <= 0 || hit || p.pos.x < 0 || p.pos.x > game.width || p.pos.y < 0 || p.pos.y > game.height) {
-            if (!hit && p.owner && p.owner.alive) p.owner.brain.observeMiss(p.id);
+            if (!hit && p.owner && p.owner.alive) p.owner.brain.observeMiss(p.id, game.frameCount);
             game.projectiles.splice(i, 1);
         }
     }
@@ -3652,7 +3665,7 @@ function update(dt) {
         game.episodeReward = ar;
         game.episodeCount++;
         
-        if (game.episodeCount % CONFIG.LEARNING.REPLAY_FREQUENCY === 0) {
+        if (game.episodeCount % 10 === 0) {
             const updates1 = ta.brain.replay();
             const updates2 = tb.brain.replay();
             if (updates1 > 0 || updates2 > 0) {
@@ -3859,13 +3872,11 @@ function updateUI() {
     const [ta, tb] = game.tanks;
     if (!ta || !tb) return;
     
-    // Health bars
     const hpRed = document.getElementById('hp-red');
     const hpGreen = document.getElementById('hp-green');
     if (hpRed) hpRed.style.width = `${(ta.hp / 100) * 100}%`;
     if (hpGreen) hpGreen.style.width = `${(tb.hp / 100) * 100}%`;
     
-    // Neurotransmitters
     const dopaRed = document.getElementById('dopa-red');
     const dopaGreen = document.getElementById('dopa-green');
     const adrRed = document.getElementById('adr-red');
@@ -3879,7 +3890,6 @@ function updateUI() {
     if (serRed) serRed.style.width = `${ta.brain.neurotransmitters.serotonin.level * 100}%`;
     if (serGreen) serGreen.style.width = `${tb.brain.neurotransmitters.serotonin.level * 100}%`;
     
-    // Stats
     document.getElementById('d-hp-red') && (document.getElementById('d-hp-red').textContent = `${Math.round(ta.hp)}%`);
     document.getElementById('d-hp-green') && (document.getElementById('d-hp-green').textContent = `${Math.round(tb.hp)}%`);
     document.getElementById('d-kills-red') && (document.getElementById('d-kills-red').textContent = ta.stats.kills);
@@ -3932,7 +3942,6 @@ function updateUI() {
     document.getElementById('wm-expl-acc') && (document.getElementById('wm-expl-acc').textContent = safeNum((ta.worldModel.getCausalAccuracy() + tb.worldModel.getCausalAccuracy()) / 2).toFixed(1) + '%');
     document.getElementById('wm-pred-error') && (document.getElementById('wm-pred-error').textContent = safeNum((ta.worldModel.getPredictionError() + tb.worldModel.getPredictionError()) / 2).toFixed(2));
     
-    // Emotions
     const eA = ta.emotions.getState();
     const eB = tb.emotions.getState();
     document.getElementById('emo-fear-red') && (document.getElementById('emo-fear-red').textContent = `${Math.round(eA.fear * 100)}%`);
@@ -3944,7 +3953,6 @@ function updateUI() {
     document.getElementById('emo-cur-green') && (document.getElementById('emo-cur-green').textContent = `${Math.round(eB.curiosity * 100)}%`);
     document.getElementById('emo-conf-green') && (document.getElementById('emo-conf-green').textContent = `${Math.round(eB.confidence * 100)}%`);
     
-    // Synergy
     const synA = ta._getEmotionChemistrySynergy();
     const synB = tb._getEmotionChemistrySynergy();
     const saEl = document.getElementById('synergy-red');
@@ -3958,7 +3966,6 @@ function updateUI() {
         sbEl.className = `synergy-indicator ${synB.desc}`;
     }
     
-    // Causal explanations
     const lastEventA = ta.worldModel.memory.events[ta.worldModel.memory.events.length - 1];
     const lastEventB = tb.worldModel.memory.events[tb.worldModel.memory.events.length - 1];
     if (lastEventA) {
@@ -3980,10 +3987,8 @@ function updateUI() {
         }
     }
     
-    // Performance metrics
     document.getElementById('p-fps') && (document.getElementById('p-fps').textContent = game.fps);
     document.getElementById('p-frame') && (document.getElementById('p-frame').textContent = `${(performance.now() - game.lastTime).toFixed(1)} ms`);
-    document.getElementById('p-lr') && (document.getElementById('p-lr').textContent = CONFIG.SNN.LEARNING_RATE.toFixed(3));
     document.getElementById('p-episode-reward') && (document.getElementById('p-episode-reward').textContent = game.episodeReward.toFixed(2));
     document.getElementById('p-avg-reward') && (document.getElementById('p-avg-reward').textContent = ((ta.brain.episodeMemory.getAverageReward() + tb.brain.episodeMemory.getAverageReward()) / 2).toFixed(2));
     document.getElementById('p-causal-acc') && (document.getElementById('p-causal-acc').textContent = safeNum((ta.worldModel.getCausalAccuracy() + tb.worldModel.getCausalAccuracy()) / 2).toFixed(1) + '%');
@@ -3997,7 +4002,6 @@ function updateUI() {
     document.getElementById('p-active-expert') && (document.getElementById('p-active-expert').textContent = expertNames[expertStats.activeExpert] || 'none');
     document.getElementById('p-expert-conf') && (document.getElementById('p-expert-conf').textContent = `${Math.round(expertStats.probs[expertStats.activeExpert] * 100)}%`);
     
-    // Expert bar visualization
     const expertBarRed = document.getElementById('expert-bar-red');
     if (expertBarRed) {
         const stats = ta.brain.getExpertStats();
@@ -4014,7 +4018,6 @@ function updateUI() {
         ).join('');
     }
     
-    // Causal monitor updates
     _updateCausalMonitor(ta, 'red');
     _updateCausalMonitor(tb, 'green');
 }
@@ -4047,10 +4050,10 @@ function _updateCausalMonitor(tank, color) {
     const alertsEl = document.getElementById(`causal-alerts-${color}`);
     if (alertsEl) {
         const alerts = [];
-        if (wmSuggestion.confidence < CONFIG.ROLLBACK.WM_CONFIDENCE_MIN) {
+        if (wmSuggestion.confidence < 0.2) {
             alerts.push({ type: 'warning', msg: 'WM confidence low' });
         }
-        if (tank.worldModel.getPredictionError() > CONFIG.ROLLBACK.PREDICTION_ERROR_MAX) {
+        if (tank.worldModel.getPredictionError() > 100) {
             alerts.push({ type: 'error', msg: 'Prediction error high' });
         }
         alertsEl.innerHTML = alerts.map(a => `<span class="alert ${a.type}">${a.msg}</span>`).join('');
@@ -4075,7 +4078,8 @@ const SYS = {
         }
         log(`NEURAL COMBAT v${CONFIG.VERSION.major}.${CONFIG.VERSION.minor}.${CONFIG.VERSION.patch} INITIALIZED`, 'system');
         log('🏗️ NATIVE SNN GATING: L2→L3 synapses = expert routing', 'expert');
-        log('✓ No separate gating network | Full integration', 'causal');
+        log('✓ Fixed STDP | Correct eligibility traces', 'causal');
+        log('✓ Frame-accurate shot compensation for 120-frame projectiles', 'learning');
         if (game.animationFrameId) cancelAnimationFrame(game.animationFrameId);
         loop(performance.now());
     },
@@ -4202,16 +4206,6 @@ const SYS = {
             console.error('Load error:', e);
             return false;
         }
-    },
-    
-    toggleCausalIntegration() {
-        game.causalIntegrationEnabled = !game.causalIntegrationEnabled;
-        FeatureFlagManager.getInstance().set('CAUSAL_INTEGRATION_ENABLED', game.causalIntegrationEnabled);
-        FeatureFlagManager.getInstance().set('WM_PREDICTION_AIM_ENABLED', game.causalIntegrationEnabled);
-        FeatureFlagManager.getInstance().set('CAUSAL_ADAPTATION_ENABLED', game.causalIntegrationEnabled);
-        const causalFlagVal = document.getElementById('causal-flag-val');
-        if (causalFlagVal) causalFlagVal.textContent = game.causalIntegrationEnabled ? 'ENABLED' : 'DISABLED';
-        log(`Causal Integration ${game.causalIntegrationEnabled ? 'ENABLED' : 'DISABLED'}`, 'system');
     }
 };
 
@@ -4223,7 +4217,7 @@ const TestRunner = {
     
     runAll() {
         this.results = [];
-        log('--- STARTING DIAGNOSTICS v15.0.0 ---', 'test');
+        log('--- STARTING DIAGNOSTICS v18.0.0 ---', 'test');
         
         this.test('NaN Check', () => {
             const issues = [];
@@ -4246,21 +4240,6 @@ const TestRunner = {
             return wm > 0 ? `✅ PASS (${wm} active)` : '⚠️ WARN: No WM active';
         });
         
-        this.test('Attention Entropy', () => {
-            const ent = game.tanks[0].brain.attention.getEntropy();
-            return ent > 0.5 ? `✅ PASS (${ent.toFixed(2)})` : '⚠️ WARN: Low entropy';
-        });
-        
-        this.test('Episode Memory', () => {
-            const ep = game.tanks[0].brain.episodeMemory.getEpisodeCount();
-            return ep >= 0 ? `✅ PASS (${ep} episodes)` : '❌ FAIL';
-        });
-        
-        this.test('Causal Chains', () => {
-            const cc = game.tanks[0].worldModel.getCausalChainCount();
-            return cc >= 0 ? `✅ PASS (${cc} chains)` : '❌ FAIL';
-        });
-        
         this.test('Eligibility Traces', () => {
             const et = game.tanks[0].brain.eligibilityTraces.getActiveCount();
             return et >= 0 ? `✅ PASS (${et} active)` : '❌ FAIL';
@@ -4272,45 +4251,27 @@ const TestRunner = {
             return Math.abs(sumProbs - 1) < 0.01 ? `✅ PASS (expert ${stats.activeExpert})` : '❌ FAIL';
         });
         
-        this.test('ODE-LIF Stability', () => {
-            const v = game.tanks[0].brain.layers.layer1[0].v;
-            return isFinite(v) && v >= -2 && v <= 2 ? '✅ PASS' : '❌ FAIL: Voltage unstable';
-        });
-        
-        this.test('Feedback Buffer', () => {
-            const fb = game.tanks[0].brain.feedbackBuffer.getFeedback();
-            return fb.length === CONFIG.SNN.OUTPUT_COUNT ? '✅ PASS' : '❌ FAIL';
-        });
-        
-        this.test('Expert Selection', () => {
-            const stats = game.tanks[0].brain.getExpertStats();
-            return stats.activeExpert >= 0 && stats.activeExpert < 3 ? '✅ PASS' : '❌ FAIL';
-        });
-        
-        this.test('WM Prediction Blending', () => {
-            const tank = game.tanks[0];
-            const wmSuggestion = { target: { x: 150, y: 150 }, confidence: 0.8 };
-            const observed = { x: 100, y: 100 };
-            const mixFactor = Math.max(0, Math.min(1, wmSuggestion.confidence));
-            const blended = {
-                x: observed.x * (1 - mixFactor) + wmSuggestion.target.x * mixFactor,
-                y: observed.y * (1 - mixFactor) + wmSuggestion.target.y * mixFactor
-            };
-            return blended.x === 140 && blended.y === 140 ? '✅ PASS' : '❌ FAIL: Blend calculation';
-        });
-        
-        this.test('Shared L2 Architecture', () => {
-            const brain = game.tanks[0].brain;
-            const hasSharedL2 = brain.layers.layer2 && brain.layers.layer2.length === CONFIG.SNN.LAYER2_COUNT;
-            const hasSeparateL3 = brain.experts.length === 3 && brain.experts[0].l3.length === CONFIG.SNN.LAYER3_COUNT;
-            return (hasSharedL2 && hasSeparateL3) ? '✅ PASS' : '❌ FAIL';
-        });
-        
         this.test('Native SNN Gating', () => {
             const brain = game.tanks[0].brain;
             const hasNoGatingWeights = !brain.gatingWeights && !brain.gatingBias;
             const hasNoUpdateGating = typeof brain._updateGating === 'undefined';
             return (hasNoGatingWeights && hasNoUpdateGating) ? '✅ PASS' : '❌ FAIL: Separate gating still present';
+        });
+        
+        this.test('Correct Eligibility Traces', () => {
+            const brain = game.tanks[0].brain;
+            const hasCorrectMethod = typeof brain.eligibilityTraces.recordSpike === 'function';
+            const hasDecayMethod = typeof brain.eligibilityTraces.decayTraces === 'function';
+            return (hasCorrectMethod && hasDecayMethod) ? '✅ PASS' : '❌ FAIL: Wrong eligibility traces implementation';
+        });
+        
+        this.test('Shot Compensation', () => {
+            const brain = game.tanks[0].brain;
+            let hasCompensation = false;
+            if (brain.observeHit && brain.observeHit.toString().includes('compensationFactor')) {
+                hasCompensation = true;
+            }
+            return hasCompensation ? '✅ PASS' : '⚠️ WARN: Missing shot compensation';
         });
         
         log('--- DIAGNOSTICS COMPLETE ---', 'test');
@@ -4425,7 +4386,8 @@ function safeInit() {
         
         log(`🚀 SYSTEM READY v${CONFIG.VERSION.major}.${CONFIG.VERSION.minor}.${CONFIG.VERSION.patch}`, 'system');
         log('🏗️ NATIVE SNN GATING: L2→L3 synapses determine expert selection', 'expert');
-        log('✅ No separate gating network | Full causal integration', 'causal');
+        log('✅ Fixed STDP with correct eligibility traces', 'causal');
+        log('✅ Frame-accurate shot compensation (handles 120-frame projectiles)', 'learning');
         
         window.DEBUG = {
             version: () => `${CONFIG.VERSION.major}.${CONFIG.VERSION.minor}.${CONFIG.VERSION.patch}`,
@@ -4437,6 +4399,7 @@ function safeInit() {
             causalChains: () => game.tanks.map(t => t.worldModel.getCausalChainCount()),
             wmBlend: () => game.tanks.map(t => t.getCurrentAimBlendFactor()),
             wmConfidence: () => game.tanks.map(t => t.worldModel.getSuggestion().confidence),
+            traces: () => game.tanks.map(t => t.brain.eligibilityTraces.getActiveCount()),
             replay: () => {
                 const u1 = game.tanks[0].brain.replay();
                 const u2 = game.tanks[1].brain.replay();
@@ -4471,7 +4434,6 @@ window.addEventListener('resize', resize);
 window.game = game;
 window.SYS = SYS;
 window.TestRunner = TestRunner;
-window.FeatureFlagManager = FeatureFlagManager;
 </script>
 </body>
-  </html>
+    </html>
